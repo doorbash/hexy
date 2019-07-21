@@ -1,0 +1,82 @@
+hex3.png
+size: 256, 128
+format: RGBA8888
+filter: MipMapLinearLinear,Linear
+repeat: none
+hex_blue
+  rotate: false
+  xy: 2, 2
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_brown
+  rotate: false
+  xy: 2, 51
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_deep_purple
+  rotate: false
+  xy: 44, 2
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_gray
+  rotate: false
+  xy: 44, 51
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_green
+  rotate: false
+  xy: 86, 2
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_indigo
+  rotate: false
+  xy: 86, 51
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_orange
+  rotate: false
+  xy: 128, 2
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_purple
+  rotate: false
+  xy: 128, 51
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_red
+  rotate: false
+  xy: 170, 2
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_white
+  rotate: false
+  xy: 212, 2
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
+hex_yellow
+  rotate: false
+  xy: 170, 51
+  size: 40, 47
+  orig: 40, 47
+  offset: 0, 0
+  index: -1
