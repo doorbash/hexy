@@ -117,7 +117,8 @@ project(":core") {
     dependencies {
         compile "com.badlogicgames.gdx:gdx:$gdxVersion"
         compile "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
-        
+        implementation 'ir.doorbash:colyseus-java:2.0.2'
+        implementation 'org.slf4j:slf4j-simple:1.6.2'
     }
 }
 
