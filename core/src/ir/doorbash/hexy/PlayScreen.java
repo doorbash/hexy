@@ -56,14 +56,14 @@ public class PlayScreen extends ScreenAdapter {
     private static final float PATH_CELL_ALPHA_TINT = 0.4f;
 
     private static final int PAD_CONTROLLER_MAX_LENGTH = 42;
-    private static final Vector2 ON_SCREEN_PAD_POSITION = new Vector2(480 - 120, 800 - 120);
     private static final float ON_SCREEN_PAD_RELEASE_TOTAL_TIME = 0.3f;
-    private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3,2,3,0.5f);
+    private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3, 2, 3, 0.5f);
 
 
     private SpriteBatch batch;
     private OrthographicCamera camera;
     private Viewport viewport;
+    private Viewport viewportGui;
     private TextureAtlas gameAtlas;
     private FrameBuffer fbo;
     private Sprite tiles;
@@ -91,23 +91,30 @@ public class PlayScreen extends ScreenAdapter {
     private float onScreenPadCurrentLen = 0;
     private float onScreenPadReleaseTimer = 0;
     private float onScreenPadInitLen = 0;
+    private int screenWidth = 480;
+    private int screenHeight;
+    private Vector2 onScreenPadPosition;
 
     PlayScreen() {
+        screenHeight = screenWidth * Gdx.graphics.getHeight() / Gdx.graphics.getWidth();
+        onScreenPadPosition = new Vector2(screenWidth - 120, screenHeight - 120);
         batch = new SpriteBatch();
         gameAtlas = new TextureAtlas("pack.atlas");
         whiteHex = gameAtlas.findRegion("hex_white");
         thumbstickBgSprite = gameAtlas.createSprite("thumbstick-background");
         thumbstickBgSprite.setSize(152, 152);
-        thumbstickBgSprite.setCenter(ON_SCREEN_PAD_POSITION.x, ON_SCREEN_PAD_POSITION.y);
+        thumbstickBgSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
         thumbstickPadSprite = gameAtlas.createSprite("thumbstick-pad");
         thumbstickPadSprite.setSize(70, 70);
-        thumbstickPadSprite.setCenter(ON_SCREEN_PAD_POSITION.x, ON_SCREEN_PAD_POSITION.y);
+        thumbstickPadSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
         camera = new OrthographicCamera();
-        viewport = new ExtendViewport(480, 800, camera);
+        viewport = new ExtendViewport(screenWidth, screenHeight, camera);
         camera.zoom = 1f;
 
         guiCamera = new OrthographicCamera();
-        guiCamera.setToOrtho(true, 480, 800);
+        guiCamera.setToOrtho(true, screenWidth, screenHeight);
+        viewportGui = new ExtendViewport(screenWidth, screenHeight, guiCamera);
+        guiCamera.update();
 
         initTiles();
 
@@ -156,7 +163,7 @@ public class PlayScreen extends ScreenAdapter {
             onScreenPadCurrentLen = (1 - ON_SCREEN_PAD_RELEASE_ELASTIC_OUT.apply(Math.min(1, onScreenPadReleaseTimer / ON_SCREEN_PAD_RELEASE_TOTAL_TIME))) * onScreenPadInitLen;
 //            System.out.println("current pad length is " + onScreenPadCurrentLen);
             padVector.set(onScreenPadNorVector.x * onScreenPadCurrentLen, onScreenPadNorVector.y * onScreenPadCurrentLen);
-            thumbstickPadSprite.setCenter(ON_SCREEN_PAD_POSITION.x + padVector.x, ON_SCREEN_PAD_POSITION.y + padVector.y);
+            thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
         }
 
         if ((controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) || controllerType == CONTROLLER_TYPE_ON_SCREEN) {
@@ -181,6 +188,7 @@ public class PlayScreen extends ScreenAdapter {
 
     public void resize(int width, int height) {
         viewport.update(width, height);
+        viewportGui.update(width, height);
     }
 
     private void drawTiles() {
@@ -199,6 +207,19 @@ public class PlayScreen extends ScreenAdapter {
         tiles.setX(firstX);
         tiles.setY(firstY);
         tiles.draw(batch);
+    }
+
+    private void drawPlayers() {
+        synchronized (players) {
+            for (Player player : players) {
+                if (player != null && player.status == 0) {
+                    if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
+                    if (player.bc != null) player.bc.draw(batch);
+                    if (player.c != null) player.c.draw(batch);
+                    if (player.indic != null) player.indic.draw(batch);
+                }
+            }
+        }
     }
 
     private void drawPathCells() {
@@ -220,31 +241,15 @@ public class PlayScreen extends ScreenAdapter {
             }
         }
     }
-    private void drawPlayers() {
-        synchronized (players) {
-            for (Player player : players) {
-                if (player != null && player.status == 0) {
-                    if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
-                    if (player.bc != null) player.bc.draw(batch);
-                    if (player.c != null) player.c.draw(batch);
-                    if (player.indic != null) player.indic.draw(batch);
-                }
-            }
-        }
-    }
 
     private void drawCells() {
-        if (cellsLock.tryLock()) {
-            try {
-                for (Cell cell : cells.values()) {
-                    if (cell != null && cell.id != null) {
-                        cell.id.draw(batch);
-                    }
-                }
-            } finally {
-                cellsLock.unlock();
+        cellsLock.lock();
+        for (Cell cell : cells.values()) {
+            if (cell != null && cell.id != null) {
+                cell.id.draw(batch);
             }
         }
+        cellsLock.unlock();
     }
 
     private void updatePlayersPositions(float dt) {
@@ -473,7 +478,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void initTiles() {
-        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, 960, 1600, false);
+        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, 2 * screenWidth, 2 * screenHeight, false);
         fbo.begin();
 
         Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
@@ -522,8 +527,8 @@ public class PlayScreen extends ScreenAdapter {
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
 //                System.out.println("TouchDown");
                 mouseIsDown = true;
-                screenX = screenX * 480 / Gdx.graphics.getWidth();
-                screenY = screenY * 800 / Gdx.graphics.getHeight();
+                screenX = screenX * screenWidth / Gdx.graphics.getWidth();
+                screenY = screenY * screenHeight / Gdx.graphics.getHeight();
                 padAnchorPoint.set(screenX, screenY);
                 handleTouchDownDrag(screenX, screenY);
                 return true;
@@ -539,8 +544,8 @@ public class PlayScreen extends ScreenAdapter {
             @Override
             public boolean touchDragged(int screenX, int screenY, int pointer) {
 //                System.out.println("touchDragged()");
-                screenX = screenX * 480 / Gdx.graphics.getWidth();
-                screenY = screenY * 800 / Gdx.graphics.getHeight();
+                screenX = screenX * screenWidth / Gdx.graphics.getWidth();
+                screenY = screenY * screenHeight / Gdx.graphics.getHeight();
                 handleTouchDownDrag(screenX, screenY);
                 return true;
             }
@@ -559,8 +564,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private void handleTouchDownDrag(int screenX, int screenY) {
         if (controllerType == CONTROLLER_TYPE_MOUSE) {
-            float dx = screenX - 480 / 2f;
-            float dy = screenY - 800 / 2f;
+            float dx = screenX - screenWidth / 2f;
+            float dy = screenY - screenHeight / 2f;
             direction = (int) Math.toDegrees(Math.atan2(-dy, dx));
         } else if (controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) {
             thumbstickBgSprite.setCenter(padAnchorPoint.x, padAnchorPoint.y);
@@ -571,7 +576,7 @@ public class PlayScreen extends ScreenAdapter {
             thumbstickPadSprite.setCenter(padAnchorPoint.x + padVector.x, padAnchorPoint.y + padVector.y);
             direction = (int) Math.toDegrees(Math.atan2(-padVector.y, padVector.x));
         } else if (controllerType == CONTROLLER_TYPE_ON_SCREEN) {
-            padVector.set(screenX - ON_SCREEN_PAD_POSITION.x, screenY - ON_SCREEN_PAD_POSITION.y);
+            padVector.set(screenX - onScreenPadPosition.x, screenY - onScreenPadPosition.y);
             onScreenPadInitLen = padVector.len();
             onScreenPadNorVector = padVector.nor().cpy();
             if (onScreenPadInitLen > PAD_CONTROLLER_MAX_LENGTH) {
@@ -580,7 +585,7 @@ public class PlayScreen extends ScreenAdapter {
             padVector.scl(onScreenPadInitLen);
             onScreenPadCurrentLen = onScreenPadInitLen;
             onScreenPadReleaseTimer = 0;
-            thumbstickPadSprite.setCenter(ON_SCREEN_PAD_POSITION.x + padVector.x, ON_SCREEN_PAD_POSITION.y + padVector.y);
+            thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
             direction = (int) Math.toDegrees(Math.atan2(-padVector.y, padVector.x));
         }
     }
