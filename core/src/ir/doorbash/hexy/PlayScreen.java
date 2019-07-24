@@ -49,7 +49,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
 
-    private static final int SEND_DIRECTION_INTERVAL = 500;
+    private static final int SEND_DIRECTION_INTERVAL = 200;
 
     private static final float CAMERA_LERP = 0.9f;
 
@@ -521,9 +521,11 @@ public class PlayScreen extends ScreenAdapter {
             @Override
             public boolean touchDown(int screenX, int screenY, int pointer, int button) {
 //                System.out.println("TouchDown");
+                mouseIsDown = true;
+                screenX = screenX * 480 / Gdx.graphics.getWidth();
+                screenY = screenY * 800 / Gdx.graphics.getHeight();
                 padAnchorPoint.set(screenX, screenY);
                 handleTouchDownDrag(screenX, screenY);
-                mouseIsDown = true;
                 return true;
             }
 
@@ -537,7 +539,9 @@ public class PlayScreen extends ScreenAdapter {
             @Override
             public boolean touchDragged(int screenX, int screenY, int pointer) {
 //                System.out.println("touchDragged()");
-                handleTouchDownDrag(screenX * 480 / Gdx.graphics.getWidth(), screenY * 800 / Gdx.graphics.getHeight());
+                screenX = screenX * 480 / Gdx.graphics.getWidth();
+                screenY = screenY * 800 / Gdx.graphics.getHeight();
+                handleTouchDownDrag(screenX, screenY);
                 return true;
             }
 
