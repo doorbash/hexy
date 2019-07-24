@@ -42,7 +42,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final boolean DEBUG_SHOW_GHOST = false;
 
-//        private static final String ENDPOINT = "ws://192.168.1.134:3333";
+//    private static final String ENDPOINT = "ws://192.168.1.134:3333";
     public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
@@ -62,6 +62,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
 
     private static final int SEND_DIRECTION_INTERVAL = 200;
+    private static final int SEND_PING_INTERVAL = 5000;
 
     private static final float CAMERA_LERP = 0.9f;
 
@@ -93,6 +94,7 @@ public class PlayScreen extends ScreenAdapter {
     private LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
+    private int sendPingTime = 0;
     private final ArrayList<Player> players = new ArrayList<>();
     private final HashMap<Integer, Cell> cells = new HashMap<>();
     private Lock cellsLock = new ReentrantLock();
@@ -109,6 +111,8 @@ public class PlayScreen extends ScreenAdapter {
     private int screenWidth = 480;
     private int screenHeight;
     private Vector2 onScreenPadPosition;
+    private long lastPingTime;
+    private int currentPing;
 
     PlayScreen() {
         screenHeight = screenWidth * Gdx.graphics.getHeight() / Gdx.graphics.getWidth();
@@ -171,7 +175,7 @@ public class PlayScreen extends ScreenAdapter {
             drawPlayers();
         }
 
-        if(controllerType != CONTROLLER_TYPE_MOUSE) {
+        if (controllerType != CONTROLLER_TYPE_MOUSE) {
             batch.setProjectionMatrix(controllerCamera.combined);
 
             if (controllerType == CONTROLLER_TYPE_ON_SCREEN && !mouseIsDown && !MathUtils.isEqual(onScreenPadCurrentLen, 0)) {
@@ -191,7 +195,11 @@ public class PlayScreen extends ScreenAdapter {
 
         batch.setProjectionMatrix(guiCamera.combined);
 
-        logFont.draw(batch, "fps: " + Gdx.graphics.getFramesPerSecond(), 8 , Gdx.graphics.getHeight() - 4 - logFont.getLineHeight());
+        String logText = "fps: " + Gdx.graphics.getFramesPerSecond();
+        if (currentPing != 0) {
+            logText += " - ping: " + currentPing;
+        }
+        logFont.draw(batch, logText, 8, Gdx.graphics.getHeight() - 4 - logFont.getLineHeight());
 
         batch.end();
 
@@ -199,6 +207,11 @@ public class PlayScreen extends ScreenAdapter {
             sendDirection();
             sendDirectionTime = SEND_DIRECTION_INTERVAL;
         } else sendDirectionTime -= dt * 1000;
+
+        if (sendPingTime < 0) {
+            sendPing();
+            sendPingTime = SEND_PING_INTERVAL;
+        } else sendPingTime -= dt * 1000;
     }
 
     @Override
@@ -366,6 +379,11 @@ public class PlayScreen extends ScreenAdapter {
                             System.out.println("time diff: " + timeDiff);
                         } else if (data.get("op").equals("cp")) {
 //                            String clientId = (String) data.get("player");
+                        } else if (data.get("op").equals("pg")) {
+                            long t = (long) data.get("t");
+                            if (t == lastPingTime) {
+                                currentPing = (int) (System.currentTimeMillis() - t);
+                            } else currentPing = 0;
                         }
                     }
 
@@ -493,10 +511,19 @@ public class PlayScreen extends ScreenAdapter {
     private void sendDirection() {
         if (room == null || !room.hasJoined()) return;
         if (lastDirection != direction) {
-            message.put("a", direction);
+            message.put("op","d");
+            message.put("v", direction);
             room.send(message);
             lastDirection = direction;
         }
+    }
+
+    private void sendPing() {
+        if (room == null || !room.hasJoined()) return;
+        lastPingTime = System.currentTimeMillis();
+        message.put("op", "p");
+        message.put("v", lastPingTime);
+        room.send(message);
     }
 
     private Vector2 getHexPosition(int x, int y) {
@@ -626,7 +653,6 @@ public class PlayScreen extends ScreenAdapter {
         logFontParameters.color = Color.BLACK;
         logFontParameters.flip = true;
         logFontParameters.incremental = true;
-        logFontParameters.minFilter = Texture.TextureFilter.Linear;
         logFont = freetypeGenerator.generateFont(logFontParameters);
     }
 }
