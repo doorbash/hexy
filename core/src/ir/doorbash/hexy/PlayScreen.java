@@ -37,10 +37,11 @@ import ir.doorbash.hexy.util.ColorUtil;
  */
 public class PlayScreen extends ScreenAdapter {
 
-    private static final boolean DEBUG_SHOW_GHOST = false;
+    private static final boolean DEBUG_SHOW_GHOST = true;
 
-    private static final String ENDPOINT = "ws://192.168.1.134:3333";
+        private static final String ENDPOINT = "ws://192.168.1.134:3333";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+//    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final int CONTROLLER_TYPE_MOUSE = 1;
     private static final int CONTROLLER_TYPE_PAD = 2;
@@ -390,6 +391,8 @@ public class PlayScreen extends ScreenAdapter {
 
                             player.bcGhost = gameAtlas.createSprite("bc");
                             player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
+                            player.bcGhost.setCenter(player.x, player.y);
+                            player.bcGhost.setSize(46, 46);
 
                             if (player.clientId.equals(client.getId())) {
                                 // this is you
