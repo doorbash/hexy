@@ -2,10 +2,10 @@ package ir.doorbash.hexy;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -17,13 +17,13 @@ import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 
 import io.colyseus.Client;
 import io.colyseus.Room;
 import io.colyseus.serializer.schema.DataChange;
-import io.colyseus.serializer.schema.Schema;
+import ir.doorbash.hexy.model.Cell;
 import ir.doorbash.hexy.model.MyState;
 import ir.doorbash.hexy.model.Player;
 import ir.doorbash.hexy.util.Color4;
@@ -36,6 +36,9 @@ public class PlayScreen extends ScreenAdapter {
 
     public static final boolean DEBUG_SHOW_GHOST = false;
 
+    public static final String ENDPOINT = "ws://192.168.1.134:3333";
+//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+
     public static final boolean CORRECT_PLAYER_POSITION = true;
     public static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
 
@@ -43,15 +46,16 @@ public class PlayScreen extends ScreenAdapter {
 
     public static final float CAMERA_LERP = 0.9f;
 
+    public static final float PATH_CELL_ALPHA_TINT = 0.4f;
+
     SpriteBatch batch;
     OrthographicCamera camera;
     Viewport viewport;
 
-    TextureAtlas hexAtlas;
     TextureAtlas gameAtlas;
 
-    Sprite white_hex;
-    Texture whiteHex;
+    Sprite whiteHex;
+    //    Texture whiteHex;
     FrameBuffer fbo;
     Sprite tiles;
 
@@ -59,19 +63,17 @@ public class PlayScreen extends ScreenAdapter {
     private Client client;
     private Room<MyState> room;
     private long timeDiff;
-    float lastAngle;
+    private float lastAngle;
     private LinkedHashMap<String, Object> message;
-    int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
-    int sendDirectionTime = SEND_DIRECTION_INTERVAL;
+    private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
+    private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
+    private final ArrayList<Player> players = new ArrayList<>();
+    private final HashMap<Integer, Cell> cells = new HashMap<>();
 
     public PlayScreen() {
         batch = new SpriteBatch();
-        whiteHex = new Texture("spritesheets/hex_white.png");
-        white_hex = new Sprite(whiteHex);
-        hexAtlas = new TextureAtlas("spritesheets/hex3.txt");
-        gameAtlas = new TextureAtlas("spritesheets/game.atlas");
-//        white_hex = hexAtlas.createSprite("hex_blue");
-//        blue_hex.setSize(40,46);
+        gameAtlas = new TextureAtlas("spritesheets/pack.atlas");
+        whiteHex = gameAtlas.createSprite("hex_white");
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(480, 800, camera);
         camera.zoom = 1f;
@@ -91,7 +93,7 @@ public class PlayScreen extends ScreenAdapter {
 
         for (int xi = -3; xi < 22; xi++) {
             for (int yi = -3; yi < 37; yi++) {
-                batch.draw(white_hex, xi * 44 + (yi % 2 == 0 ? 0 : 22), yi * 38, 40, 46);
+                batch.draw(whiteHex, xi * 44 + (yi % 2 == 0 ? 0 : 22) - 20, yi * 38 - 23, 40, 46);
             }
         }
 
@@ -131,6 +133,8 @@ public class PlayScreen extends ScreenAdapter {
         drawTiles();
         if (room != null) {
             updatePlayersPositions(dt);
+
+            drawCells();
             drawPlayers();
         }
 
@@ -146,7 +150,7 @@ public class PlayScreen extends ScreenAdapter {
     public void dispose() {
         batch.dispose();
         fbo.dispose();
-        hexAtlas.dispose();
+        gameAtlas.dispose();
     }
 
     public void resize(int width, int height) {
@@ -172,31 +176,51 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPlayers() {
-        Schema.MapSchema<Player> players = room.getState().players;
-        Iterator<String> iterator = new ArrayList<>(players.keys()).iterator();
-        while (iterator.hasNext()) {
-            Player player = players.get(iterator.next());
-            if (player != null) {
-                player.bc.draw(batch);
-                if (DEBUG_SHOW_GHOST) player.bcGhost.draw(batch);
+        synchronized (players) {
+            for (Player player : players) {
+                if (player != null && player.status == 0) {
+                    synchronized (player.pathCells) {
+                        for (Cell cell : player.pathCells.values()) {
+                            if (cell != null && cell.id != null) {
+                                cell.id.draw(batch);
+                            }
+                        }
+                    }
+                    if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
+                    if (player.bc != null) player.bc.draw(batch);
+                    if (player.c != null) player.c.draw(batch);
+                }
+            }
+        }
+    }
+
+    private void drawCells() {
+        synchronized (cells) {
+            for (Cell cell : cells.values()) {
+                if (cell != null && cell.id != null) {
+                    cell.id.draw(batch);
+                }
             }
         }
     }
 
     private void updatePlayersPositions(float dt) {
-        for (Player player : room.getState().players.values()) {
-            if (player.bc != null) {
+        synchronized (players) {
+            for (Player player : players) {
+                if (player.bc != null && player.status == 0) {
 
-                if (CORRECT_PLAYER_POSITION) {
-                    if (correctPlayerPositionTime < 0) {
-                        correctPlayerPosition(player);
-                        correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
-                    } else correctPlayerPositionTime -= dt * 1000;
+                    if (CORRECT_PLAYER_POSITION) {
+                        if (correctPlayerPositionTime < 0) {
+                            correctPlayerPosition(player);
+                            correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
+                        } else correctPlayerPositionTime -= dt * 1000;
+                    }
+
+                    player.bc.translate(MathUtils.cos(player.angle) * player.speed * dt, MathUtils.sin(player.angle) * player.speed * dt);
+                    player.c.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
+
+                    player.bcGhost.setCenter(player.x, player.y);
                 }
-
-                player.bc.translate(MathUtils.cos(player.angle) * player.speed * dt, MathUtils.sin(player.angle) * player.speed * dt);
-
-                player.bcGhost.setCenter(player.x, player.y);
             }
         }
     }
@@ -225,11 +249,12 @@ public class PlayScreen extends ScreenAdapter {
         if (dst > 0 && d > 0) {
             player.bc.setCenterX(MathUtils.lerp(player.bc.getX() + player.bc.getWidth() / 2f, player.x, d / dst));
             player.bc.setCenterY(MathUtils.lerp(player.bc.getY() + player.bc.getHeight() / 2f, player.y, d / dst));
+            player.c.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
         }
     }
 
     private void connectToServer() {
-        client = new Client("ws://192.168.1.134:3333", new Client.Listener() {
+        client = new Client(ENDPOINT, null, null, null, 10000, new Client.Listener() {
             @Override
             public void onOpen(String s) {
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
@@ -256,6 +281,8 @@ public class PlayScreen extends ScreenAdapter {
                             long time = (long) data.get("time");
                             timeDiff = time - System.currentTimeMillis();
                             System.out.println("time diff: " + timeDiff);
+                        } else if (data.get("op").equals("cp")) {
+//                            String clientId = (String) data.get("player");
                         }
                     }
 
@@ -280,27 +307,71 @@ public class PlayScreen extends ScreenAdapter {
                             }
                         };
                         room.getState().players.onAddListener = (player, key) -> {
+                            synchronized (players) {
+                                players.add(player);
+                            }
+                            Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
+                            Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
+
                             player.bc = gameAtlas.createSprite("bc");
-                            player.bcGhost = gameAtlas.createSprite("bc");
-                            Color4 c = ColorUtil.color_index_to_rgba[player.color - 1];
-                            player.bc.setColor(c.r, c.g, c.b, c.a);
+                            player.bc.setSize(46, 46);
+                            player.bc.setColor(bcColor);
                             player.bc.setCenter(player.x, player.y);
-                            player.bcGhost.setColor(c.r, c.g, c.b, c.a / 2f);
+
+                            player.c = gameAtlas.createSprite("bc");
+                            player.c.setSize(36, 36);
+                            player.c.setColor(cColor);
+                            player.c.setCenter(player.x, player.y);
+
+                            player.bcGhost = gameAtlas.createSprite("bc");
+                            player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
+
                             if (player.clientId.equals(client.getId())) {
                                 // this is you
                                 camera.position.x = player.x;
                                 camera.position.y = player.y;
                             }
-                            player.onChange = changes -> {
-                                for (DataChange change : changes) {
-                                    switch (change.field) {
-                                        case "x":
-                                        case "y":
-
-                                            break;
-                                    }
+                            player.cells.onAddListener = (cell, key2) -> {
+                                synchronized (player.pathCells) {
+                                    player.pathCells.put(key2, cell);
+                                }
+                                cell.id = gameAtlas.createSprite("hex_white");
+                                cell.id.setSize(40,46);
+                                Vector2 pos = getHexPosition(cell.x, cell.y);
+                                cell.id.setCenter(pos.x, pos.y);
+                                Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
+                                cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
+                            };
+                            player.cells.onRemoveListener = (cell, key2) -> {
+                                synchronized (player.pathCells) {
+                                    player.pathCells.remove(key2);
                                 }
                             };
+                        };
+
+                        room.getState().players.onRemoveListener = (player, key) -> {
+                            synchronized (players) {
+                                players.remove(player);
+                            }
+                        };
+
+                        room.getState().cells.onAddListener = (cell, key) -> {
+                            synchronized (cells) {
+                                cells.put(key, cell);
+                            }
+                            cell.id = gameAtlas.createSprite("hex_white");
+                            cell.id.setSize(40,46);
+                            Vector2 pos = getHexPosition(cell.x, cell.y);
+                            cell.id.setCenter(pos.x, pos.y);
+                            cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+                            cell.onChange = changes -> {
+                                cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+                            };
+                        };
+                        room.getState().cells.onRemoveListener = (cell, key) -> {
+                            synchronized (cells) {
+                                cells.remove(key);
+                            }
                         };
                     }
                 });
@@ -328,7 +399,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void sendDirection() {
-        if (room == null) return;
+        if (room == null || !room.hasJoined()) return;
         float dx = Gdx.input.getX() - Gdx.graphics.getWidth() / 2f;
         float dy = Gdx.input.getY() - Gdx.graphics.getHeight() / 2f;
         int angle = (int) Math.toDegrees(Math.atan2(-dy, dx));
@@ -337,5 +408,12 @@ public class PlayScreen extends ScreenAdapter {
             room.send(message);
             lastAngle = angle;
         }
+    }
+
+    private Vector2 getHexPosition(int x, int y) {
+        Vector2 pos = new Vector2();
+        pos.x = x * 44 + (y % 2 == 0 ? 0 : 22);
+        pos.y = y * 38;
+        return pos;
     }
 }

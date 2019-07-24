@@ -1,0 +1,55 @@
+
+pack.png
+size: 1024,1024
+format: RGBA8888
+filter: MipMapLinearLinear,Nearest
+repeat: none
+bc
+  rotate: false
+  xy: 2, 2
+  size: 184, 184
+  orig: 184, 184
+  offset: 0, 0
+  index: -1
+hex_white
+  rotate: false
+  xy: 614, 530
+  size: 160, 186
+  orig: 160, 186
+  offset: 0, 0
+  index: -1
+hexyio
+  rotate: false
+  xy: 2, 188
+  size: 720, 180
+  orig: 720, 180
+  offset: 0, 0
+  index: -1
+indic
+  rotate: false
+  xy: 188, 26
+  size: 160, 160
+  orig: 160, 160
+  offset: 0, 0
+  index: -1
+m
+  rotate: false
+  xy: 878, 970
+  size: 10, 10
+  orig: 10, 10
+  offset: 0, 0
+  index: -1
+thumbstick-background
+  rotate: false
+  xy: 2, 370
+  size: 610, 610
+  orig: 610, 610
+  offset: 0, 0
+  index: -1
+thumbstick-pad
+  rotate: false
+  xy: 614, 718
+  size: 262, 262
+  orig: 262, 262
+  offset: 0, 0
+  index: -1

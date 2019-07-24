@@ -6,6 +6,8 @@ package ir.doorbash.hexy.model;//
 // 
 
 
+import com.badlogic.gdx.graphics.g2d.Sprite;
+
 import io.colyseus.serializer.schema.Schema;
 import io.colyseus.serializer.schema.annotations.SchemaClass;
 import io.colyseus.serializer.schema.annotations.SchemaField;
@@ -23,5 +25,7 @@ public class Cell extends Schema {
 
 	@SchemaField("3/string")	
 	public String owner = "";
+
+	public Sprite id;
 }
 

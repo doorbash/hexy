@@ -8,6 +8,8 @@ package ir.doorbash.hexy.model;//
 
 import com.badlogic.gdx.graphics.g2d.Sprite;
 
+import java.util.HashMap;
+
 import io.colyseus.serializer.schema.Schema;
 import io.colyseus.serializer.schema.annotations.SchemaClass;
 import io.colyseus.serializer.schema.annotations.SchemaField;
@@ -51,6 +53,13 @@ public class Player extends Schema {
 	public int speed = 0;
 
 	public Sprite bc;
+	public Sprite c;
 	public Sprite bcGhost;
+	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
+
+	@Override
+	public boolean equals(Object obj) {
+		return obj instanceof Player && ((Player) obj).clientId.equals(clientId);
+	}
 }
 
