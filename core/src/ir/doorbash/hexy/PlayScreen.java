@@ -7,9 +7,12 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
@@ -37,11 +40,19 @@ import ir.doorbash.hexy.util.ColorUtil;
  */
 public class PlayScreen extends ScreenAdapter {
 
-    private static final boolean DEBUG_SHOW_GHOST = true;
+    private static final boolean DEBUG_SHOW_GHOST = false;
 
-        private static final String ENDPOINT = "ws://192.168.1.134:3333";
-//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+//        private static final String ENDPOINT = "ws://192.168.1.134:3333";
+    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
+
+    private static final String PATH_LOG_FONT = "fonts/NotoSans-Regular.ttf";
+    private static final String PATH_PACK_ATLAS = "pack.atlas";
+    private static final String TEXTURE_REGION_HEX_WHITE = "hex_white";
+    private static final String TEXTURE_REGION_THUMBSTICK_BG = "thumbstick-background";
+    private static final String TEXTURE_REGION_THUMBSTICK_PAD = "thumbstick-pad";
+    private static final String TEXTURE_REGION_BC = "bc";
+    private static final String TEXTURE_REGION_INDIC = "indic";
 
     private static final int CONTROLLER_TYPE_MOUSE = 1;
     private static final int CONTROLLER_TYPE_PAD = 2;
@@ -64,13 +75,15 @@ public class PlayScreen extends ScreenAdapter {
     private SpriteBatch batch;
     private OrthographicCamera camera;
     private Viewport viewport;
-    private Viewport viewportGui;
+    private Viewport viewportControllerCam;
     private TextureAtlas gameAtlas;
     private FrameBuffer fbo;
     private Sprite tiles;
     private TextureAtlas.AtlasRegion whiteHex;
     private Sprite thumbstickBgSprite;
     private Sprite thumbstickPadSprite;
+    private FreeTypeFontGenerator freetypeGenerator;
+    private BitmapFont logFont;
 
     private Client client;
     private Room<MyState> room;
@@ -84,6 +97,7 @@ public class PlayScreen extends ScreenAdapter {
     private final HashMap<Integer, Cell> cells = new HashMap<>();
     private Lock cellsLock = new ReentrantLock();
     private int controllerType = CONTROLLER_TYPE_PAD;
+    private OrthographicCamera controllerCamera;
     private OrthographicCamera guiCamera;
     private boolean mouseIsDown = false;
     private Vector2 padAnchorPoint = new Vector2();
@@ -100,22 +114,26 @@ public class PlayScreen extends ScreenAdapter {
         screenHeight = screenWidth * Gdx.graphics.getHeight() / Gdx.graphics.getWidth();
         onScreenPadPosition = new Vector2(screenWidth - 120, screenHeight - 120);
         batch = new SpriteBatch();
-        gameAtlas = new TextureAtlas("pack.atlas");
-        whiteHex = gameAtlas.findRegion("hex_white");
-        thumbstickBgSprite = gameAtlas.createSprite("thumbstick-background");
+        gameAtlas = new TextureAtlas(PATH_PACK_ATLAS);
+        whiteHex = gameAtlas.findRegion(TEXTURE_REGION_HEX_WHITE);
+        thumbstickBgSprite = gameAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_BG);
         thumbstickBgSprite.setSize(152, 152);
         thumbstickBgSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
-        thumbstickPadSprite = gameAtlas.createSprite("thumbstick-pad");
+        thumbstickPadSprite = gameAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_PAD);
         thumbstickPadSprite.setSize(70, 70);
         thumbstickPadSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(screenWidth, screenHeight, camera);
         camera.zoom = 1f;
-
+        controllerCamera = new OrthographicCamera();
+        controllerCamera.setToOrtho(true, screenWidth, screenHeight);
+        viewportControllerCam = new ExtendViewport(screenWidth, screenHeight, controllerCamera);
+        controllerCamera.update();
         guiCamera = new OrthographicCamera();
-        guiCamera.setToOrtho(true, screenWidth, screenHeight);
-        viewportGui = new ExtendViewport(screenWidth, screenHeight, guiCamera);
+        guiCamera.setToOrtho(true, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         guiCamera.update();
+
+        initFonts();
 
         initTiles();
 
@@ -153,24 +171,27 @@ public class PlayScreen extends ScreenAdapter {
             drawPlayers();
         }
 
-        batch.end();
+        if(controllerType != CONTROLLER_TYPE_MOUSE) {
+            batch.setProjectionMatrix(controllerCamera.combined);
+
+            if (controllerType == CONTROLLER_TYPE_ON_SCREEN && !mouseIsDown && !MathUtils.isEqual(onScreenPadCurrentLen, 0)) {
+//            System.out.println("bouncing....");
+                onScreenPadReleaseTimer += dt;
+                onScreenPadCurrentLen = (1 - ON_SCREEN_PAD_RELEASE_ELASTIC_OUT.apply(Math.min(1, onScreenPadReleaseTimer / ON_SCREEN_PAD_RELEASE_TOTAL_TIME))) * onScreenPadInitLen;
+//            System.out.println("current pad length is " + onScreenPadCurrentLen);
+                padVector.set(onScreenPadNorVector.x * onScreenPadCurrentLen, onScreenPadNorVector.y * onScreenPadCurrentLen);
+                thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
+            }
+
+            if ((controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) || controllerType == CONTROLLER_TYPE_ON_SCREEN) {
+                thumbstickBgSprite.draw(batch);
+                thumbstickPadSprite.draw(batch);
+            }
+        }
 
         batch.setProjectionMatrix(guiCamera.combined);
-        batch.begin();
 
-        if (controllerType == CONTROLLER_TYPE_ON_SCREEN && !mouseIsDown && !MathUtils.isEqual(onScreenPadCurrentLen, 0)) {
-//            System.out.println("bouncing....");
-            onScreenPadReleaseTimer += dt;
-            onScreenPadCurrentLen = (1 - ON_SCREEN_PAD_RELEASE_ELASTIC_OUT.apply(Math.min(1, onScreenPadReleaseTimer / ON_SCREEN_PAD_RELEASE_TOTAL_TIME))) * onScreenPadInitLen;
-//            System.out.println("current pad length is " + onScreenPadCurrentLen);
-            padVector.set(onScreenPadNorVector.x * onScreenPadCurrentLen, onScreenPadNorVector.y * onScreenPadCurrentLen);
-            thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
-        }
-
-        if ((controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) || controllerType == CONTROLLER_TYPE_ON_SCREEN) {
-            thumbstickBgSprite.draw(batch);
-            thumbstickPadSprite.draw(batch);
-        }
+        logFont.draw(batch, "fps: " + Gdx.graphics.getFramesPerSecond(), 8 , Gdx.graphics.getHeight() - 4 - logFont.getLineHeight());
 
         batch.end();
 
@@ -185,11 +206,16 @@ public class PlayScreen extends ScreenAdapter {
         batch.dispose();
         fbo.dispose();
         gameAtlas.dispose();
+        logFont.dispose();
+        freetypeGenerator.dispose();
     }
 
     public void resize(int width, int height) {
         viewport.update(width, height);
-        viewportGui.update(width, height);
+        viewportControllerCam.update(width, height);
+        guiCamera.viewportWidth = width;
+        guiCamera.viewportHeight = height;
+        guiCamera.update();
     }
 
     private void drawTiles() {
@@ -370,18 +396,18 @@ public class PlayScreen extends ScreenAdapter {
                             Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
                             Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
 
-                            player.bc = gameAtlas.createSprite("bc");
+                            player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
                             player.bc.setSize(46, 46);
                             player.bc.setColor(bcColor);
                             player.bc.setCenter(player.x, player.y);
 
-                            player.c = gameAtlas.createSprite("bc");
+                            player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
                             player.c.setSize(36, 36);
                             player.c.setColor(cColor);
                             player.c.setCenter(player.x, player.y);
 
                             if (player.clientId.equals(client.getId())) {
-                                player.indic = gameAtlas.createSprite("indic");
+                                player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
                                 player.indic.setSize(80, 80);
                                 player.indic.setColor(bcColor);
                                 player.indic.setCenter(player.x, player.y);
@@ -389,7 +415,7 @@ public class PlayScreen extends ScreenAdapter {
                                 player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
                             }
 
-                            player.bcGhost = gameAtlas.createSprite("bc");
+                            player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
                             player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
                             player.bcGhost.setCenter(player.x, player.y);
                             player.bcGhost.setSize(46, 46);
@@ -403,7 +429,7 @@ public class PlayScreen extends ScreenAdapter {
                                 player.pathCellsLock.lock();
                                 player.pathCells.put(key2, cell);
                                 player.pathCellsLock.unlock();
-                                cell.id = gameAtlas.createSprite("hex_white");
+                                cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
                                 cell.id.setSize(40, 46);
                                 Vector2 pos = getHexPosition(cell.x, cell.y);
                                 cell.id.setCenter(pos.x, pos.y);
@@ -427,7 +453,7 @@ public class PlayScreen extends ScreenAdapter {
                             cellsLock.lock();
                             cells.put(key, cell);
                             cellsLock.unlock();
-                            cell.id = gameAtlas.createSprite("hex_white");
+                            cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
                             cell.id.setSize(40, 46);
                             Vector2 pos = getHexPosition(cell.x, cell.y);
                             cell.id.setCenter(pos.x, pos.y);
@@ -591,5 +617,16 @@ public class PlayScreen extends ScreenAdapter {
             thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
             direction = (int) Math.toDegrees(Math.atan2(-padVector.y, padVector.x));
         }
+    }
+
+    private void initFonts() {
+        freetypeGenerator = new FreeTypeFontGenerator(Gdx.files.internal(PATH_LOG_FONT));
+        FreeTypeFontGenerator.FreeTypeFontParameter logFontParameters = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        logFontParameters.size = 14 * Gdx.graphics.getWidth() / screenWidth;
+        logFontParameters.color = Color.BLACK;
+        logFontParameters.flip = true;
+        logFontParameters.incremental = true;
+        logFontParameters.minFilter = Texture.TextureFilter.Linear;
+        logFont = freetypeGenerator.generateFont(logFontParameters);
     }
 }
