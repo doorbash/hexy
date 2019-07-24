@@ -56,6 +56,7 @@ public class Player extends Schema {
 
 	public Sprite bc;
 	public Sprite c;
+	public Sprite indic;
 	public Sprite bcGhost;
 	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
 	public Lock pathCellsLock = new ReentrantLock();

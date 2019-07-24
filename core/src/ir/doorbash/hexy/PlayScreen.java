@@ -193,6 +193,7 @@ public class PlayScreen extends ScreenAdapter {
                     if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
                     if (player.bc != null) player.bc.draw(batch);
                     if (player.c != null) player.c.draw(batch);
+                    if (player.indic != null) player.indic.draw(batch);
                 }
             }
         }
@@ -227,6 +228,11 @@ public class PlayScreen extends ScreenAdapter {
                     player.bc.translate(MathUtils.cos(player.angle) * player.speed * dt, MathUtils.sin(player.angle) * player.speed * dt);
                     player.c.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
 
+                    if (player.indic != null) {
+                        player.indic.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
+                        player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                    }
+
                     player.bcGhost.setCenter(player.x, player.y);
                 }
             }
@@ -258,6 +264,9 @@ public class PlayScreen extends ScreenAdapter {
             player.bc.setCenterX(MathUtils.lerp(player.bc.getX() + player.bc.getWidth() / 2f, player.x, d / dst));
             player.bc.setCenterY(MathUtils.lerp(player.bc.getY() + player.bc.getHeight() / 2f, player.y, d / dst));
             player.c.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
+            if (player.indic != null) {
+                player.indic.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
+            }
         }
     }
 
@@ -330,6 +339,15 @@ public class PlayScreen extends ScreenAdapter {
                             player.c.setSize(36, 36);
                             player.c.setColor(cColor);
                             player.c.setCenter(player.x, player.y);
+
+                            if (player.clientId.equals(client.getId())) {
+                                player.indic = gameAtlas.createSprite("indic");
+                                player.indic.setSize(80, 80);
+                                player.indic.setColor(bcColor);
+                                player.indic.setCenter(player.x, player.y);
+                                player.indic.setOriginCenter();
+                                player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                            }
 
                             player.bcGhost = gameAtlas.createSprite("bc");
                             player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
