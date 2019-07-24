@@ -82,7 +82,7 @@ public class PlayScreen extends ScreenAdapter {
     private final ArrayList<Player> players = new ArrayList<>();
     private final HashMap<Integer, Cell> cells = new HashMap<>();
     private Lock cellsLock = new ReentrantLock();
-    private int controllerType = CONTROLLER_TYPE_ON_SCREEN;
+    private int controllerType = CONTROLLER_TYPE_PAD;
     private OrthographicCamera guiCamera;
     private boolean mouseIsDown = false;
     private Vector2 padAnchorPoint = new Vector2();
