@@ -1,55 +1,55 @@
 
 pack.png
-size: 1024,1024
+size: 512,512
 format: RGBA8888
-filter: MipMapLinearLinear,Nearest
+filter: MipMapLinearLinear,Linear
 repeat: none
 bc
   rotate: false
-  xy: 2, 2
-  size: 184, 184
-  orig: 184, 184
+  xy: 325, 203
+  size: 92, 92
+  orig: 92, 92
   offset: 0, 0
   index: -1
 hex_white
   rotate: false
-  xy: 614, 530
-  size: 160, 186
-  orig: 160, 186
+  xy: 380, 100
+  size: 80, 93
+  orig: 80, 93
   offset: 0, 0
   index: -1
 hexyio
   rotate: false
-  xy: 2, 188
-  size: 720, 180
-  orig: 720, 180
+  xy: 10, 31
+  size: 360, 90
+  orig: 360, 90
   offset: 0, 0
   index: -1
 indic
   rotate: false
-  xy: 188, 26
-  size: 160, 160
-  orig: 160, 160
+  xy: 380, 10
+  size: 80, 80
+  orig: 80, 80
   offset: 0, 0
   index: -1
 m
   rotate: false
-  xy: 878, 970
-  size: 10, 10
-  orig: 10, 10
+  xy: 466, 431
+  size: 5, 5
+  orig: 5, 5
   offset: 0, 0
   index: -1
 thumbstick-background
   rotate: false
-  xy: 2, 370
-  size: 610, 610
-  orig: 610, 610
+  xy: 10, 131
+  size: 305, 305
+  orig: 305, 305
   offset: 0, 0
   index: -1
 thumbstick-pad
   rotate: false
-  xy: 614, 718
-  size: 262, 262
-  orig: 262, 262
+  xy: 325, 305
+  size: 131, 131
+  orig: 131, 131
   offset: 0, 0
   index: -1
