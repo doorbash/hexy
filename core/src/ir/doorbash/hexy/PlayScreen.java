@@ -19,6 +19,8 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import io.colyseus.Client;
 import io.colyseus.Room;
@@ -26,7 +28,6 @@ import io.colyseus.serializer.schema.DataChange;
 import ir.doorbash.hexy.model.Cell;
 import ir.doorbash.hexy.model.MyState;
 import ir.doorbash.hexy.model.Player;
-import ir.doorbash.hexy.util.Color4;
 import ir.doorbash.hexy.util.ColorUtil;
 
 /**
@@ -34,30 +35,28 @@ import ir.doorbash.hexy.util.ColorUtil;
  */
 public class PlayScreen extends ScreenAdapter {
 
-    public static final boolean DEBUG_SHOW_GHOST = false;
+    private static final boolean DEBUG_SHOW_GHOST = false;
 
-    public static final String ENDPOINT = "ws://192.168.1.134:3333";
+    private static final String ENDPOINT = "ws://192.168.1.134:3333";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 
-    public static final boolean CORRECT_PLAYER_POSITION = true;
-    public static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
+    private static final boolean CORRECT_PLAYER_POSITION = true;
+    private static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
 
-    public static final int SEND_DIRECTION_INTERVAL = 500;
+    private static final int SEND_DIRECTION_INTERVAL = 500;
 
-    public static final float CAMERA_LERP = 0.9f;
+    private static final float CAMERA_LERP = 0.9f;
 
-    public static final float PATH_CELL_ALPHA_TINT = 0.4f;
+    private static final float PATH_CELL_ALPHA_TINT = 0.4f;
 
-    SpriteBatch batch;
-    OrthographicCamera camera;
-    Viewport viewport;
+    private SpriteBatch batch;
+    private OrthographicCamera camera;
+    private Viewport viewport;
 
-    TextureAtlas gameAtlas;
+    private TextureAtlas gameAtlas;
 
-    Sprite whiteHex;
-    //    Texture whiteHex;
-    FrameBuffer fbo;
-    Sprite tiles;
+    private FrameBuffer fbo;
+    private Sprite tiles;
 
     //    private Vector2 position = new Vector2();
     private Client client;
@@ -69,11 +68,12 @@ public class PlayScreen extends ScreenAdapter {
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
     private final ArrayList<Player> players = new ArrayList<>();
     private final HashMap<Integer, Cell> cells = new HashMap<>();
+    private Lock cellsLock = new ReentrantLock();
 
-    public PlayScreen() {
+    PlayScreen() {
         batch = new SpriteBatch();
         gameAtlas = new TextureAtlas("spritesheets/pack.atlas");
-        whiteHex = gameAtlas.createSprite("hex_white");
+        Sprite whiteHex = gameAtlas.createSprite("hex_white");
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(480, 800, camera);
         camera.zoom = 1f;
@@ -179,11 +179,15 @@ public class PlayScreen extends ScreenAdapter {
         synchronized (players) {
             for (Player player : players) {
                 if (player != null && player.status == 0) {
-                    synchronized (player.pathCells) {
-                        for (Cell cell : player.pathCells.values()) {
-                            if (cell != null && cell.id != null) {
-                                cell.id.draw(batch);
+                    if (player.pathCellsLock.tryLock()) {
+                        try {
+                            for (Cell cell : player.pathCells.values()) {
+                                if (cell != null && cell.id != null) {
+                                    cell.id.draw(batch);
+                                }
                             }
+                        } finally {
+                            player.pathCellsLock.unlock();
                         }
                     }
                     if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
@@ -195,11 +199,15 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawCells() {
-        synchronized (cells) {
-            for (Cell cell : cells.values()) {
-                if (cell != null && cell.id != null) {
-                    cell.id.draw(batch);
+        if (cellsLock.tryLock()) {
+            try {
+                for (Cell cell : cells.values()) {
+                    if (cell != null && cell.id != null) {
+                        cell.id.draw(batch);
+                    }
                 }
+            } finally {
+                cellsLock.unlock();
             }
         }
     }
@@ -332,20 +340,20 @@ public class PlayScreen extends ScreenAdapter {
                                 camera.position.y = player.y;
                             }
                             player.cells.onAddListener = (cell, key2) -> {
-                                synchronized (player.pathCells) {
-                                    player.pathCells.put(key2, cell);
-                                }
+                                player.pathCellsLock.lock();
+                                player.pathCells.put(key2, cell);
+                                player.pathCellsLock.unlock();
                                 cell.id = gameAtlas.createSprite("hex_white");
-                                cell.id.setSize(40,46);
+                                cell.id.setSize(40, 46);
                                 Vector2 pos = getHexPosition(cell.x, cell.y);
                                 cell.id.setCenter(pos.x, pos.y);
                                 Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
                                 cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
                             };
                             player.cells.onRemoveListener = (cell, key2) -> {
-                                synchronized (player.pathCells) {
-                                    player.pathCells.remove(key2);
-                                }
+                                player.pathCellsLock.lock();
+                                player.pathCells.remove(key2);
+                                player.pathCellsLock.unlock();
                             };
                         };
 
@@ -356,22 +364,20 @@ public class PlayScreen extends ScreenAdapter {
                         };
 
                         room.getState().cells.onAddListener = (cell, key) -> {
-                            synchronized (cells) {
-                                cells.put(key, cell);
-                            }
+                            cellsLock.lock();
+                            cells.put(key, cell);
+                            cellsLock.unlock();
                             cell.id = gameAtlas.createSprite("hex_white");
-                            cell.id.setSize(40,46);
+                            cell.id.setSize(40, 46);
                             Vector2 pos = getHexPosition(cell.x, cell.y);
                             cell.id.setCenter(pos.x, pos.y);
                             cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
-                            cell.onChange = changes -> {
-                                cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
-                            };
+                            cell.onChange = changes -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
                         };
                         room.getState().cells.onRemoveListener = (cell, key) -> {
-                            synchronized (cells) {
-                                cells.remove(key);
-                            }
+                            cellsLock.lock();
+                            cells.remove(key);
+                            cellsLock.unlock();
                         };
                     }
                 });

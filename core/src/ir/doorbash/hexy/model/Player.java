@@ -9,6 +9,8 @@ package ir.doorbash.hexy.model;//
 import com.badlogic.gdx.graphics.g2d.Sprite;
 
 import java.util.HashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import io.colyseus.serializer.schema.Schema;
 import io.colyseus.serializer.schema.annotations.SchemaClass;
@@ -56,6 +58,7 @@ public class Player extends Schema {
 	public Sprite c;
 	public Sprite bcGhost;
 	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
+	public Lock pathCellsLock = new ReentrantLock();
 
 	@Override
 	public boolean equals(Object obj) {
