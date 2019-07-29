@@ -41,13 +41,15 @@ import ir.doorbash.hexy.util.PathCellUpdate;
  */
 public class PlayScreen extends ScreenAdapter {
 
+    /* *************************************** CONSTANTS *****************************************/
+
     private static final boolean DEBUG_SHOW_GHOST = false;
 
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
-//    private static final String ENDPOINT = "ws://192.168.1.134:3333";
-    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+    private static final String ENDPOINT = "ws://192.168.1.134:3333";
+//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final String PATH_LOG_FONT = "fonts/NotoSans-Regular.ttf";
@@ -100,6 +102,8 @@ public class PlayScreen extends ScreenAdapter {
     private Texture trailTexture;
 //    private TrailGraphic trailGraphic;
 
+    /* **************************************** FIELDS *******************************************/
+
     private Client client;
     private Room<MyState> room;
     private long timeDiff;
@@ -129,6 +133,8 @@ public class PlayScreen extends ScreenAdapter {
     private long lastPingTime;
     private int currentPing;
 
+    /* ************************************** CONSTRUCTOR ****************************************/
+
     PlayScreen() {
         screenHeight = screenWidth * Gdx.graphics.getHeight() / Gdx.graphics.getWidth();
         onScreenPadPosition = new Vector2(screenWidth - 120, screenHeight - 120);
@@ -152,6 +158,10 @@ public class PlayScreen extends ScreenAdapter {
         guiCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         guiCamera.update();
 
+        trailTexture = new Texture(Gdx.files.internal(PATH_TRAIL_TEXTURE), true);
+        trailTexture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
+        trailTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+
         initFonts();
 
         initTiles();
@@ -159,30 +169,9 @@ public class PlayScreen extends ScreenAdapter {
         initInput();
 
         connectToServer();
-
-        trailTexture = new Texture(Gdx.files.internal(PATH_TRAIL_TEXTURE), true);
-        trailTexture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
-        trailTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
-
-//        simpleMesh = new SimpleMesh();
-//        simpleMesh.setTexture(trailTexture);
-//        simpleMesh.create();
-
-        Interpolation x2 = Interpolation.sine;
-
-//        trailGraphic = new TrailGraphic(trailTexture);
-//        trailGraphic.setTint(Color.RED);
-//        trailGraphic.setRopeWidth(10);
-//        trailGraphic.setTextureULengthBetweenPoints(1/10f);
-//
-//        for (int i = 0; i < 100; i++) {
-//            trailGraphic.setPoint(i, i * 2f, x2.apply((float) i / 100f) * 100);
-//        }
-//
-//        for (int i = 100; i < 200; i++) {
-//            trailGraphic.setPoint(i, i * 2f, (1-x2.apply((float) (i-100) / 100f)) * 100);
-//        }
     }
+
+    /* *************************************** OVERRIDE *****************************************/
 
     @Override
     public void render(float dt) {
@@ -262,14 +251,6 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     @Override
-    public void dispose() {
-        batch.dispose();
-        fbo.dispose();
-        gameAtlas.dispose();
-        logFont.dispose();
-        freetypeGenerator.dispose();
-    }
-
     public void resize(int width, int height) {
         viewport.update(width, height);
         viewportControllerCam.update(width, height);
@@ -278,6 +259,117 @@ public class PlayScreen extends ScreenAdapter {
         guiCamera.update();
     }
 
+    @Override
+    public void dispose() {
+        batch.dispose();
+        fbo.dispose();
+        gameAtlas.dispose();
+        logFont.dispose();
+        freetypeGenerator.dispose();
+    }
+
+    /* ***************************************** INIT *******************************************/
+
+    private void initFonts() {
+        freetypeGenerator = new FreeTypeFontGenerator(Gdx.files.internal(PATH_LOG_FONT));
+        FreeTypeFontGenerator.FreeTypeFontParameter logFontParameters = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        logFontParameters.size = 14 * Gdx.graphics.getWidth() / screenWidth;
+        logFontParameters.color = Color.BLACK;
+        logFontParameters.flip = false;
+        logFontParameters.incremental = true;
+        logFont = freetypeGenerator.generateFont(logFontParameters);
+    }
+
+    private void initTiles() {
+        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, 2 * screenWidth, 2 * screenHeight, false);
+        fbo.begin();
+
+        Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
+        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        Gdx.gl20.glEnable(GL20.GL_BLEND);
+        Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+
+        Matrix4 m = new Matrix4();
+        m.setToOrtho2D(0, 0, fbo.getWidth(), fbo.getHeight());
+
+        batch.setProjectionMatrix(m);
+
+        batch.begin();
+
+        for (int xi = -3; xi < 22; xi++) {
+            for (int yi = -3; yi < 37; yi++) {
+                batch.draw(whiteHex, xi * GRID_WIDTH + (yi % 2 == 0 ? 0 : GRID_WIDTH / 2f) - 20, yi * GRID_HEIGHT - 23, 40, 46);
+            }
+        }
+
+        batch.end();
+
+        fbo.end();
+
+        tiles = new Sprite(fbo.getColorBufferTexture());
+
+        tiles.flip(false, true);
+    }
+
+    private void initInput() {
+        Gdx.input.setInputProcessor(new InputProcessor() {
+            @Override
+            public boolean keyDown(int keycode) {
+                return false;
+            }
+
+            @Override
+            public boolean keyUp(int keycode) {
+                return false;
+            }
+
+            @Override
+            public boolean keyTyped(char character) {
+                return false;
+            }
+
+            @Override
+            public boolean touchDown(int screenX, int screenY, int pointer, int button) {
+//                System.out.println("TouchDown");
+                mouseIsDown = true;
+                screenX = screenX * screenWidth / Gdx.graphics.getWidth();
+                screenY = screenY * screenHeight / Gdx.graphics.getHeight();
+                padAnchorPoint.set(screenX, screenY);
+                handleTouchDownDrag(screenX, screenY);
+                return true;
+            }
+
+            @Override
+            public boolean touchUp(int screenX, int screenY, int pointer, int button) {
+//                System.out.println("TouchUp");
+                mouseIsDown = false;
+                return true;
+            }
+
+            @Override
+            public boolean touchDragged(int screenX, int screenY, int pointer) {
+//                System.out.println("touchDragged()");
+                screenX = screenX * screenWidth / Gdx.graphics.getWidth();
+                screenY = screenY * screenHeight / Gdx.graphics.getHeight();
+                handleTouchDownDrag(screenX, screenY);
+                return true;
+            }
+
+            @Override
+            public boolean mouseMoved(int screenX, int screenY) {
+                return false;
+            }
+
+            @Override
+            public boolean scrolled(int amount) {
+                return false;
+            }
+        });
+    }
+
+    /* ***************************************** DRAW *******************************************/
+
     private void drawTiles() {
         float actualWidth = camera.zoom * camera.viewportWidth;
         float actualHeight = camera.zoom * camera.viewportHeight;
@@ -285,28 +377,15 @@ public class PlayScreen extends ScreenAdapter {
         float leftX = camera.position.x - actualWidth / 2f;
         float topY = camera.position.y - actualHeight / 2f;
 
-        int bottomYi = (int) Math.floor((topY + 19f) / 38f) - 1;
-        int leftXi = (int) (bottomYi % 2 == 0 ? Math.floor((leftX + 22) / 44f) : Math.floor(leftX / 44f)) - 1;
+        int bottomYi = (int) Math.floor((topY + GRID_HEIGHT / 2f) / GRID_HEIGHT) - 1;
+        int leftXi = (int) (bottomYi % 2 == 0 ? Math.floor((leftX + GRID_WIDTH / 2f) / GRID_WIDTH) : Math.floor(leftX / GRID_WIDTH)) - 1;
 
-        float firstX = leftXi * 44 + (bottomYi % 2 == 0 ? 0 : 22);
-        float firstY = bottomYi * 38;
+        float firstX = leftXi * GRID_WIDTH + (bottomYi % 2 == 0 ? 0 : GRID_WIDTH / 2f);
+        float firstY = bottomYi * GRID_HEIGHT;
 
         tiles.setX(firstX);
         tiles.setY(firstY);
         tiles.draw(batch);
-    }
-
-    private void drawPlayers() {
-        synchronized (players) {
-            for (Player player : players) {
-                if (player != null && player.status == 0) {
-                    if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
-                    if (player.bc != null) player.bc.draw(batch);
-                    if (player.c != null) player.c.draw(batch);
-                    if (player.indic != null) player.indic.draw(batch);
-                }
-            }
-        }
     }
 
     private void drawPaths() {
@@ -345,42 +424,42 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
-    private void processPlayerPosition(Player player, float x, float y) {
-        int yi = (int) Math.floor((y + GRID_HEIGHT / 2f) / GRID_HEIGHT);
-        int xi = (int) (yi % 2 == 0 ? Math.floor((x + GRID_WIDTH / 2f) / GRID_WIDTH) : Math.floor(x / GRID_WIDTH));
-
-//        System.out.println("player " + player.clientId + " is at " + xi + ", " + yi);
-
-        if (cellGrid[xi + CELL_GRID_WIDTH / 2] == null || cellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2] == null || cellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2].color != player.color) {
-            synchronized (pathCellGrid) {
-                if (pathCellGrid[xi + CELL_GRID_WIDTH / 2] == null || pathCellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2] == null) {
-                    Cell cell = new Cell();
-                    //cell.owner = player.clientId;
-                    cell.color = player.color;
-                    cell.x = (short) xi;
-                    cell.y = (short) yi;
-                    cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-                    cell.id.setSize(40, 46);
-                    Vector2 pos = getHexPosition(cell.x, cell.y);
-                    cell.id.setCenter(pos.x, pos.y);
-                    Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
-                    cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
-
-                    if (pathCellGrid[xi + CELL_GRID_WIDTH / 2] == null)
-                        pathCellGrid[xi + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
-                    pathCellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2] = cell;
-                    synchronized (player.pathCells) {
-                        player.pathCells.put(player.pathCells.size(), cell);
-                    }
-                } /*else if (!pathCellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2].owner.equals(player.clientId)) {
-                    // path cell male yeki dgas
-                }*/
+    private void drawPlayers() {
+        synchronized (players) {
+            for (Player player : players) {
+                if (player != null && player.status == 0) {
+                    if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
+                    if (player.bc != null) player.bc.draw(batch);
+                    if (player.c != null) player.c.draw(batch);
+                    if (player.indic != null) player.indic.draw(batch);
+                }
             }
-        } else {
-            // in home
-            clearPlayerPath(player.clientId);
         }
     }
+
+    private void clearPlayerPath(String clientId) {
+        Player player = room.getState().players.get(clientId);
+        if (player != null) {
+            Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
+            synchronized (player.pathCells) {
+                player.pathCells.clear();
+            }
+            if (ADD_FAKE_PATH_CELLS) {
+                player.pathCellUpdates.clear();
+                synchronized (pathCellGrid) {
+                    for (int i = 0; i < CELL_GRID_WIDTH; i++) {
+                        for (int j = 0; j < CELL_GRID_HEIGHT; j++) {
+                            if (pathCellGrid[i] != null && pathCellGrid[i][j] != null && pathCellGrid[i][j].color == player.color) {
+                                pathCellGrid[i][j] = null;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    /* ***************************************** LOGIC *******************************************/
 
     private void updatePlayersPositions(float dt) {
         synchronized (players) {
@@ -442,6 +521,47 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
+    private void processPlayerPosition(Player player, float x, float y) {
+        int yi = (int) Math.floor((y + GRID_HEIGHT / 2f) / GRID_HEIGHT);
+        int xi = (int) (yi % 2 == 0 ? Math.floor((x + GRID_WIDTH / 2f) / GRID_WIDTH) : Math.floor(x / GRID_WIDTH));
+
+//        System.out.println("player " + player.clientId + " is at " + xi + ", " + yi);
+
+        if (cellGrid[xi + CELL_GRID_WIDTH / 2] == null || cellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2] == null || cellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2].color != player.color) {
+            synchronized (pathCellGrid) {
+                if (pathCellGrid[xi + CELL_GRID_WIDTH / 2] == null || pathCellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2] == null) {
+                    Cell cell = new Cell();
+                    //cell.owner = player.clientId;
+                    cell.color = player.color;
+                    cell.x = (short) xi;
+                    cell.y = (short) yi;
+                    cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                    cell.id.setSize(40, 46);
+                    Vector2 pos = getHexPosition(cell.x, cell.y);
+                    cell.id.setCenter(pos.x, pos.y);
+                    Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
+                    cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
+
+                    if (pathCellGrid[xi + CELL_GRID_WIDTH / 2] == null)
+                        pathCellGrid[xi + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
+                    pathCellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2] = cell;
+                    synchronized (player.pathCells) {
+                        player.pathCells.put(player.pathCells.size(), cell);
+                    }
+                } /*else if (!pathCellGrid[xi + CELL_GRID_WIDTH / 2][yi + CELL_GRID_HEIGHT / 2].owner.equals(player.clientId)) {
+                    // path cell male yeki dgas
+                }*/
+            }
+        } else {
+            // in home
+            clearPlayerPath(player.clientId);
+        }
+    }
+
+    private long getServerTime() {
+        return System.currentTimeMillis() + timeDiff;
+    }
+
     private void correctPlayerPosition(Player player) {
         float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
 
@@ -472,6 +592,43 @@ public class PlayScreen extends ScreenAdapter {
             }
         }
     }
+
+    private Vector2 getHexPosition(int x, int y) {
+        Vector2 pos = new Vector2();
+        pos.x = x * GRID_WIDTH + (y % 2 == 0 ? 0 : GRID_WIDTH / 2f);
+        pos.y = y * GRID_HEIGHT;
+        return pos;
+    }
+
+    private void handleTouchDownDrag(int screenX, int screenY) {
+        if (controllerType == CONTROLLER_TYPE_MOUSE) {
+            float dx = screenX - screenWidth / 2f;
+            float dy = screenY - screenHeight / 2f;
+            direction = (int) Math.toDegrees(Math.atan2(-dy, dx));
+        } else if (controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) {
+            thumbstickBgSprite.setCenter(padAnchorPoint.x, padAnchorPoint.y);
+            padVector.set(screenX - padAnchorPoint.x, screenY - padAnchorPoint.y);
+            if (padVector.len2() > PAD_CONTROLLER_MAX_LENGTH * PAD_CONTROLLER_MAX_LENGTH) {
+                padVector.nor().scl(PAD_CONTROLLER_MAX_LENGTH);
+            }
+            thumbstickPadSprite.setCenter(padAnchorPoint.x + padVector.x, padAnchorPoint.y + padVector.y);
+            direction = (int) Math.toDegrees(Math.atan2(-padVector.y, padVector.x));
+        } else if (controllerType == CONTROLLER_TYPE_ON_SCREEN) {
+            padVector.set(screenX - onScreenPadPosition.x, screenY - onScreenPadPosition.y);
+            onScreenPadInitLen = padVector.len();
+            onScreenPadNorVector = padVector.nor().cpy();
+            if (onScreenPadInitLen > PAD_CONTROLLER_MAX_LENGTH) {
+                onScreenPadInitLen = PAD_CONTROLLER_MAX_LENGTH;
+            }
+            padVector.scl(onScreenPadInitLen);
+            onScreenPadCurrentLen = onScreenPadInitLen;
+            onScreenPadReleaseTimer = 0;
+            thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
+            direction = (int) Math.toDegrees(Math.atan2(-padVector.y, padVector.x));
+        }
+    }
+
+    /* **************************************** NETWORK ******************************************/
 
     private void connectToServer() {
         client = new Client(ENDPOINT, ConfigFile.get("clientId"), null, null, 10000, new Client.Listener() {
@@ -680,32 +837,6 @@ public class PlayScreen extends ScreenAdapter {
         });
     }
 
-    private void clearPlayerPath(String clientId) {
-        Player player = room.getState().players.get(clientId);
-        if (player != null) {
-            Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
-            synchronized (player.pathCells) {
-                player.pathCells.clear();
-            }
-            if (ADD_FAKE_PATH_CELLS) {
-                player.pathCellUpdates.clear();
-                synchronized (pathCellGrid) {
-                    for (int i = 0; i < CELL_GRID_WIDTH; i++) {
-                        for (int j = 0; j < CELL_GRID_HEIGHT; j++) {
-                           if (pathCellGrid[i] != null && pathCellGrid[i][j] != null && pathCellGrid[i][j].color == player.color) {
-                                pathCellGrid[i][j] = null;
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private long getServerTime() {
-        return System.currentTimeMillis() + timeDiff;
-    }
-
     private void sendDirection() {
         if (room == null || !room.hasJoined()) return;
         if (lastDirection != direction) {
@@ -722,138 +853,5 @@ public class PlayScreen extends ScreenAdapter {
         message.put("op", "p");
         message.put("v", lastPingTime);
         room.send(message);
-    }
-
-    private Vector2 getHexPosition(int x, int y) {
-        Vector2 pos = new Vector2();
-        pos.x = x * 44 + (y % 2 == 0 ? 0 : 22);
-        pos.y = y * 38;
-        return pos;
-    }
-
-    private void initTiles() {
-        fbo = new FrameBuffer(Pixmap.Format.RGBA8888, 2 * screenWidth, 2 * screenHeight, false);
-        fbo.begin();
-
-        Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-        Gdx.gl20.glEnable(GL20.GL_BLEND);
-        Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
-        Matrix4 m = new Matrix4();
-        m.setToOrtho2D(0, 0, fbo.getWidth(), fbo.getHeight());
-
-        batch.setProjectionMatrix(m);
-
-        batch.begin();
-
-        for (int xi = -3; xi < 22; xi++) {
-            for (int yi = -3; yi < 37; yi++) {
-                batch.draw(whiteHex, xi * 44 + (yi % 2 == 0 ? 0 : 22) - 20, yi * 38 - 23, 40, 46);
-            }
-        }
-
-        batch.end();
-
-        fbo.end();
-
-        tiles = new Sprite(fbo.getColorBufferTexture());
-
-        tiles.flip(false, true);
-    }
-
-    private void initInput() {
-        Gdx.input.setInputProcessor(new InputProcessor() {
-            @Override
-            public boolean keyDown(int keycode) {
-                return false;
-            }
-
-            @Override
-            public boolean keyUp(int keycode) {
-                return false;
-            }
-
-            @Override
-            public boolean keyTyped(char character) {
-                return false;
-            }
-
-            @Override
-            public boolean touchDown(int screenX, int screenY, int pointer, int button) {
-//                System.out.println("TouchDown");
-                mouseIsDown = true;
-                screenX = screenX * screenWidth / Gdx.graphics.getWidth();
-                screenY = screenY * screenHeight / Gdx.graphics.getHeight();
-                padAnchorPoint.set(screenX, screenY);
-                handleTouchDownDrag(screenX, screenY);
-                return true;
-            }
-
-            @Override
-            public boolean touchUp(int screenX, int screenY, int pointer, int button) {
-//                System.out.println("TouchUp");
-                mouseIsDown = false;
-                return true;
-            }
-
-            @Override
-            public boolean touchDragged(int screenX, int screenY, int pointer) {
-//                System.out.println("touchDragged()");
-                screenX = screenX * screenWidth / Gdx.graphics.getWidth();
-                screenY = screenY * screenHeight / Gdx.graphics.getHeight();
-                handleTouchDownDrag(screenX, screenY);
-                return true;
-            }
-
-            @Override
-            public boolean mouseMoved(int screenX, int screenY) {
-                return false;
-            }
-
-            @Override
-            public boolean scrolled(int amount) {
-                return false;
-            }
-        });
-    }
-
-    private void handleTouchDownDrag(int screenX, int screenY) {
-        if (controllerType == CONTROLLER_TYPE_MOUSE) {
-            float dx = screenX - screenWidth / 2f;
-            float dy = screenY - screenHeight / 2f;
-            direction = (int) Math.toDegrees(Math.atan2(-dy, dx));
-        } else if (controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) {
-            thumbstickBgSprite.setCenter(padAnchorPoint.x, padAnchorPoint.y);
-            padVector.set(screenX - padAnchorPoint.x, screenY - padAnchorPoint.y);
-            if (padVector.len2() > PAD_CONTROLLER_MAX_LENGTH * PAD_CONTROLLER_MAX_LENGTH) {
-                padVector.nor().scl(PAD_CONTROLLER_MAX_LENGTH);
-            }
-            thumbstickPadSprite.setCenter(padAnchorPoint.x + padVector.x, padAnchorPoint.y + padVector.y);
-            direction = (int) Math.toDegrees(Math.atan2(-padVector.y, padVector.x));
-        } else if (controllerType == CONTROLLER_TYPE_ON_SCREEN) {
-            padVector.set(screenX - onScreenPadPosition.x, screenY - onScreenPadPosition.y);
-            onScreenPadInitLen = padVector.len();
-            onScreenPadNorVector = padVector.nor().cpy();
-            if (onScreenPadInitLen > PAD_CONTROLLER_MAX_LENGTH) {
-                onScreenPadInitLen = PAD_CONTROLLER_MAX_LENGTH;
-            }
-            padVector.scl(onScreenPadInitLen);
-            onScreenPadCurrentLen = onScreenPadInitLen;
-            onScreenPadReleaseTimer = 0;
-            thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
-            direction = (int) Math.toDegrees(Math.atan2(-padVector.y, padVector.x));
-        }
-    }
-
-    private void initFonts() {
-        freetypeGenerator = new FreeTypeFontGenerator(Gdx.files.internal(PATH_LOG_FONT));
-        FreeTypeFontGenerator.FreeTypeFontParameter logFontParameters = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        logFontParameters.size = 14 * Gdx.graphics.getWidth() / screenWidth;
-        logFontParameters.color = Color.BLACK;
-        logFontParameters.flip = false;
-        logFontParameters.incremental = true;
-        logFont = freetypeGenerator.generateFont(logFontParameters);
     }
 }
