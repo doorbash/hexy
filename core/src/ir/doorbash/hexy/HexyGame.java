@@ -5,13 +5,16 @@ import com.badlogic.gdx.Gdx;
 
 public class HexyGame extends Game {
 
-    private static final boolean SHOW_SPLASH = true;
+    private static final boolean SHOW_SPLASH = false;
 
     private SplashScreen splashScreen;
     private PlayScreen playScreen;
 
     @Override
     public void create() {
+        SimpleMesh.init();
+        TrailGraphic.init();
+
         splashScreen = new SplashScreen();
         playScreen = new PlayScreen();
         if (SHOW_SPLASH) {

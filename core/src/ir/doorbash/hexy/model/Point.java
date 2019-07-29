@@ -18,7 +18,7 @@ public class Point extends Schema {
 	@SchemaField("1/float32")
 	public float y = 0;
 
-	@SchemaField("2/uint8")	
-	public short color = 0;
+//	@SchemaField("2/uint8")
+//	public short color = 0;
 }
 

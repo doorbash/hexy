@@ -9,12 +9,15 @@ package ir.doorbash.hexy.model;//
 import com.badlogic.gdx.graphics.g2d.Sprite;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import io.colyseus.serializer.schema.Schema;
 import io.colyseus.serializer.schema.annotations.SchemaClass;
 import io.colyseus.serializer.schema.annotations.SchemaField;
+import ir.doorbash.hexy.TrailGraphic;
+import ir.doorbash.hexy.util.PathCellUpdate;
 
 @SchemaClass
 public class Player extends Schema {
@@ -54,12 +57,16 @@ public class Player extends Schema {
 	@SchemaField("11/uint16")
 	public int speed = 0;
 
+//    @SchemaField("12/boolean")
+//    public boolean home = false;
+
 	public Sprite bc;
 	public Sprite c;
 	public Sprite indic;
 	public Sprite bcGhost;
 	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
-	public Lock pathCellsLock = new ReentrantLock();
+	public TrailGraphic trailGraphic;
+	public final LinkedList<PathCellUpdate> pathCellUpdates = new LinkedList<>();
 
 	@Override
 	public boolean equals(Object obj) {

@@ -23,8 +23,8 @@ public class Cell extends Schema {
 	@SchemaField("2/uint8")	
 	public short color = 0;
 
-	@SchemaField("3/string")	
-	public String owner = "";
+//	@SchemaField("3/string")
+//	public String owner = "";
 
 	public Sprite id;
 }
