@@ -9,6 +9,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
@@ -110,6 +111,7 @@ public class PlayScreen extends ScreenAdapter {
     private Sprite thumbstickPadSprite;
     private FreeTypeFontGenerator freetypeGenerator;
     private BitmapFont logFont;
+    private BitmapFont usernameFont;
     //    private SimpleMesh simpleMesh;
     private Texture trailTexture;
 //    private TrailGraphic trailGraphic;
@@ -278,6 +280,7 @@ public class PlayScreen extends ScreenAdapter {
         fbo.dispose();
         gameAtlas.dispose();
         logFont.dispose();
+        usernameFont.dispose();
         freetypeGenerator.dispose();
     }
 
@@ -285,12 +288,22 @@ public class PlayScreen extends ScreenAdapter {
 
     private void initFonts() {
         freetypeGenerator = new FreeTypeFontGenerator(Gdx.files.internal(PATH_LOG_FONT));
-        FreeTypeFontGenerator.FreeTypeFontParameter logFontParameters = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        logFontParameters.size = 14 * Gdx.graphics.getWidth() / screenWidth;
-        logFontParameters.color = Color.BLACK;
-        logFontParameters.flip = false;
-        logFontParameters.incremental = true;
-        logFont = freetypeGenerator.generateFont(logFontParameters);
+        FreeTypeFontGenerator.FreeTypeFontParameter logFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        logFontParams.size = 14 * Gdx.graphics.getWidth() / screenWidth;
+        logFontParams.color = Color.BLACK;
+        logFontParams.flip = false;
+        logFontParams.incremental = true;
+        logFont = freetypeGenerator.generateFont(logFontParams);
+
+        FreeTypeFontGenerator.FreeTypeFontParameter usernameFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        usernameFontParams.size = 24 * Gdx.graphics.getWidth() / screenWidth;
+        usernameFontParams.color = Color.BLACK;
+        usernameFontParams.flip = false;
+        usernameFontParams.incremental = true;
+//        usernameFontParams.genMipMaps = true;
+//        usernameFontParams.minFilter = Texture.TextureFilter.Linear;
+//        usernameFontParams.magFilter = Texture.TextureFilter.MipMapLinearLinear;
+        usernameFont = freetypeGenerator.generateFont(usernameFontParams);
     }
 
     private void initTiles() {
@@ -445,6 +458,11 @@ public class PlayScreen extends ScreenAdapter {
                     if (player.bc != null) player.bc.draw(batch);
                     if (player.c != null) player.c.draw(batch);
                     if (player.indic != null) player.indic.draw(batch);
+                    if (player.bc != null) {
+                        float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
+                        float y = player.bc.getY() + 70;
+                        usernameFont.draw(batch, player.name, x, y);
+                    }
                 }
             }
         }
@@ -579,12 +597,12 @@ public class PlayScreen extends ScreenAdapter {
 
     private void updateZoom() {
         Player player = room.getState().players.get(client.getId());
-        if(player == null) return;
+        if (player == null) return;
         ColorMeta cm = room.getState().colorMeta.get(player.color + "");
-        if(cm == null) return;
+        if (cm == null) return;
         float percentage = cm.numCells / (float) TOTAL_CELLS;
-        System.out.println("percentage = " + percentage);
-        camera.zoom = CAMERA_INIT_ZOOM + percentage;
+//        System.out.println("percentage = " + percentage);
+        camera.zoom = CAMERA_INIT_ZOOM + 0.8f * percentage;
     }
 
     private long getServerTime() {
@@ -728,40 +746,43 @@ public class PlayScreen extends ScreenAdapter {
                             Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
                             Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
 
-                            player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                            player.bc.setSize(46, 46);
-                            player.bc.setColor(bcColor);
-                            player.bc.setCenter(player.x, player.y);
+                            Gdx.app.postRunnable(() -> {
+                                player.text = new GlyphLayout(usernameFont, player.name);
 
-                            player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                            player.c.setSize(36, 36);
-                            player.c.setColor(cColor);
-                            player.c.setCenter(player.x, player.y);
+                                player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                player.bc.setSize(46, 46);
+                                player.bc.setColor(bcColor);
+                                player.bc.setCenter(player.x, player.y);
 
-                            if (player.clientId.equals(client.getId())) {
-                                player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
-                                player.indic.setSize(80, 80);
-                                player.indic.setColor(bcColor);
-                                player.indic.setCenter(player.x, player.y);
-                                player.indic.setOriginCenter();
-                                player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
-                            }
+                                player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                player.c.setSize(36, 36);
+                                player.c.setColor(cColor);
+                                player.c.setCenter(player.x, player.y);
 
-                            player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                            player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
-                            player.bcGhost.setCenter(player.x, player.y);
-                            player.bcGhost.setSize(46, 46);
+                                if (player.clientId.equals(client.getId())) {
+                                    player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
+                                    player.indic.setSize(80, 80);
+                                    player.indic.setColor(bcColor);
+                                    player.indic.setCenter(player.x, player.y);
+                                    player.indic.setOriginCenter();
+                                    player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                                }
 
-                            if (player.clientId.equals(client.getId())) {
-                                // this is you
-                                camera.position.x = player.x;
-                                camera.position.y = player.y;
-                            }
+                                player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
+                                player.bcGhost.setCenter(player.x, player.y);
+                                player.bcGhost.setSize(46, 46);
 
-                            player.trailGraphic = new TrailGraphic(trailTexture);
-                            player.trailGraphic.setTint(bcColor);
-                            player.trailGraphic.setRopeWidth(20);
-                            player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
+                                if (player.clientId.equals(client.getId())) {
+                                    camera.position.x = player.x;
+                                    camera.position.y = player.y;
+                                }
+
+                                player.trailGraphic = new TrailGraphic(trailTexture);
+                                player.trailGraphic.setTint(bcColor);
+                                player.trailGraphic.setRopeWidth(20);
+                                player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
+                            });
 
                             player.path.onAddListener = (point, key2) -> {
                                 Gdx.app.postRunnable(() -> {

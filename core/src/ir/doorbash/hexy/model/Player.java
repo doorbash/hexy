@@ -6,6 +6,7 @@ package ir.doorbash.hexy.model;//
 // 
 
 
+import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 
 import java.util.HashMap;
@@ -64,6 +65,7 @@ public class Player extends Schema {
 	public Sprite c;
 	public Sprite indic;
 	public Sprite bcGhost;
+	public GlyphLayout text;
 	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
 	public TrailGraphic trailGraphic;
 	public final LinkedList<PathCellUpdate> pathCellUpdates = new LinkedList<>();
