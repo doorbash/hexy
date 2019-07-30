@@ -43,7 +43,7 @@ public class PlayScreen extends ScreenAdapter {
 
     /* *************************************** CONSTANTS *****************************************/
 
-    private static final boolean DEBUG_SHOW_GHOST = false;
+    private static final boolean DEBUG_SHOW_GHOST = true;
 
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
@@ -85,6 +85,14 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final int CELL_GRID_WIDTH = 100;
     private static final int CELL_GRID_HEIGHT = 100;
+
+    private static final int MAP_SIZE = 20;
+    private static final int EXTENDED_CELLS = 3;
+
+    private static final float MAP_SIZE_X_PIXEL = (MAP_SIZE * GRID_WIDTH);
+    private static final float MAP_SIZE_X_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_WIDTH;
+    private static final float MAP_SIZE_Y_PIXEL = (MAP_SIZE * GRID_HEIGHT);
+    private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
 
     private SpriteBatch batch;
     private OrthographicCamera camera;
@@ -407,7 +415,7 @@ public class PlayScreen extends ScreenAdapter {
     private void drawTrails() {
         synchronized (players) {
             for (Player player : players) {
-                if (player != null && player.status == 0) {
+                if (player != null && player.status == 0 && player.trailGraphic != null) {
                     player.trailGraphic.render(batch.getProjectionMatrix());
                 }
             }
@@ -498,15 +506,21 @@ public class PlayScreen extends ScreenAdapter {
                         } else correctPlayerPositionTime -= dt * 1000;
                     }
 
-                    player.bc.translate(MathUtils.cos(player.angle) * player.speed * dt, MathUtils.sin(player.angle) * player.speed * dt);
+                    float x = player.bc.getX() + player.bc.getWidth() / 2f;
+                    float y = player.bc.getY() + player.bc.getHeight() / 2f;
 
-                    float currentX = player.bc.getX() + player.bc.getWidth() / 2f;
-                    float currentY = player.bc.getY() + player.bc.getHeight() / 2f;
+                    float newX = x + MathUtils.cos(player.angle) * player.speed * dt;
+                    float newY = y + MathUtils.sin(player.angle) * player.speed * dt;
 
-                    player.c.setCenter(currentX, currentY);
+                    if (newX <= MAP_SIZE_X_EXT_PIXEL && newX >= -MAP_SIZE_X_EXT_PIXEL) x = newX;
+                    if (newY <= MAP_SIZE_Y_EXT_PIXEL && newY >= -MAP_SIZE_Y_EXT_PIXEL) y = newY;
+
+                    player.bc.setCenter(x, y);
+
+                    player.c.setCenter(x, y);
 
                     if (player.indic != null) {
-                        player.indic.setCenter(currentX, currentY);
+                        player.indic.setCenter(x, y);
                         player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
                     }
 
@@ -514,7 +528,7 @@ public class PlayScreen extends ScreenAdapter {
 
                     if (ADD_FAKE_PATH_CELLS) {
                         if (room.getState().started && !room.getState().ended)
-                            processPlayerPosition(player, currentX, currentY);
+                            processPlayerPosition(player, x, y);
                     }
                 }
             }
