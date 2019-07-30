@@ -29,6 +29,7 @@ import io.colyseus.Client;
 import io.colyseus.Room;
 import io.colyseus.serializer.schema.DataChange;
 import ir.doorbash.hexy.model.Cell;
+import ir.doorbash.hexy.model.ColorMeta;
 import ir.doorbash.hexy.model.MyState;
 import ir.doorbash.hexy.model.Player;
 import ir.doorbash.hexy.model.Point;
@@ -43,7 +44,7 @@ public class PlayScreen extends ScreenAdapter {
 
     /* *************************************** CONSTANTS *****************************************/
 
-    private static final boolean DEBUG_SHOW_GHOST = true;
+    private static final boolean DEBUG_SHOW_GHOST = false;
 
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
@@ -70,7 +71,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final int SEND_DIRECTION_INTERVAL = 200;
     private static final int SEND_PING_INTERVAL = 5000;
 
-    private static final float CAMERA_LERP = 0.9f;
+    private static final float CAMERA_LERP = 0.3f;
+    private static final float CAMERA_INIT_ZOOM = 0.8f;
 
     private static final float PATH_CELL_ALPHA_TINT = 0.4f;
 
@@ -89,10 +91,12 @@ public class PlayScreen extends ScreenAdapter {
     private static final int MAP_SIZE = 20;
     private static final int EXTENDED_CELLS = 3;
 
+    private static final int TOTAL_CELLS = (2 * MAP_SIZE + 1) * (2 * MAP_SIZE + 1);
     private static final float MAP_SIZE_X_PIXEL = (MAP_SIZE * GRID_WIDTH);
     private static final float MAP_SIZE_X_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_WIDTH;
     private static final float MAP_SIZE_Y_PIXEL = (MAP_SIZE * GRID_HEIGHT);
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
+
 
     private SpriteBatch batch;
     private OrthographicCamera camera;
@@ -157,7 +161,7 @@ public class PlayScreen extends ScreenAdapter {
         thumbstickPadSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
         camera = new OrthographicCamera();
         viewport = new ExtendViewport(screenWidth, screenHeight, camera);
-        camera.zoom = 1f;
+        camera.zoom = CAMERA_INIT_ZOOM;
         controllerCamera = new OrthographicCamera();
         controllerCamera.setToOrtho(true, screenWidth, screenHeight);
         viewportControllerCam = new ExtendViewport(screenWidth, screenHeight, controllerCamera);
@@ -206,6 +210,7 @@ public class PlayScreen extends ScreenAdapter {
         drawTiles();
         if (room != null) {
             updatePlayersPositions(dt);
+            updateZoom();
 
             drawCells();
             drawPaths();
@@ -572,6 +577,16 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
+    private void updateZoom() {
+        Player player = room.getState().players.get(client.getId());
+        if(player == null) return;
+        ColorMeta cm = room.getState().colorMeta.get(player.color + "");
+        if(cm == null) return;
+        float percentage = cm.numCells / (float) TOTAL_CELLS;
+        System.out.println("percentage = " + percentage);
+        camera.zoom = CAMERA_INIT_ZOOM + percentage;
+    }
+
     private long getServerTime() {
         return System.currentTimeMillis() + timeDiff;
     }
@@ -705,6 +720,7 @@ public class PlayScreen extends ScreenAdapter {
                                 }
                             }
                         };
+
                         room.getState().players.onAddListener = (player, key) -> {
                             synchronized (players) {
                                 players.add(player);
@@ -799,7 +815,6 @@ public class PlayScreen extends ScreenAdapter {
                             player.path.triggerAll();
                             player.cells.triggerAll();
                         };
-
                         room.getState().players.onRemoveListener = (player, key) -> {
                             synchronized (players) {
                                 players.remove(player);
