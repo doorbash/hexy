@@ -124,7 +124,6 @@ public class TrailGraphic {
         if (mesh != null) mesh.setVertices(vertices, 0, points.size() * 8);
     }
 
-    // TODO: in fek konam dare eshteba mizane
     public void setPoint(int index, float x, float y) {
         if (index >= points.size()) {
             resizePointCount(index + 1);
