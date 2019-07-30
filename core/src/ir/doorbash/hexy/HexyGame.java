@@ -12,7 +12,6 @@ public class HexyGame extends Game {
 
     @Override
     public void create() {
-        SimpleMesh.init();
         TrailGraphic.init();
 
         splashScreen = new SplashScreen();
