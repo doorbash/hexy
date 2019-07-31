@@ -52,8 +52,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
-    private static final String ENDPOINT = "ws://192.168.1.134:3333";
-//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+//    private static final String ENDPOINT = "ws://192.168.1.134:3333";
+    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
@@ -117,8 +117,8 @@ public class PlayScreen extends ScreenAdapter {
     private FreeTypeFontGenerator freetypeGeneratorNoto;
     private FreeTypeFontGenerator freetypeGeneratorArial;
     private BitmapFont logFont;
-    //    private BitmapFont usernameFont;
-    private BitmapFont playerFont;
+        private BitmapFont usernameFont;
+    private BitmapFont leaderboardFont;
     //    private SimpleMesh simpleMesh;
 //    private Texture trailTexture;
 //    private TrailGraphic trailGraphic;
@@ -301,8 +301,8 @@ public class PlayScreen extends ScreenAdapter {
         fbo.dispose();
         gameAtlas.dispose();
         logFont.dispose();
-//        usernameFont.dispose();
-        playerFont.dispose();
+        usernameFont.dispose();
+        leaderboardFont.dispose();
         freetypeGeneratorNoto.dispose();
         freetypeGeneratorArial.dispose();
     }
@@ -320,16 +320,6 @@ public class PlayScreen extends ScreenAdapter {
         logFontParams.incremental = true;
         logFont = freetypeGeneratorNoto.generateFont(logFontParams);
 
-//        FreeTypeFontGenerator.FreeTypeFontParameter usernameFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
-//        usernameFontParams.size = 16 * Gdx.graphics.getWidth() / screenWidth;
-//        usernameFontParams.color = Color.BLACK;
-//        usernameFontParams.flip = false;
-//        usernameFontParams.incremental = true;
-//        usernameFontParams.genMipMaps = true;
-//        usernameFontParams.minFilter = Texture.TextureFilter.Linear;
-//        usernameFontParams.magFilter = Texture.TextureFilter.MipMapLinearLinear;
-//        usernameFont = freetypeGeneratorArial.generateFont(usernameFontParams);
-
         FreeTypeFontGenerator.FreeTypeFontParameter leaderboardFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
         leaderboardFontParams.size = 16 * Gdx.graphics.getWidth() / screenWidth;
         leaderboardFontParams.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
@@ -338,7 +328,14 @@ public class PlayScreen extends ScreenAdapter {
 //        usernameFontParams.genMipMaps = true;
 //        usernameFontParams.minFilter = Texture.TextureFilter.Linear;
 //        usernameFontParams.magFilter = Texture.TextureFilter.MipMapLinearLinear;
-        playerFont = freetypeGeneratorArial.generateFont(leaderboardFontParams);
+        leaderboardFont = freetypeGeneratorArial.generateFont(leaderboardFontParams);
+
+        FreeTypeFontGenerator.FreeTypeFontParameter usernameFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        usernameFontParams.size = 16;
+        usernameFontParams.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
+        usernameFontParams.flip = false;
+        usernameFontParams.incremental = true;
+        usernameFont = freetypeGeneratorArial.generateFont(usernameFontParams);
     }
 
     private void initTiles() {
@@ -496,8 +493,8 @@ public class PlayScreen extends ScreenAdapter {
                     if (player.bc != null) {
                         float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
                         float y = player.bc.getY() + 70;
-                        playerFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
-                        playerFont.draw(batch, player.name, x, y);
+                        usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
+                        usernameFont.draw(batch, player.name, x, y);
                     }
                 }
             }
@@ -522,8 +519,8 @@ public class PlayScreen extends ScreenAdapter {
                 colorMeta.progressBar.setX(guiCamera.viewportWidth - width);
                 colorMeta.progressBar.setY(guiCamera.viewportHeight - progressbarTopMargin - i * (progressbarHeight + progressbarGap) - progressbarHeight);
                 colorMeta.progressBar.draw(batch);
-                playerFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
-                playerFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + player.name, colorMeta.progressBar.getX() + 6, colorMeta.progressBar.getY() + playerFont.getLineHeight() + 4);
+                leaderboardFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
+                leaderboardFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + player.name, colorMeta.progressBar.getX() + 6, colorMeta.progressBar.getY() + leaderboardFont.getLineHeight() + 4);
                 if (currentPlayer != null && currentPlayer.color == colorMeta.color)
                     playerProgressPrinted = true;
                 i++;
@@ -541,8 +538,8 @@ public class PlayScreen extends ScreenAdapter {
                 colorMeta.progressBar.setX(guiCamera.viewportWidth - width);
                 colorMeta.progressBar.setY(guiCamera.viewportHeight - (colorMeta.position == PROGRESSBARS_NUM_PRINT + 1 ? 0 : progressbarExtraGapForCurrentPlayer) - progressbarTopMargin - PROGRESSBARS_NUM_PRINT * (progressbarHeight + progressbarGap) - progressbarHeight);
                 colorMeta.progressBar.draw(batch);
-                playerFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
-                playerFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + currentPlayer.name, colorMeta.progressBar.getX() + 6, colorMeta.progressBar.getY() + playerFont.getLineHeight() + 4);
+                leaderboardFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
+                leaderboardFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + currentPlayer.name, colorMeta.progressBar.getX() + 6, colorMeta.progressBar.getY() + leaderboardFont.getLineHeight() + 4);
             }
         }
 
@@ -759,9 +756,9 @@ public class PlayScreen extends ScreenAdapter {
         progressbarWidth = guiCamera.viewportWidth * 0.6f;
         progressbarInitWidth = guiCamera.viewportWidth * 0.25f;
 
-        progressbarGap = guiCamera.viewportHeight / 300f;
+        progressbarGap = guiCamera.viewportHeight / 400f;
         progressbarHeight = guiCamera.viewportHeight / 24f;
-        progressbarTopMargin = guiCamera.viewportHeight / 100f;
+        progressbarTopMargin = guiCamera.viewportHeight / 200f;
         progressbarExtraGapForCurrentPlayer = 4 * progressbarGap;
     }
 
@@ -838,7 +835,7 @@ public class PlayScreen extends ScreenAdapter {
                             Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
 
                             Gdx.app.postRunnable(() -> {
-                                player.text = new GlyphLayout(playerFont, player.name);
+                                player.text = new GlyphLayout(usernameFont, player.name);
 
                                 player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
                                 player.bc.setSize(46, 46);
