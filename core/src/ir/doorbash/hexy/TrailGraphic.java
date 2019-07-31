@@ -30,7 +30,7 @@ public class TrailGraphic {
     private Mesh mesh = null;
     private List<Vector2> points = new ArrayList();
     private float ropeWidth = 1.0f;
-    private Texture texture;
+//    private Texture texture;
     private float textureULengthBetweenPoints = 1.0f;
     private Color tint = Color.WHITE;
     private float[] vertices = new float[256];
@@ -45,9 +45,9 @@ public class TrailGraphic {
         }
     }
 
-    public TrailGraphic(Texture t) {
-        texture = t;
-    }
+//    public TrailGraphic(Texture t) {
+//        texture = t;
+//    }
 
     public Color getTint() {
         return tint;
@@ -158,7 +158,7 @@ public class TrailGraphic {
         Gdx.gl.glDepthMask(false);
         Gdx.gl20.glEnable(GL20.GL_BLEND);
         Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-        texture.bind();
+//        texture.bind();
         shader.begin();
         shader.setUniformMatrix("u_projTrans", matrix4);
 //        shader.setUniformi("u_texture", 0);

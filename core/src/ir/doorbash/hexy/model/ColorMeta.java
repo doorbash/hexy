@@ -6,9 +6,12 @@ package ir.doorbash.hexy.model;//
 // 
 
 
+import com.badlogic.gdx.graphics.g2d.Sprite;
+
 import io.colyseus.serializer.schema.Schema;
 import io.colyseus.serializer.schema.annotations.SchemaClass;
 import io.colyseus.serializer.schema.annotations.SchemaField;
+import ir.doorbash.hexy.ProgressBar;
 
 @SchemaClass
 public class ColorMeta extends Schema {
@@ -20,5 +23,7 @@ public class ColorMeta extends Schema {
 
 	@SchemaField("2/uint8")	
 	public short position = 0;
+
+	public Sprite progressBar;
 }
 

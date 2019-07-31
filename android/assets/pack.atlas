@@ -6,49 +6,56 @@ filter: MipMapLinearLinear,Linear
 repeat: none
 bc
   rotate: false
-  xy: 325, 203
+  xy: 325, 239
   size: 92, 92
   orig: 92, 92
   offset: 0, 0
   index: -1
 hex_white
   rotate: false
-  xy: 380, 100
+  xy: 380, 136
   size: 80, 93
   orig: 80, 93
   offset: 0, 0
   index: -1
 hexyio
   rotate: false
-  xy: 10, 31
+  xy: 10, 67
   size: 360, 90
   orig: 360, 90
   offset: 0, 0
   index: -1
 indic
   rotate: false
-  xy: 380, 10
+  xy: 380, 46
   size: 80, 80
   orig: 80, 80
   offset: 0, 0
   index: -1
 m
   rotate: false
-  xy: 466, 431
+  xy: 10, 10
   size: 5, 5
   orig: 5, 5
   offset: 0, 0
   index: -1
+progressbar
+  rotate: false
+  xy: 10, 25
+  size: 256, 32
+  orig: 256, 32
+  offset: 0, 0
+  index: -1
 thumbstick-background
   rotate: false
-  xy: 10, 131
+  xy: 10, 167
   size: 305, 305
   orig: 305, 305
   offset: 0, 0
   index: -1
 thumbstick-pad
   rotate: false
-  xy: 325, 305
+  xy: 325, 341
   size: 131, 131
   orig: 131, 131
   offset: 0, 0

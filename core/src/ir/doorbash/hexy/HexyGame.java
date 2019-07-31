@@ -13,6 +13,7 @@ public class HexyGame extends Game {
     @Override
     public void create() {
         TrailGraphic.init();
+        ProgressBar.init();
 
         splashScreen = new SplashScreen();
         playScreen = new PlayScreen();

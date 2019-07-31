@@ -7,7 +7,6 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
@@ -22,7 +21,10 @@ import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.viewport.ExtendViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
@@ -54,7 +56,9 @@ public class PlayScreen extends ScreenAdapter {
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
-    private static final String PATH_LOG_FONT = "fonts/NotoSans-Regular.ttf";
+    private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
+    private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
+
     private static final String PATH_PACK_ATLAS = "pack.atlas";
     private static final String PATH_TRAIL_TEXTURE = "traine.png";
     private static final String TEXTURE_REGION_HEX_WHITE = "hex_white";
@@ -72,8 +76,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final int SEND_DIRECTION_INTERVAL = 200;
     private static final int SEND_PING_INTERVAL = 5000;
 
-    private static final float CAMERA_LERP = 0.3f;
-    private static final float CAMERA_INIT_ZOOM = 0.8f;
+    private static final float CAMERA_LERP = 0.8f;
+    private static final float CAMERA_INIT_ZOOM = 0.9f;
 
     private static final float PATH_CELL_ALPHA_TINT = 0.4f;
 
@@ -89,7 +93,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final int CELL_GRID_WIDTH = 100;
     private static final int CELL_GRID_HEIGHT = 100;
 
-    private static final int MAP_SIZE = 20;
+    private static final int MAP_SIZE = 30;
     private static final int EXTENDED_CELLS = 3;
 
     private static final int TOTAL_CELLS = (2 * MAP_SIZE + 1) * (2 * MAP_SIZE + 1);
@@ -98,6 +102,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final float MAP_SIZE_Y_PIXEL = (MAP_SIZE * GRID_HEIGHT);
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
 
+    private static final int PROGRESSBARS_NUM_PRINT = 3;
 
     private SpriteBatch batch;
     private OrthographicCamera camera;
@@ -109,11 +114,13 @@ public class PlayScreen extends ScreenAdapter {
     private TextureAtlas.AtlasRegion whiteHex;
     private Sprite thumbstickBgSprite;
     private Sprite thumbstickPadSprite;
-    private FreeTypeFontGenerator freetypeGenerator;
+    private FreeTypeFontGenerator freetypeGeneratorNoto;
+    private FreeTypeFontGenerator freetypeGeneratorArial;
     private BitmapFont logFont;
-    private BitmapFont usernameFont;
+    //    private BitmapFont usernameFont;
+    private BitmapFont playerFont;
     //    private SimpleMesh simpleMesh;
-    private Texture trailTexture;
+//    private Texture trailTexture;
 //    private TrailGraphic trailGraphic;
 
     /* **************************************** FIELDS *******************************************/
@@ -146,6 +153,15 @@ public class PlayScreen extends ScreenAdapter {
     private Vector2 onScreenPadPosition;
     private long lastPingTime;
     private int currentPing;
+    private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
+    Comparator<ColorMeta> colorMetaComp = (o1, o2) -> Short.compare(o1.position, o2.position);
+    private float progressbarWidth;
+    private float progressbarHeight;
+    private float progressbarTopMargin;
+    private float progressbarGap;
+    private float progressbarInitWidth;
+    private float progressbarExtraGapForCurrentPlayer;
+    Player[] playersByColor = new Player[10];
 
     /* ************************************** CONSTRUCTOR ****************************************/
 
@@ -172,9 +188,11 @@ public class PlayScreen extends ScreenAdapter {
         guiCamera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
         guiCamera.update();
 
-        trailTexture = new Texture(Gdx.files.internal(PATH_TRAIL_TEXTURE), true);
-        trailTexture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
-        trailTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+        updateProgressBarValues();
+
+//        trailTexture = new Texture(Gdx.files.internal(PATH_TRAIL_TEXTURE), true);
+//        trailTexture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
+//        trailTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
 
         initFonts();
 
@@ -242,8 +260,10 @@ public class PlayScreen extends ScreenAdapter {
 
         batch.setProjectionMatrix(guiCamera.combined);
 
+        if (room != null && room.getState().started) drawLeaderboard();
+
         String logText = "fps: " + Gdx.graphics.getFramesPerSecond();
-        if (currentPing != 0) {
+        if (currentPing > 0) {
             logText += " - ping: " + currentPing;
         }
         logFont.draw(batch, logText, 8, 4 + logFont.getLineHeight());
@@ -272,6 +292,7 @@ public class PlayScreen extends ScreenAdapter {
         guiCamera.viewportWidth = width;
         guiCamera.viewportHeight = height;
         guiCamera.update();
+        updateProgressBarValues();
     }
 
     @Override
@@ -280,30 +301,44 @@ public class PlayScreen extends ScreenAdapter {
         fbo.dispose();
         gameAtlas.dispose();
         logFont.dispose();
-        usernameFont.dispose();
-        freetypeGenerator.dispose();
+//        usernameFont.dispose();
+        playerFont.dispose();
+        freetypeGeneratorNoto.dispose();
+        freetypeGeneratorArial.dispose();
     }
 
     /* ***************************************** INIT *******************************************/
 
     private void initFonts() {
-        freetypeGenerator = new FreeTypeFontGenerator(Gdx.files.internal(PATH_LOG_FONT));
+        freetypeGeneratorNoto = new FreeTypeFontGenerator(Gdx.files.internal(PATH_FONT_NOTO));
+        freetypeGeneratorArial = new FreeTypeFontGenerator(Gdx.files.internal(PATH_FONT_ARIAL));
+
         FreeTypeFontGenerator.FreeTypeFontParameter logFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
         logFontParams.size = 14 * Gdx.graphics.getWidth() / screenWidth;
         logFontParams.color = Color.BLACK;
         logFontParams.flip = false;
         logFontParams.incremental = true;
-        logFont = freetypeGenerator.generateFont(logFontParams);
+        logFont = freetypeGeneratorNoto.generateFont(logFontParams);
 
-        FreeTypeFontGenerator.FreeTypeFontParameter usernameFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
-        usernameFontParams.size = 24 * Gdx.graphics.getWidth() / screenWidth;
-        usernameFontParams.color = Color.BLACK;
-        usernameFontParams.flip = false;
-        usernameFontParams.incremental = true;
+//        FreeTypeFontGenerator.FreeTypeFontParameter usernameFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
+//        usernameFontParams.size = 16 * Gdx.graphics.getWidth() / screenWidth;
+//        usernameFontParams.color = Color.BLACK;
+//        usernameFontParams.flip = false;
+//        usernameFontParams.incremental = true;
 //        usernameFontParams.genMipMaps = true;
 //        usernameFontParams.minFilter = Texture.TextureFilter.Linear;
 //        usernameFontParams.magFilter = Texture.TextureFilter.MipMapLinearLinear;
-        usernameFont = freetypeGenerator.generateFont(usernameFontParams);
+//        usernameFont = freetypeGeneratorArial.generateFont(usernameFontParams);
+
+        FreeTypeFontGenerator.FreeTypeFontParameter leaderboardFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        leaderboardFontParams.size = 16 * Gdx.graphics.getWidth() / screenWidth;
+        leaderboardFontParams.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
+        leaderboardFontParams.flip = false;
+        leaderboardFontParams.incremental = true;
+//        usernameFontParams.genMipMaps = true;
+//        usernameFontParams.minFilter = Texture.TextureFilter.Linear;
+//        usernameFontParams.magFilter = Texture.TextureFilter.MipMapLinearLinear;
+        playerFont = freetypeGeneratorArial.generateFont(leaderboardFontParams);
     }
 
     private void initTiles() {
@@ -461,11 +496,56 @@ public class PlayScreen extends ScreenAdapter {
                     if (player.bc != null) {
                         float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
                         float y = player.bc.getY() + 70;
-                        usernameFont.draw(batch, player.name, x, y);
+                        playerFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
+                        playerFont.draw(batch, player.name, x, y);
                     }
                 }
             }
         }
+    }
+
+    private void drawLeaderboard() {
+        synchronized (colorMetas) {
+            // sort
+            Collections.sort(colorMetas, colorMetaComp);
+            int i = 0;
+            boolean playerProgressPrinted = false;
+            DecimalFormat decimalFormat = new DecimalFormat("#0.00");
+            float totalWidth = progressbarWidth - progressbarInitWidth;
+            Player currentPlayer = room.getState().players.get(client.getId());
+            for (ColorMeta colorMeta : colorMetas) {
+                Player player = playersByColor[colorMeta.color - 1];
+                if (player == null) continue;
+                float percentage = colorMeta.numCells / (float) TOTAL_CELLS;
+                float width = percentage * totalWidth + progressbarInitWidth;
+                colorMeta.progressBar.setSize(progressbarWidth, progressbarHeight);
+                colorMeta.progressBar.setX(guiCamera.viewportWidth - width);
+                colorMeta.progressBar.setY(guiCamera.viewportHeight - progressbarTopMargin - i * (progressbarHeight + progressbarGap) - progressbarHeight);
+                colorMeta.progressBar.draw(batch);
+                playerFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
+                playerFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + player.name, colorMeta.progressBar.getX() + 6, colorMeta.progressBar.getY() + playerFont.getLineHeight() + 4);
+                if (currentPlayer != null && currentPlayer.color == colorMeta.color)
+                    playerProgressPrinted = true;
+                i++;
+                if (i == PROGRESSBARS_NUM_PRINT) break;
+            }
+
+            if (!playerProgressPrinted) {
+                if (currentPlayer == null) return;
+                ColorMeta colorMeta = room.getState().colorMeta.get(currentPlayer.color + "");
+                if (colorMeta == null) return;
+
+                float percentage = colorMeta.numCells / (float) TOTAL_CELLS;
+                float width = percentage * totalWidth + progressbarInitWidth;
+                colorMeta.progressBar.setSize(progressbarWidth, progressbarHeight);
+                colorMeta.progressBar.setX(guiCamera.viewportWidth - width);
+                colorMeta.progressBar.setY(guiCamera.viewportHeight - (colorMeta.position == PROGRESSBARS_NUM_PRINT + 1 ? 0 : progressbarExtraGapForCurrentPlayer) - progressbarTopMargin - PROGRESSBARS_NUM_PRINT * (progressbarHeight + progressbarGap) - progressbarHeight);
+                colorMeta.progressBar.draw(batch);
+                playerFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
+                playerFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + currentPlayer.name, colorMeta.progressBar.getX() + 6, colorMeta.progressBar.getY() + playerFont.getLineHeight() + 4);
+            }
+        }
+
     }
 
     private void clearPlayerPath(String clientId) {
@@ -675,6 +755,16 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
+    private void updateProgressBarValues() {
+        progressbarWidth = guiCamera.viewportWidth * 0.6f;
+        progressbarInitWidth = guiCamera.viewportWidth * 0.25f;
+
+        progressbarGap = guiCamera.viewportHeight / 300f;
+        progressbarHeight = guiCamera.viewportHeight / 24f;
+        progressbarTopMargin = guiCamera.viewportHeight / 100f;
+        progressbarExtraGapForCurrentPlayer = 4 * progressbarGap;
+    }
+
     /* **************************************** NETWORK ******************************************/
 
     private void connectToServer() {
@@ -743,11 +833,12 @@ public class PlayScreen extends ScreenAdapter {
                             synchronized (players) {
                                 players.add(player);
                             }
+                            playersByColor[player.color - 1] = player;
                             Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
                             Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
 
                             Gdx.app.postRunnable(() -> {
-                                player.text = new GlyphLayout(usernameFont, player.name);
+                                player.text = new GlyphLayout(playerFont, player.name);
 
                                 player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
                                 player.bc.setSize(46, 46);
@@ -778,7 +869,7 @@ public class PlayScreen extends ScreenAdapter {
                                     camera.position.y = player.y;
                                 }
 
-                                player.trailGraphic = new TrailGraphic(trailTexture);
+                                player.trailGraphic = new TrailGraphic();
                                 player.trailGraphic.setTint(bcColor);
                                 player.trailGraphic.setRopeWidth(20);
                                 player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
@@ -840,6 +931,7 @@ public class PlayScreen extends ScreenAdapter {
                             synchronized (players) {
                                 players.remove(player);
                             }
+                            playersByColor[player.color - 1] = null;
                         };
 
                         room.getState().cells.onAddListener = (cell, key) -> {
@@ -864,6 +956,16 @@ public class PlayScreen extends ScreenAdapter {
                             }
                             if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] != null) {
                                 cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = null;
+                            }
+                        };
+
+                        room.getState().colorMeta.onAddListener = (colorMeta, key) -> {
+                            colorMeta.progressBar = gameAtlas.createSprite("progressbar");
+                            colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
+//                            colorMeta.progressBar.setSize(Gdx.graphics.getWidth(), Gdx.graphics.getHeight() / 24f);
+//                            colorMeta.progressBar.setValues(screenWidth - width, 10 + (color - 1) * 22, width + 10, 20);
+                            synchronized (colorMetas) {
+                                colorMetas.add(colorMeta);
                             }
                         };
                     }
