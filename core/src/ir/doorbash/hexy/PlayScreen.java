@@ -52,8 +52,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
-        private static final String ENDPOINT = "ws://192.168.1.134:3333";
-//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+//        private static final String ENDPOINT = "ws://192.168.1.134:3333";
+    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
@@ -168,9 +168,6 @@ public class PlayScreen extends ScreenAdapter {
     /* ************************************** CONSTRUCTOR ****************************************/
 
     PlayScreen() {
-
-        init(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
         batch = new SpriteBatch();
         gameAtlas = new TextureAtlas(PATH_PACK_ATLAS);
         whiteHex = gameAtlas.findRegion(TEXTURE_REGION_HEX_WHITE);
@@ -180,15 +177,10 @@ public class PlayScreen extends ScreenAdapter {
         thumbstickPadSprite.setSize(70, 70);
         camera = new OrthographicCamera();
         camera.zoom = CAMERA_INIT_ZOOM;
-
         controllerCamera = new OrthographicCamera();
-        controllerCamera.viewportWidth = screenWidth;
-        controllerCamera.viewportHeight = screenHeight;
-        controllerCamera.update();
-//        controllerCamera.setToOrtho(true, screenWidth, screenHeight);
-
         guiCamera = new OrthographicCamera();
-        guiCamera.update();
+
+        init(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         updateProgressBarValues();
 //        trailTexture = new Texture(Gdx.files.internal(PATH_TRAIL_TEXTURE), true);
@@ -322,7 +314,7 @@ public class PlayScreen extends ScreenAdapter {
     private void init(int width, int height) {
         screenWidth = height > width ? SCREEN_WIDTH_PORTRAIT : SCREEN_WIDTH_LANDSCAPE;
         screenHeight = screenWidth * height / width;
-        onScreenPadPosition.set(screenWidth - 120, screenHeight - 120);
+        onScreenPadPosition.set(screenWidth / 2f - 120, -screenHeight / 2f + 120);
         if (controllerType == CONTROLLER_TYPE_ON_SCREEN) {
             thumbstickBgSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
             thumbstickPadSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
@@ -748,8 +740,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private void handleTouchDownDrag(int screenX, int screenY) {
         if (controllerType == CONTROLLER_TYPE_MOUSE) {
-            float dx = screenX - screenWidth / 2f;
-            float dy = screenY - screenHeight / 2f;
+            float dx = screenX;
+            float dy = -screenY;
             direction = (int) Math.toDegrees(Math.atan2(-dy, dx));
         } else if (controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) {
             thumbstickBgSprite.setCenter(padAnchorPoint.x, padAnchorPoint.y);
