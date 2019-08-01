@@ -183,8 +183,8 @@ public class ArFont {
             arGlyph = filter(glyphs.get(glyphs.size - i));
 
         /** CONSOLE **/
-        if (arGlyph != null)
-            System.out.println("CASE " + CASE + ": " + arGlyph.getOriginalChar() + " To : " + arGlyph.getChar());
+//        if (arGlyph != null)
+//            System.out.println("CASE " + CASE + ": " + arGlyph.getOriginalChar() + " To : " + arGlyph.getChar());
     }
 }
 

@@ -109,7 +109,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final int SCREEN_WIDTH_PORTRAIT = 480;
     private static final int SCREEN_WIDTH_LANDSCAPE = 800;
 
-    private static final Color TEXT_BACKGROUND_COLOR = Color.valueOf("#707070AA");
+    private static final Color TEXT_BACKGROUND_COLOR = Color.valueOf("#707070cc");
 
     private SpriteBatch batch;
     private OrthographicCamera camera;
@@ -606,7 +606,7 @@ public class PlayScreen extends ScreenAdapter {
         Player player = room.getState().players.get(client.getId());
         if (player == null || player.status != 1) return;
         int remainingTime = (int) (player.rspwnTime - getServerTime());
-        if (remainingTime < 1) return;
+        if (remainingTime > 9) return;
         int seconds = remainingTime / 1000;
         float x = -youWillRspwnText.width / 2f;
         float y = Gdx.graphics.getHeight() / 4f;
@@ -618,7 +618,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private void clearPlayerPath(String clientId) {
         Player player = room.getState().players.get(clientId);
-        if (player != null) {
+        if (player != null && player.trailGraphic != null) {
             Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
             synchronized (player.pathCells) {
                 player.pathCells.clear();
@@ -750,7 +750,7 @@ public class PlayScreen extends ScreenAdapter {
         if (cm == null) return;
         float percentage = cm.numCells / (float) TOTAL_CELLS;
 //        System.out.println("percentage = " + percentage);
-        camera.zoom = CAMERA_INIT_ZOOM + 0.8f * percentage;
+        camera.zoom = Math.min(CAMERA_INIT_ZOOM + 2f * percentage, 1.7f);
     }
 
     // TODO: we need to improve this a little bit
@@ -902,6 +902,7 @@ public class PlayScreen extends ScreenAdapter {
                         };
 
                         room.getState().players.onAddListener = (player, key) -> {
+                            if (player.color == 0) return;
                             synchronized (players) {
                                 players.add(player);
                             }
