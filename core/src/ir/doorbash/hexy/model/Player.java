@@ -69,6 +69,7 @@ public class Player extends Schema {
 	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
 	public TrailGraphic trailGraphic;
 	public final LinkedList<PathCellUpdate> pathCellUpdates = new LinkedList<>();
+	public String _name;
 
 	@Override
 	public boolean equals(Object obj) {

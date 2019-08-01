@@ -18,6 +18,8 @@ import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
+import com.crowni.gdx.rtllang.support.ArFont;
+import com.crowni.gdx.rtllang.support.ArUtils;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -50,8 +52,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
-    //    private static final String ENDPOINT = "ws://192.168.1.134:3333";
-    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+        private static final String ENDPOINT = "ws://192.168.1.134:3333";
+//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
@@ -118,6 +120,7 @@ public class PlayScreen extends ScreenAdapter {
     private BitmapFont logFont;
     private BitmapFont usernameFont;
     private BitmapFont leaderboardFont;
+    private ArFont arFont = new ArFont();
     //    private SimpleMesh simpleMesh;
 //    private Texture trailTexture;
 //    private TrailGraphic trailGraphic;
@@ -338,6 +341,7 @@ public class PlayScreen extends ScreenAdapter {
         logFont = freetypeGeneratorNoto.generateFont(logFontParams);
 
         FreeTypeFontGenerator.FreeTypeFontParameter leaderboardFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        leaderboardFontParams.characters += ArUtils.getAllChars().toString("");
         leaderboardFontParams.size = 16 * Gdx.graphics.getWidth() / screenWidth;
         leaderboardFontParams.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
         leaderboardFontParams.flip = false;
@@ -348,6 +352,7 @@ public class PlayScreen extends ScreenAdapter {
         leaderboardFont = freetypeGeneratorArial.generateFont(leaderboardFontParams);
 
         FreeTypeFontGenerator.FreeTypeFontParameter usernameFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        usernameFontParams.characters += ArUtils.getAllChars().toString("");
         usernameFontParams.size = 16;
         usernameFontParams.color = new Color(0.8f, 0.8f, 0.8f, 1.0f);
         usernameFontParams.flip = false;
@@ -511,7 +516,7 @@ public class PlayScreen extends ScreenAdapter {
                         float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
                         float y = player.bc.getY() + 70;
                         usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
-                        usernameFont.draw(batch, player.name, x, y);
+                        usernameFont.draw(batch, player._name, x, y);
                     }
                 }
             }
@@ -537,7 +542,7 @@ public class PlayScreen extends ScreenAdapter {
                 colorMeta.progressBar.setY(guiCamera.viewportHeight / 2f - progressbarTopMargin - i * (progressbarHeight + progressbarGap) - progressbarHeight);
                 colorMeta.progressBar.draw(batch);
                 leaderboardFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
-                leaderboardFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + player.name, colorMeta.progressBar.getX() + 10, colorMeta.progressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 4);
+                leaderboardFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + player._name, colorMeta.progressBar.getX() + 10, colorMeta.progressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 4);
                 if (currentPlayer != null && currentPlayer.color == colorMeta.color)
                     playerProgressPrinted = true;
                 i++;
@@ -556,7 +561,7 @@ public class PlayScreen extends ScreenAdapter {
                 colorMeta.progressBar.setY(guiCamera.viewportHeight / 2f - (colorMeta.position == PROGRESSBARS_NUM_PRINT + 1 ? 0 : progressbarExtraGapForCurrentPlayer) - progressbarTopMargin - PROGRESSBARS_NUM_PRINT * (progressbarHeight + progressbarGap) - progressbarHeight);
                 colorMeta.progressBar.draw(batch);
                 leaderboardFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
-                leaderboardFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + currentPlayer.name, colorMeta.progressBar.getX() + 10, colorMeta.progressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 4);
+                leaderboardFont.draw(batch, colorMeta.position + "- " + decimalFormat.format(percentage * 100f) + "% " + currentPlayer._name, colorMeta.progressBar.getX() + 10, colorMeta.progressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 4);
             }
         }
 
@@ -787,7 +792,7 @@ public class PlayScreen extends ScreenAdapter {
             public void onOpen(String id) {
                 ConfigFile.set("clientId", id);
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
-                options.put("name", "milad");
+                options.put("name", "میلاد");
                 room = client.join("public_1", options, MyState.class);
                 room.addListener(new Room.Listener() {
                     @Override
@@ -848,11 +853,14 @@ public class PlayScreen extends ScreenAdapter {
                                 players.add(player);
                             }
                             playersByColor[player.color - 1] = player;
+
+                            player._name = arFont.getText(player.name);
+
                             Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
                             Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
 
                             Gdx.app.postRunnable(() -> {
-                                player.text = new GlyphLayout(usernameFont, player.name);
+                                player.text = new GlyphLayout(usernameFont, player._name);
 
                                 player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
                                 player.bc.setSize(46, 46);
