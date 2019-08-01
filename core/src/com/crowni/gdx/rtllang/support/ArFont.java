@@ -56,7 +56,7 @@ public class ArFont {
             filterLastChars(i);
 
         /** CONSOLE **/
-        System.out.println("==================================");
+//        System.out.println("==================================");
     }
 
     private void popChar() {
