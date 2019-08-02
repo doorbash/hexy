@@ -53,8 +53,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
-//    private static final String ENDPOINT = "ws://192.168.1.134:3333";
-    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+    private static final String ENDPOINT = "ws://192.168.1.134:3333";
+//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
@@ -96,15 +96,15 @@ public class PlayScreen extends ScreenAdapter {
     private static final int EXTENDED_CELLS = 3;
 
     private static final int TOTAL_CELLS = (2 * MAP_SIZE + 1) * (2 * MAP_SIZE + 1);
-//    private static final float MAP_SIZE_X_PIXEL = (MAP_SIZE * GRID_WIDTH);
+    //    private static final float MAP_SIZE_X_PIXEL = (MAP_SIZE * GRID_WIDTH);
     private static final float MAP_SIZE_X_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_WIDTH;
-//    private static final float MAP_SIZE_Y_PIXEL = (MAP_SIZE * GRID_HEIGHT);
+    //    private static final float MAP_SIZE_Y_PIXEL = (MAP_SIZE * GRID_HEIGHT);
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
 
 //    private static final int CELL_GRID_WIDTH = 2 * MAP_SIZE + 10;
 //    private static final int CELL_GRID_HEIGHT = 2 * MAP_SIZE + 10;
 
-    private static final int LEADERBOARD_NUM = 4;
+    private static final int LEADERBOARD_NUM = 20;
 
     private static final int SCREEN_WIDTH_PORTRAIT = 480;
     private static final int SCREEN_WIDTH_LANDSCAPE = 800;
@@ -145,7 +145,7 @@ public class PlayScreen extends ScreenAdapter {
     private int sendPingTime = SEND_PING_INTERVAL;
     private final ArrayList<Player> players = new ArrayList<>();
     private final HashMap<Integer, Cell> cells = new HashMap<>();
-//    private final Cell[][] cellGrid = new Cell[CELL_GRID_WIDTH][];
+    //    private final Cell[][] cellGrid = new Cell[CELL_GRID_WIDTH][];
 //    private final Cell[][] pathCellGrid = new Cell[CELL_GRID_WIDTH][];
     private int controllerType = CONTROLLER_TYPE_PAD;
     private OrthographicCamera controllerCamera;
@@ -222,7 +222,7 @@ public class PlayScreen extends ScreenAdapter {
         Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
         if (room != null) {
-            Player player = room.getState().players.get(client.getId());
+            Player player = room.state.players.get(client.getId());
             if (player != null && player.bc != null) {
 //                camera.position.x = player.bc.getX() + player.bc.getWidth() / 2f;
 //                camera.position.y = player.bc.getY() + player.bc.getHeight() / 2f;
@@ -269,9 +269,9 @@ public class PlayScreen extends ScreenAdapter {
 
         batch.setProjectionMatrix(guiCamera.combined);
 
-        if (room != null && room.getState().started) {
+        if (room != null && room.state.started) {
             drawLeaderboard(dt);
-            if (!room.getState().ended) {
+            if (!room.state.ended) {
                 drawTime();
                 drawYouWillRespawnText();
             }
@@ -594,8 +594,8 @@ public class PlayScreen extends ScreenAdapter {
 
             Collections.sort(colorMetas, colorMetaComp);
 
-            if(leaderboardDrawAgain) {
-                for(ColorMeta colorMeta : colorMetas) {
+            if (leaderboardDrawAgain) {
+                for (ColorMeta colorMeta : colorMetas) {
                     colorMeta.positionIsChanging = false;
                     colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
                     colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
@@ -628,8 +628,9 @@ public class PlayScreen extends ScreenAdapter {
             }
 
             boolean playerProgressPrinted = false;
-            Player currentPlayer = room.getState().players.get(client.getId());
-            for (int i = 0; i < (LEADERBOARD_NUM + 1); i++) {
+            Player currentPlayer = room.state.players.get(client.getId());
+            int limit = Math.min(LEADERBOARD_NUM + 1, colorMetas.size());
+            for (int i = 0; i < limit; i++) {
                 ColorMeta colorMeta = colorMetas.get(i); // _position = i + 1
                 if (colorMeta == null) continue;
                 if (i == LEADERBOARD_NUM) {
@@ -647,7 +648,7 @@ public class PlayScreen extends ScreenAdapter {
 
             if (!playerProgressPrinted) {
                 if (currentPlayer == null) return;
-                ColorMeta colorMeta = room.getState().colorMeta.get(currentPlayer.color + "");
+                ColorMeta colorMeta = room.state.colorMeta.get(currentPlayer.color + "");
                 if (colorMeta == null) return;
                 drawProgressbar(colorMeta, currentPlayer._name, dt, true);
             }
@@ -657,7 +658,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawTime() {
-        long remainingTime = room.getState().endTime - getServerTime();
+        long remainingTime = room.state.endTime - getServerTime();
         int seconds = (int) (remainingTime / 1000) % 60;
         String secondsText = (seconds < 10 ? "0" : "") + seconds;
         int minutes = (int) (remainingTime / 60000);
@@ -671,11 +672,11 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawYouWillRespawnText() {
-        Player player = room.getState().players.get(client.getId());
+        Player player = room.state.players.get(client.getId());
         if (player == null || player.status != 1) return;
         int remainingTime = (int) (player.rspwnTime - getServerTime());
         int seconds = remainingTime / 1000;
-        if (seconds > 9) return;
+        if (seconds < 0 || seconds > 9) return;
         float x = -youWillRspwnText.width / 2f;
         float y = Gdx.graphics.getHeight() / 4f;
         youWillRspwnBg.setSize(youWillRspwnText.width + 12 * guiUnits, youWillRspwnText.height + 12 * guiUnits);
@@ -685,7 +686,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void clearPlayerPath(String clientId) {
-        Player player = room.getState().players.get(clientId);
+        Player player = room.state.players.get(clientId);
         if (player != null && player.trailGraphic != null) {
             Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
             synchronized (player.pathCells) {
@@ -766,7 +767,7 @@ public class PlayScreen extends ScreenAdapter {
                     player.bcGhost.setCenter(player.x, player.y);
 
 //                    if (ADD_FAKE_PATH_CELLS) {
-//                        if (room.getState().started && !room.getState().ended)
+//                        if (room.state.started && !room.state.ended)
 //                            processPlayerPosition(player, x, y);
 //                    }
                 }
@@ -812,9 +813,9 @@ public class PlayScreen extends ScreenAdapter {
 //    }
 
     private void updateZoom() {
-        Player player = room.getState().players.get(client.getId());
+        Player player = room.state.players.get(client.getId());
         if (player == null) return;
-        ColorMeta cm = room.getState().colorMeta.get(player.color + "");
+        ColorMeta cm = room.state.colorMeta.get(player.color + "");
         if (cm == null) return;
 //        float percentage = cm.numCells / (float) TOTAL_CELLS;
 //        System.out.println("percentage = " + percentage);
@@ -868,9 +869,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private void handleTouchDownDrag(int screenX, int screenY) {
         if (controllerType == CONTROLLER_TYPE_MOUSE) {
-            float dx = screenX;
-            float dy = -screenY;
-            direction = (int) Math.toDegrees(Math.atan2(-dy, dx));
+            direction = (int) Math.toDegrees(Math.atan2(screenY, (float) screenX));
         } else if (controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) {
             thumbstickBgSprite.setCenter(padAnchorPoint.x, padAnchorPoint.y);
             padVector.set(screenX - padAnchorPoint.x, screenY - padAnchorPoint.y);
@@ -947,13 +946,18 @@ public class PlayScreen extends ScreenAdapter {
                             if (t == lastPingTime) {
                                 currentPing = (int) (System.currentTimeMillis() - t);
                             } else currentPing = 0;
+                        } else if(data.get("op").equals("dt")) {
+                            // dead
+                            System.out.println("YOU ARE DEAD!");
+
+                            // TODO: show death dialog here
                         }
                     }
 
                     @Override
                     protected void onJoin() {
                         System.out.println("joined public_1");
-                        room.getState().onChange = changes -> {
+                        room.state.onChange = changes -> {
                             for (DataChange change : changes) {
                                 switch (change.field) {
                                     case "started":
@@ -971,7 +975,7 @@ public class PlayScreen extends ScreenAdapter {
                             }
                         };
 
-                        room.getState().players.onAddListener = (player, key) -> {
+                        room.state.players.onAdd = (player, key) -> {
                             if (player.color == 0) return;
                             synchronized (players) {
                                 players.add(player);
@@ -1021,7 +1025,7 @@ public class PlayScreen extends ScreenAdapter {
                                 player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
                             });
 
-                            player.path.onAddListener = (point, key2) -> {
+                            player.path.onAdd = (point, key2) -> {
                                 Gdx.app.postRunnable(() -> {
                                     if (key2 > 1) {
                                         Point lastPoint = player.path.get(key2 - 1);
@@ -1044,7 +1048,7 @@ public class PlayScreen extends ScreenAdapter {
                                 });
                             };
 
-                            player.cells.onAddListener = (cell, key2) -> {
+                            player.cells.onAdd = (cell, key2) -> {
 //                                player.pathCellsLock.lock();
 //                                player.pathCells.put(key2, cell);
 //                                player.pathCellsLock.unlock();
@@ -1073,14 +1077,16 @@ public class PlayScreen extends ScreenAdapter {
                             player.path.triggerAll();
                             player.cells.triggerAll();
                         };
-                        room.getState().players.onRemoveListener = (player, key) -> {
+                        room.state.players.onRemove = (player, key) -> {
+                            System.out.println("player removed, color: " + player.color);
+                            clearPlayerPath(player.clientId);
                             synchronized (players) {
                                 players.remove(player);
                             }
                             playersByColor[player.color - 1] = null;
                         };
 
-                        room.getState().cells.onAddListener = (cell, key) -> {
+                        room.state.cells.onAdd = (cell, key) -> {
                             synchronized (cells) {
                                 cells.put(key, cell);
                             }
@@ -1096,7 +1102,7 @@ public class PlayScreen extends ScreenAdapter {
 
                             cell.onChange = changes -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
                         };
-                        room.getState().cells.onRemoveListener = (cell, key) -> {
+                        room.state.cells.onRemove = (cell, key) -> {
                             synchronized (cells) {
                                 cells.remove(key);
                             }
@@ -1105,7 +1111,7 @@ public class PlayScreen extends ScreenAdapter {
 //                            }
                         };
 
-                        room.getState().colorMeta.onAddListener = (colorMeta, key) -> {
+                        room.state.colorMeta.onAdd = (colorMeta, key) -> {
                             colorMeta._position = colorMetas.size() + 1;
                             colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
                             colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
@@ -1114,6 +1120,17 @@ public class PlayScreen extends ScreenAdapter {
                             colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
                             synchronized (colorMetas) {
                                 colorMetas.add(colorMeta);
+                            }
+                        };
+
+                        room.state.colorMeta.onRemove = (colorMeta, key) -> {
+                            synchronized (colorMetas) {
+                                colorMetas.remove(colorMeta);
+                                Collections.sort(colorMetas, colorMetaComp);
+                                for(int i = 0;i<colorMetas.size();i++) {
+                                    colorMetas.get(i)._position = i + 1;
+                                    colorMetas.get(i).positionIsChanging = false;
+                                }
                             }
                         };
                     }
