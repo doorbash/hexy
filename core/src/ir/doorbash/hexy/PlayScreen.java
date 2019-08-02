@@ -111,7 +111,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final Color TEXT_BACKGROUND_COLOR = Color.valueOf("#707070cc");
 
-    private static final float LEADERBORAD_CHANGE_SPEED = 50;
+    private static final float LEADERBORAD_CHANGE_SPEED = 100;
 
     private SpriteBatch batch;
     private OrthographicCamera camera;
@@ -173,6 +173,7 @@ public class PlayScreen extends ScreenAdapter {
     private Player[] playersByColor = new Player[100];
     private float guiUnits;
     private ArFont arFont = new ArFont();
+    private boolean leaderboardDrawAgain;
 
     /* ************************************** CONSTRUCTOR ****************************************/
 
@@ -317,6 +318,8 @@ public class PlayScreen extends ScreenAdapter {
         guiCamera.update();
 
         updateGuiValues();
+
+        leaderboardDrawAgain = true;
     }
 
     @Override
@@ -387,7 +390,7 @@ public class PlayScreen extends ScreenAdapter {
         fbo = new FrameBuffer(Pixmap.Format.RGBA8888, 2 * SCREEN_WIDTH_LANDSCAPE, 2 * SCREEN_WIDTH_LANDSCAPE, false);
         fbo.begin();
 
-        Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
+        Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1.0f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         Gdx.gl20.glEnable(GL20.GL_BLEND);
@@ -400,8 +403,8 @@ public class PlayScreen extends ScreenAdapter {
 
         batch.begin();
 
-        for (int xi = -3; xi < 22; xi++) {
-            for (int yi = -3; yi < 37; yi++) {
+        for (int xi = -3; xi < 37; xi++) {
+            for (int yi = -3; yi < 43; yi++) {
                 batch.draw(whiteHex, xi * GRID_WIDTH + (yi % 2 == 0 ? 0 : GRID_WIDTH / 2f) - 20, yi * GRID_HEIGHT - 23, 40, 46);
             }
         }
@@ -591,28 +594,38 @@ public class PlayScreen extends ScreenAdapter {
 
             Collections.sort(colorMetas, colorMetaComp);
 
-            for (int i = 0; i < colorMetas.size() - 1; i++) {
-                ColorMeta colorMeta = colorMetas.get(i);
-                if (colorMeta.positionIsChanging) break;
-                if (colorMeta.position > colorMeta._position) { // yani bayad bere paeen
-                    ColorMeta next = colorMetas.get(i + 1);
-                    if (!next.positionIsChanging && next.position <= next._position) {
-                        if (colorMeta._position <= LEADERBOARD_NUM) {
-                            if (next._position <= LEADERBOARD_NUM + 1) {
-                                colorMeta.positionIsChanging = true;
-                                colorMeta.changeDir = ColorMeta.CHANGE_DIRECTION_DOWN;
-                                next.positionIsChanging = true;
-                                next.changeDir = ColorMeta.CHANGE_DIRECTION_UP;
+            if(leaderboardDrawAgain) {
+                for(ColorMeta colorMeta : colorMetas) {
+                    colorMeta.positionIsChanging = false;
+                    colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
+                    colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                }
+                leaderboardDrawAgain = false;
+            } else {
+
+                for (int i = 0; i < colorMetas.size() - 1; i++) {
+                    ColorMeta colorMeta = colorMetas.get(i);
+                    if (colorMeta.positionIsChanging) break;
+                    if (colorMeta.position > colorMeta._position) { // yani bayad bere paeen
+                        ColorMeta next = colorMetas.get(i + 1);
+                        if (!next.positionIsChanging && next.position <= next._position) {
+                            if (colorMeta._position <= LEADERBOARD_NUM) {
+                                if (next._position <= LEADERBOARD_NUM + 1) {
+                                    colorMeta.positionIsChanging = true;
+                                    colorMeta.changeDir = ColorMeta.CHANGE_DIRECTION_DOWN;
+                                    next.positionIsChanging = true;
+                                    next.changeDir = ColorMeta.CHANGE_DIRECTION_UP;
+                                }
                             }
+                            colorMeta._position++;
+                            next._position--;
+                            i++;
                         }
-                        colorMeta._position++;
-                        next._position--;
-                        i++;
                     }
                 }
-            }
 
-            Collections.sort(colorMetas, colorMetaComp);
+                Collections.sort(colorMetas, colorMetaComp);
+            }
 
             boolean playerProgressPrinted = false;
             Player currentPlayer = room.getState().players.get(client.getId());
@@ -622,7 +635,6 @@ public class PlayScreen extends ScreenAdapter {
                 if (i == LEADERBOARD_NUM) {
                     if (!colorMeta.positionIsChanging) break;
                     if (colorMeta.changeDir == ColorMeta.CHANGE_DIRECTION_UP) {
-//                        colorMeta.positionIsChanging = false;
                         break;
                     }
                 }
@@ -807,7 +819,7 @@ public class PlayScreen extends ScreenAdapter {
 //        float percentage = cm.numCells / (float) TOTAL_CELLS;
 //        System.out.println("percentage = " + percentage);
 //        camera.zoom = Math.min(CAMERA_INIT_ZOOM + 2f * percentage, 1.7f);
-        camera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 1.7f);
+        camera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 2f);
 
     }
 
