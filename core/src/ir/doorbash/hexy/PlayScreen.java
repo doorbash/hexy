@@ -53,13 +53,40 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
-    private static final String ENDPOINT = "ws://192.168.1.134:3333";
-//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
-//    public static final String ENDPOINT = "ws://127.0.0.1:3333";
+    private static final int MAP_SIZE = 30;
+    private static final int EXTENDED_CELLS = 3;
+    private static final int TOTAL_CELLS = (2 * MAP_SIZE + 1) * (2 * MAP_SIZE + 1);
+    private static final int CONTROLLER_TYPE_MOUSE = 1;
+    private static final int CONTROLLER_TYPE_PAD = 2;
+    private static final int CONTROLLER_TYPE_ON_SCREEN = 3;
+    private static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
+    private static final int SEND_DIRECTION_INTERVAL = 200;
+    private static final int SEND_PING_INTERVAL = 5000;
+    private static final int PAD_CONTROLLER_MAX_LENGTH = 42;
+    private static final int LEADERBOARD_NUM = 20;
+    private static final int SCREEN_WIDTH_PORTRAIT = 480;
+    private static final int SCREEN_WIDTH_LANDSCAPE = 800;
+    //    private static final int PATH_CELLS_UPDATE_TIME = 500;
+    //    private static final int CELL_GRID_WIDTH = 2 * MAP_SIZE + 10;
+    //    private static final int CELL_GRID_HEIGHT = 2 * MAP_SIZE + 10;
 
+    private static final float CAMERA_LERP = 0.8f;
+    private static final float CAMERA_INIT_ZOOM = 0.9f;
+    private static final float PATH_CELL_ALPHA_TINT = 0.4f;
+    private static final float ON_SCREEN_PAD_RELEASE_TOTAL_TIME = 0.3f;
+    private static final float GRID_WIDTH = 44;
+    private static final float GRID_HEIGHT = 38;
+    //    private static final float MAP_SIZE_X_PIXEL = (MAP_SIZE * GRID_WIDTH);
+    private static final float MAP_SIZE_X_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_WIDTH;
+    //    private static final float MAP_SIZE_Y_PIXEL = (MAP_SIZE * GRID_HEIGHT);
+    private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
+    private static final float LEADERBORAD_CHANGE_SPEED = 100;
+
+    private static final String ENDPOINT = "ws://192.168.1.134:3333";
+    //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+//    public static final String ENDPOINT = "ws://127.0.0.1:3333";
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
-
     private static final String PATH_PACK_ATLAS = "pack.atlas";
     private static final String PATH_TRAIL_TEXTURE = "traine.png";
     private static final String TEXTURE_REGION_HEX_WHITE = "hex_white";
@@ -69,111 +96,79 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TEXTURE_REGION_INDIC = "indic";
     private static final String TEXTURE_REGION_PROGRESSBAR = "progressbar";
 
-    private static final int CONTROLLER_TYPE_MOUSE = 1;
-    private static final int CONTROLLER_TYPE_PAD = 2;
-    private static final int CONTROLLER_TYPE_ON_SCREEN = 3;
-
-    private static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
-
-    private static final int SEND_DIRECTION_INTERVAL = 200;
-    private static final int SEND_PING_INTERVAL = 5000;
-
-    private static final float CAMERA_LERP = 0.8f;
-    private static final float CAMERA_INIT_ZOOM = 0.9f;
-
-    private static final float PATH_CELL_ALPHA_TINT = 0.4f;
-
-    private static final int PAD_CONTROLLER_MAX_LENGTH = 42;
-    private static final float ON_SCREEN_PAD_RELEASE_TOTAL_TIME = 0.3f;
     private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3, 2, 3, 0.5f);
-
-//    private static final int PATH_CELLS_UPDATE_TIME = 500;
-
-    private static final float GRID_WIDTH = 44;
-    private static final float GRID_HEIGHT = 38;
-
-    private static final int MAP_SIZE = 30;
-    private static final int EXTENDED_CELLS = 3;
-
-    private static final int TOTAL_CELLS = (2 * MAP_SIZE + 1) * (2 * MAP_SIZE + 1);
-    //    private static final float MAP_SIZE_X_PIXEL = (MAP_SIZE * GRID_WIDTH);
-    private static final float MAP_SIZE_X_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_WIDTH;
-    //    private static final float MAP_SIZE_Y_PIXEL = (MAP_SIZE * GRID_HEIGHT);
-    private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
-
-//    private static final int CELL_GRID_WIDTH = 2 * MAP_SIZE + 10;
-//    private static final int CELL_GRID_HEIGHT = 2 * MAP_SIZE + 10;
-
-    private static final int LEADERBOARD_NUM = 20;
-
-    private static final int SCREEN_WIDTH_PORTRAIT = 480;
-    private static final int SCREEN_WIDTH_LANDSCAPE = 800;
-
     private static final Color TEXT_BACKGROUND_COLOR = Color.valueOf("#707070cc");
-
-    private static final float LEADERBORAD_CHANGE_SPEED = 100;
+    private static final Comparator<ColorMeta> COLOR_META_COMP = (o1, o2) -> Integer.compare(o1._position, o2._position);
 
     private SpriteBatch batch;
     private OrthographicCamera camera;
+    private OrthographicCamera controllerCamera;
+    private OrthographicCamera guiCamera;
     private TextureAtlas gameAtlas;
+    private TextureAtlas.AtlasRegion whiteHex;
     private FrameBuffer fbo;
     private Sprite tiles;
-    private TextureAtlas.AtlasRegion whiteHex;
     private Sprite thumbstickBgSprite;
     private Sprite thumbstickPadSprite;
+    private Sprite timeBg;
+    private Sprite youWillRspwnBg;
     private FreeTypeFontGenerator freetypeGeneratorNoto;
     private FreeTypeFontGenerator freetypeGeneratorArial;
     private BitmapFont logFont;
     private BitmapFont usernameFont;
     private BitmapFont leaderboardFont;
     private BitmapFont timeFont;
-    private Sprite timeBg;
-    private Sprite youWillRspwnBg;
     private GlyphLayout timeText;
     private GlyphLayout youWillRspwnText;
 
     /* **************************************** FIELDS *******************************************/
 
-    private Client client;
-    private Room<MyState> room;
-    private long timeDiff;
-    private float lastDirection;
-    private float direction;
-    private LinkedHashMap<String, Object> message = new LinkedHashMap<>();
+    private boolean leaderboardDrawAgain;
+    private boolean mouseIsDown = false;
+
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
     private int sendPingTime = SEND_PING_INTERVAL;
-    private final ArrayList<Player> players = new ArrayList<>();
-    private final HashMap<Integer, Cell> cells = new HashMap<>();
-    //    private final Cell[][] cellGrid = new Cell[CELL_GRID_WIDTH][];
-//    private final Cell[][] pathCellGrid = new Cell[CELL_GRID_WIDTH][];
     private int controllerType = CONTROLLER_TYPE_PAD;
-    private OrthographicCamera controllerCamera;
-    private OrthographicCamera guiCamera;
-    private boolean mouseIsDown = false;
-    private Vector2 padAnchorPoint = new Vector2();
-    private Vector2 padVector = new Vector2();
-    private Vector2 onScreenPadNorVector = new Vector2();
+    private int screenWidth;
+    private int screenHeight;
+    private int currentPing;
+
+    private long lastPingTime;
+    private long timeDiff;
+
+    private float lastDirection;
+    private float direction;
     private float onScreenPadCurrentLen = 0;
     private float onScreenPadReleaseTimer = 0;
     private float onScreenPadInitLen = 0;
-    private int screenWidth;
-    private int screenHeight;
-    private Vector2 onScreenPadPosition = new Vector2();
-    private long lastPingTime;
-    private int currentPing;
-    private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
-    private Comparator<ColorMeta> colorMetaComp = (o1, o2) -> Integer.compare(o1._position, o2._position);
     private float progressbarWidth;
     private float progressbarHeight;
     private float progressbarTopMargin;
     private float progressbarGap;
     private float progressbarInitWidth;
     private float progressbarExtraGapForCurrentPlayer;
-    private Player[] playersByColor = new Player[100];
     private float guiUnits;
-    private ArFont arFont = new ArFont();
-    private boolean leaderboardDrawAgain;
+
+    private String roomName = "battle";
+
+    private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
+    private final ArrayList<Player> players = new ArrayList<>();
+    private final HashMap<Integer, Cell> cells = new HashMap<>();
+    private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
+    private final Player[] playersByColor = new Player[100];
+
+    private final Vector2 padAnchorPoint = new Vector2();
+    private final Vector2 padVector = new Vector2();
+    private final Vector2 onScreenPadPosition = new Vector2();
+    private Vector2 onScreenPadNorVector = new Vector2();
+
+    private Client client;
+    private Room<MyState> room;
+    private final ArFont arFont = new ArFont();
+
+    //    private final Cell[][] cellGrid = new Cell[CELL_GRID_WIDTH][];
+    //    private final Cell[][] pathCellGrid = new Cell[CELL_GRID_WIDTH][];
 
     /* ************************************** CONSTRUCTOR ****************************************/
 
@@ -592,7 +587,7 @@ public class PlayScreen extends ScreenAdapter {
     private void drawLeaderboard(float dt) {
         synchronized (colorMetas) {
 
-            Collections.sort(colorMetas, colorMetaComp);
+            Collections.sort(colorMetas, COLOR_META_COMP);
 
             if (leaderboardDrawAgain) {
                 for (ColorMeta colorMeta : colorMetas) {
@@ -624,7 +619,7 @@ public class PlayScreen extends ScreenAdapter {
                     }
                 }
 
-                Collections.sort(colorMetas, colorMetaComp);
+                Collections.sort(colorMetas, COLOR_META_COMP);
             }
 
             boolean playerProgressPrinted = false;
@@ -640,7 +635,10 @@ public class PlayScreen extends ScreenAdapter {
                     }
                 }
                 Player player = playersByColor[colorMeta.color - 1];
-                if (player == null) continue;
+                if (player == null) {
+                    colorMeta.positionIsChanging = false;
+                    continue;
+                }
                 drawProgressbar(colorMeta, player._name, dt, false);
                 if (currentPlayer != null && currentPlayer.color == colorMeta.color)
                     playerProgressPrinted = true;
@@ -712,7 +710,9 @@ public class PlayScreen extends ScreenAdapter {
     private void updatePlayersPositions(float dt) {
         synchronized (players) {
             for (Player player : players) {
-                if (player.bc != null && player.status == 0) {
+                if (player.bc != null) {
+
+                    if(player.status == 0) {
 
 //                    if (ADD_FAKE_PATH_CELLS) {
 //                        synchronized (player.pathCells) {
@@ -739,37 +739,49 @@ public class PlayScreen extends ScreenAdapter {
 //                        }
 //                    }
 
-                    if (CORRECT_PLAYER_POSITION) {
-                        if (correctPlayerPositionTime < 0) {
-                            correctPlayerPosition(player);
-                            correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
-                        } else correctPlayerPositionTime -= dt * 1000;
-                    }
+                        if (CORRECT_PLAYER_POSITION) {
+                            if (correctPlayerPositionTime < 0) {
+                                correctPlayerPosition(player);
+                                correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
+                            } else correctPlayerPositionTime -= dt * 1000;
+                        }
 
-                    float x = player.bc.getX() + player.bc.getWidth() / 2f;
-                    float y = player.bc.getY() + player.bc.getHeight() / 2f;
+                        float x = player.bc.getX() + player.bc.getWidth() / 2f;
+                        float y = player.bc.getY() + player.bc.getHeight() / 2f;
 
-                    float newX = x + MathUtils.cos(player.angle) * player.speed * dt;
-                    float newY = y + MathUtils.sin(player.angle) * player.speed * dt;
+                        float newX = x + MathUtils.cos(player.angle) * player.speed * dt;
+                        float newY = y + MathUtils.sin(player.angle) * player.speed * dt;
 
-                    if (newX <= MAP_SIZE_X_EXT_PIXEL && newX >= -MAP_SIZE_X_EXT_PIXEL) x = newX;
-                    if (newY <= MAP_SIZE_Y_EXT_PIXEL && newY >= -MAP_SIZE_Y_EXT_PIXEL) y = newY;
+                        if (newX <= MAP_SIZE_X_EXT_PIXEL && newX >= -MAP_SIZE_X_EXT_PIXEL) x = newX;
+                        if (newY <= MAP_SIZE_Y_EXT_PIXEL && newY >= -MAP_SIZE_Y_EXT_PIXEL) y = newY;
 
-                    player.bc.setCenter(x, y);
+                        player.bc.setCenter(x, y);
 
-                    player.c.setCenter(x, y);
+                        player.c.setCenter(x, y);
 
-                    if (player.indic != null) {
-                        player.indic.setCenter(x, y);
-                        player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
-                    }
+                        if (player.indic != null) {
+                            player.indic.setCenter(x, y);
+                            player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                        }
 
-                    player.bcGhost.setCenter(player.x, player.y);
+                        player.bcGhost.setCenter(player.x, player.y);
 
 //                    if (ADD_FAKE_PATH_CELLS) {
 //                        if (room.state.started && !room.state.ended)
 //                            processPlayerPosition(player, x, y);
 //                    }
+                    } else {
+                        float x = player.x;
+                        float y = player.y;
+
+                        player.bc.setCenter(x, y);
+                        player.c.setCenter(x, y);
+                        if (player.indic != null) {
+                            player.indic.setCenter(x, y);
+                            player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                        }
+                        player.bcGhost.setCenter(player.x, player.y);
+                    }
                 }
             }
         }
@@ -915,7 +927,7 @@ public class PlayScreen extends ScreenAdapter {
                 ConfigFile.set("clientId", id);
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
                 options.put("name", "میلاد");
-                room = client.join("public_1", options, MyState.class);
+                room = client.join(roomName, options, MyState.class);
                 room.addListener(new Room.Listener() {
                     @Override
                     protected void onLeave() {
@@ -946,7 +958,7 @@ public class PlayScreen extends ScreenAdapter {
                             if (t == lastPingTime) {
                                 currentPing = (int) (System.currentTimeMillis() - t);
                             } else currentPing = 0;
-                        } else if(data.get("op").equals("dt")) {
+                        } else if (data.get("op").equals("dt")) {
                             // dead
                             System.out.println("YOU ARE DEAD!");
 
@@ -1126,8 +1138,8 @@ public class PlayScreen extends ScreenAdapter {
                         room.state.colorMeta.onRemove = (colorMeta, key) -> {
                             synchronized (colorMetas) {
                                 colorMetas.remove(colorMeta);
-                                Collections.sort(colorMetas, colorMetaComp);
-                                for(int i = 0;i<colorMetas.size();i++) {
+                                Collections.sort(colorMetas, COLOR_META_COMP);
+                                for (int i = 0; i < colorMetas.size(); i++) {
                                     colorMetas.get(i)._position = i + 1;
                                     colorMetas.get(i).positionIsChanging = false;
                                 }
