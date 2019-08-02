@@ -15,15 +15,25 @@ import ir.doorbash.hexy.ProgressBar;
 
 @SchemaClass
 public class ColorMeta extends Schema {
-	@SchemaField("0/uint8")	
-	public short color = 0;
 
-	@SchemaField("1/uint16")	
-	public int numCells = 0;
+    public static final int CHANGE_DIRECTION_UP = 1;
+    public static final int CHANGE_DIRECTION_DOWN = -1;
 
-	@SchemaField("2/uint8")	
-	public short position = 0;
+    @SchemaField("0/uint8")
+    public short color = 0;
 
-	public Sprite progressBar;
+    @SchemaField("1/uint16")
+    public int numCells = 0;
+
+    @SchemaField("2/uint8")
+    public short position = 0;
+
+    public Sprite progressBar;
+
+    // positioni ke alan dare draw mishe
+    public int _position;
+    public boolean positionIsChanging = false;
+    public float _percentage;
+    public int changeDir;
 }
 
