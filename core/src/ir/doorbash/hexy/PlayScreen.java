@@ -819,7 +819,7 @@ public class PlayScreen extends ScreenAdapter {
 //        float percentage = cm.numCells / (float) TOTAL_CELLS;
 //        System.out.println("percentage = " + percentage);
 //        camera.zoom = Math.min(CAMERA_INIT_ZOOM + 2f * percentage, 1.7f);
-        camera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 2f);
+        camera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 1.7f);
 
     }
 
