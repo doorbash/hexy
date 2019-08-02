@@ -28,12 +28,16 @@ public class ColorMeta extends Schema {
     @SchemaField("2/uint8")
     public short position = 0;
 
-    public Sprite progressBar;
+    @Override
+    public boolean equals(Object obj) {
+        return obj instanceof ColorMeta && ((ColorMeta) obj).color == color;
+    }
 
-    // positioni ke alan dare draw mishe
-    public int _position;
-    public boolean positionIsChanging = false;
-    public float _percentage;
-    public int changeDir;
+    public Sprite progressBar;
+    public int _position; // positioni ke alan dare draw mishe
+    public boolean positionIsChanging = false; // aya jash too list dare avaz mishe ya na
+    // (dar halate harekate be samte ye position e dge)
+    public float _percentage; // braye lerp estefade mishe (qashangi)
+    public int changeDir; // dare mire bala ya paeen vaghti positionIsChanging = true e
 }
 
