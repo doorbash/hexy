@@ -63,7 +63,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final int SEND_DIRECTION_INTERVAL = 200;
     private static final int SEND_PING_INTERVAL = 5000;
     private static final int PAD_CONTROLLER_MAX_LENGTH = 42;
-    private static final int LEADERBOARD_NUM = 20;
+    private static final int LEADERBOARD_NUM = 10;
     private static final int SCREEN_WIDTH_PORTRAIT = 480;
     private static final int SCREEN_WIDTH_LANDSCAPE = 800;
     //    private static final int PATH_CELLS_UPDATE_TIME = 500;
@@ -85,8 +85,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final float LEADERBORAD_CHANGE_SPEED = 100;
 
     private static final String ENDPOINT = "ws://192.168.1.134:3334";
-    //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
-//    public static final String ENDPOINT = "ws://127.0.0.1:3333";
+    //    public static final String ENDPOINT = "ws://46.21.147.7:3334";
+    //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
     private static final String PATH_PACK_ATLAS = "pack.atlas";
@@ -601,7 +601,7 @@ public class PlayScreen extends ScreenAdapter {
 
                 for (int i = 0; i < colorMetas.size() - 1; i++) {
                     ColorMeta colorMeta = colorMetas.get(i);
-                    if (colorMeta.positionIsChanging) break;
+                    if (colorMeta.positionIsChanging) continue;
                     if (colorMeta.position > colorMeta._position) { // yani bayad bere paeen
                         ColorMeta next = colorMetas.get(i + 1);
                         if (!next.positionIsChanging && next.position <= next._position) {
@@ -630,10 +630,8 @@ public class PlayScreen extends ScreenAdapter {
                 ColorMeta colorMeta = colorMetas.get(i); // _position = i + 1
                 if (colorMeta == null) continue;
                 if (i == LEADERBOARD_NUM) {
-                    if (!colorMeta.positionIsChanging) break;
-                    if (colorMeta.changeDir == ColorMeta.CHANGE_DIRECTION_UP) {
-                        break;
-                    }
+                    if (!colorMeta.positionIsChanging) continue;
+                    if (colorMeta.changeDir == ColorMeta.CHANGE_DIRECTION_UP) continue;
                 }
                 Player player = playersByColor[colorMeta.color - 1];
                 if (player == null) {
@@ -1048,34 +1046,28 @@ public class PlayScreen extends ScreenAdapter {
                                 player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
                             });
 
-                            player.path.onAdd = (point, key2) -> {
-                                Gdx.app.postRunnable(() -> {
-                                    if (key2 > 1) {
-                                        Point lastPoint = player.path.get(key2 - 1);
-                                        if (lastPoint != null) {
-                                            float dx = point.x - lastPoint.x;
-                                            float dy = point.y - lastPoint.y;
-                                            player.trailGraphic.setPoint(key2 * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
-                                        }
-                                        player.trailGraphic.setPoint(key2 * 2, point.x, point.y);
-                                    } else if (key2 == 1) {
-                                        Point lastPoint = player.path.get(0);
-                                        if (lastPoint != null) {
-                                            float dx = point.x - lastPoint.x;
-                                            float dy = point.y - lastPoint.y;
-                                            player.trailGraphic.setPoint(0, lastPoint.x - dx / 2f, lastPoint.y - dy / 2f);
-                                            player.trailGraphic.setPoint(1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
-                                        }
-                                        player.trailGraphic.setPoint(2, point.x, point.y);
+                            player.path.onAdd = (point, key2) -> Gdx.app.postRunnable(() -> {
+                                if (key2 > 1) {
+                                    Point lastPoint = player.path.get(key2 - 1);
+                                    if (lastPoint != null) {
+                                        float dx = point.x - lastPoint.x;
+                                        float dy = point.y - lastPoint.y;
+                                        player.trailGraphic.setPoint(key2 * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
                                     }
-                                });
-                            };
+                                    player.trailGraphic.setPoint(key2 * 2, point.x, point.y);
+                                } else if (key2 == 1) {
+                                    Point lastPoint = player.path.get(0);
+                                    if (lastPoint != null) {
+                                        float dx = point.x - lastPoint.x;
+                                        float dy = point.y - lastPoint.y;
+                                        player.trailGraphic.setPoint(0, lastPoint.x - dx / 2f, lastPoint.y - dy / 2f);
+                                        player.trailGraphic.setPoint(1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                                    }
+                                    player.trailGraphic.setPoint(2, point.x, point.y);
+                                }
+                            });
 
                             player.cells.onAdd = (cell, key2) -> {
-//                                player.pathCellsLock.lock();
-//                                player.pathCells.put(key2, cell);
-//                                player.pathCellsLock.unlock();
-
                                 cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
                                 cell.id.setSize(40, 46);
                                 Vector2 pos = getHexPosition(cell.x, cell.y);
@@ -1147,16 +1139,20 @@ public class PlayScreen extends ScreenAdapter {
                             }
                         };
 
-                        room.state.colorMeta.onRemove = (colorMeta, key) -> {
-                            synchronized (colorMetas) {
-                                colorMetas.remove(colorMeta);
-                                Collections.sort(colorMetas, COLOR_META_COMP);
-                                for (int i = 0; i < colorMetas.size(); i++) {
-                                    colorMetas.get(i)._position = i + 1;
-                                    colorMetas.get(i).positionIsChanging = false;
-                                }
-                            }
-                        };
+                        room.state.cells.triggerAll();
+                        room.state.players.triggerAll();
+                        room.state.colorMeta.triggerAll();
+
+//                        room.state.colorMeta.onRemove = (colorMeta, key) -> {
+//                            synchronized (colorMetas) {
+//                                colorMetas.remove(colorMeta);
+//                                Collections.sort(colorMetas, COLOR_META_COMP);
+//                                for (int i = 0; i < colorMetas.size(); i++) {
+//                                    colorMetas.get(i)._position = i + 1;
+//                                    colorMetas.get(i).positionIsChanging = false;
+//                                }
+//                            }
+//                        };
                     }
                 });
             }
