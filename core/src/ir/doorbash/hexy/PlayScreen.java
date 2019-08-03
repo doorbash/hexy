@@ -69,6 +69,8 @@ public class PlayScreen extends ScreenAdapter {
     //    private static final int PATH_CELLS_UPDATE_TIME = 500;
     //    private static final int CELL_GRID_WIDTH = 2 * MAP_SIZE + 10;
     //    private static final int CELL_GRID_HEIGHT = 2 * MAP_SIZE + 10;
+    private static final int GAME_MODE_FFA = 0;
+    private static final int GAME_MODE_BATTLE = 1;
 
     private static final float CAMERA_LERP = 0.8f;
     private static final float CAMERA_INIT_ZOOM = 0.9f;
@@ -82,7 +84,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
     private static final float LEADERBORAD_CHANGE_SPEED = 100;
 
-    private static final String ENDPOINT = "ws://192.168.1.134:3333";
+    private static final String ENDPOINT = "ws://192.168.1.134:3334";
     //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
@@ -133,6 +135,7 @@ public class PlayScreen extends ScreenAdapter {
     private int screenWidth;
     private int screenHeight;
     private int currentPing;
+    private int gameMode = GAME_MODE_BATTLE;
 
     private long lastPingTime;
     private long timeDiff;
@@ -150,11 +153,9 @@ public class PlayScreen extends ScreenAdapter {
     private float progressbarExtraGapForCurrentPlayer;
     private float guiUnits;
 
-    private String roomName = "battle";
-
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final ArrayList<Player> players = new ArrayList<>();
-    private final HashMap<Integer, Cell> cells = new HashMap<>();
+    private final HashMap<String, Cell> cells = new HashMap<>();
     private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
     private final Player[] playersByColor = new Player[100];
 
@@ -266,7 +267,7 @@ public class PlayScreen extends ScreenAdapter {
 
         if (room != null && room.state.started) {
             drawLeaderboard(dt);
-            if (!room.state.ended) {
+            if (gameMode == GAME_MODE_BATTLE && !room.state.ended) {
                 drawTime();
                 drawYouWillRespawnText();
             }
@@ -712,7 +713,7 @@ public class PlayScreen extends ScreenAdapter {
             for (Player player : players) {
                 if (player.bc != null) {
 
-                    if(player.status == 0) {
+                    if (player.status == 0) {
 
 //                    if (ADD_FAKE_PATH_CELLS) {
 //                        synchronized (player.pathCells) {
@@ -920,14 +921,24 @@ public class PlayScreen extends ScreenAdapter {
 
     /* **************************************** NETWORK ******************************************/
 
+    private String getRoomName() {
+        if (gameMode == GAME_MODE_BATTLE) {
+            return "battle";
+        } else if (gameMode == GAME_MODE_FFA) {
+            return "ffa";
+        }
+        return "";
+    }
+
     private void connectToServer() {
+
         client = new Client(ENDPOINT, ConfigFile.get("clientId"), null, null, 10000, new Client.Listener() {
             @Override
             public void onOpen(String id) {
                 ConfigFile.set("clientId", id);
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
-                options.put("name", "میلاد");
-                room = client.join(roomName, options, MyState.class);
+                options.put("name", "milad");
+                room = client.join(getRoomName(), options, MyState.class);
                 room.addListener(new Room.Listener() {
                     @Override
                     protected void onLeave() {
@@ -1116,6 +1127,7 @@ public class PlayScreen extends ScreenAdapter {
                         };
                         room.state.cells.onRemove = (cell, key) -> {
                             synchronized (cells) {
+                                System.out.println("cell removed " + cell.x + ", " + cell.y);
                                 cells.remove(key);
                             }
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] != null) {
