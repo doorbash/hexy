@@ -626,7 +626,7 @@ public class PlayScreen extends ScreenAdapter {
             boolean playerProgressPrinted = false;
             Player currentPlayer = room.state.players.get(client.getId());
             int limit = Math.min(LEADERBOARD_NUM + 1, colorMetas.size());
-            for (int i = 0; i < limit; i++) {
+            for (int i = limit - 1; i >= 0; i--) {
                 ColorMeta colorMeta = colorMetas.get(i); // _position = i + 1
                 if (colorMeta == null) continue;
                 if (i == LEADERBOARD_NUM) {
