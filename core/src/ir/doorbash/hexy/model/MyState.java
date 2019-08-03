@@ -12,8 +12,8 @@ import io.colyseus.serializer.schema.annotations.SchemaField;
 
 @SchemaClass
 public class MyState extends Schema {
-	@SchemaField("0/array/ref")	
-	public ArraySchema<Cell> cells = new ArraySchema<>(Cell.class);
+	@SchemaField("0/map/ref")
+	public MapSchema<Cell> cells = new MapSchema<>(Cell.class);
 
 	@SchemaField("1/map/ref")	
 	public MapSchema<Player> players = new MapSchema<>(Player.class);
