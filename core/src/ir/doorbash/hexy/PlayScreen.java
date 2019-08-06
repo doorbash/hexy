@@ -100,6 +100,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3, 2, 3, 0.5f);
     private static final Color TEXT_BACKGROUND_COLOR = Color.valueOf("#707070cc");
+    private static final Color TEXT_YOUR_BEST_PROGRESS_COLOR = Color.valueOf("#707070aa");
+    private static final Color YOUR_PROGRESS_BG_COLOR = Color.valueOf("#70707066");
     private static final Comparator<ColorMeta> COLOR_META_COMP = (o1, o2) -> Integer.compare(o1._position, o2._position);
 
     private SpriteBatch batch;
@@ -114,6 +116,8 @@ public class PlayScreen extends ScreenAdapter {
     private Sprite thumbstickPadSprite;
     private Sprite timeBg;
     private Sprite youWillRspwnBg;
+    private Sprite playerProgressBar;
+    private Sprite playerProgressBarBest;
     private FreeTypeFontGenerator freetypeGeneratorNoto;
     private FreeTypeFontGenerator freetypeGeneratorArial;
     private BitmapFont logFont;
@@ -122,6 +126,8 @@ public class PlayScreen extends ScreenAdapter {
     private BitmapFont timeFont;
     private GlyphLayout timeText;
     private GlyphLayout youWillRspwnText;
+    private GlyphLayout yourProgressText;
+    private GlyphLayout yourProgressBestText;
 
     /* **************************************** FIELDS *******************************************/
 
@@ -135,7 +141,7 @@ public class PlayScreen extends ScreenAdapter {
     private int screenWidth;
     private int screenHeight;
     private int currentPing;
-    private int gameMode = GAME_MODE_BATTLE;
+    private int gameMode = GAME_MODE_FFA;
 
     private long lastPingTime;
     private long timeDiff;
@@ -150,8 +156,11 @@ public class PlayScreen extends ScreenAdapter {
     private float progressbarTopMargin;
     private float progressbarGap;
     private float progressbarInitWidth;
+    private float yourProgressbarInitWidth;
     private float progressbarExtraGapForCurrentPlayer;
     private float guiUnits;
+    private float yourProgressbarWidth;
+    private float playerBestProgress = 0.448f;
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final ArrayList<Player> players = new ArrayList<>();
@@ -185,6 +194,9 @@ public class PlayScreen extends ScreenAdapter {
         youWillRspwnBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         youWillRspwnBg.setColor(TEXT_BACKGROUND_COLOR);
         timeBg.setColor(TEXT_BACKGROUND_COLOR);
+        playerProgressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        playerProgressBarBest = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        playerProgressBarBest.setColor(YOUR_PROGRESS_BG_COLOR);
         camera = new OrthographicCamera();
         camera.zoom = CAMERA_INIT_ZOOM;
         controllerCamera = new OrthographicCamera();
@@ -200,6 +212,8 @@ public class PlayScreen extends ScreenAdapter {
 
         timeText = new GlyphLayout(timeFont, "99:99");
         youWillRspwnText = new GlyphLayout(timeFont, "You will respawn in 9 seconds");
+        yourProgressText = new GlyphLayout(leaderboardFont, "99.99%");
+        yourProgressBestText = new GlyphLayout(leaderboardFont, "BEST 99.99%");
 
         initTiles();
 
@@ -270,6 +284,8 @@ public class PlayScreen extends ScreenAdapter {
             if (gameMode == GAME_MODE_BATTLE && !room.state.ended) {
                 drawTime();
                 drawYouWillRespawnText();
+            } else if (gameMode == GAME_MODE_FFA) {
+                drawPlayerProgress();
             }
         }
 
@@ -546,7 +562,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawProgressbar(ColorMeta colorMeta, String name, float dt, boolean drawStatic) {
-        DecimalFormat decimalFormat = new DecimalFormat("#0.00");
+        DecimalFormat decimalFormat = new DecimalFormat("#0.0");
         float totalWidth = progressbarWidth - progressbarInitWidth;
         float percentage = colorMeta.numCells / (float) TOTAL_CELLS;
         colorMeta._percentage = MathUtils.lerp(colorMeta._percentage, percentage, 0.04f);
@@ -652,6 +668,34 @@ public class PlayScreen extends ScreenAdapter {
 
         }
 
+    }
+
+    private void drawPlayerProgress() {
+        Player currentPlayer = room.state.players.get(client.getId());
+        if (currentPlayer == null) return;
+        ColorMeta colorMeta = room.state.colorMeta.get(String.valueOf(currentPlayer.color));
+        if (colorMeta == null) return;
+
+
+        DecimalFormat decimalFormat = new DecimalFormat("#0.0");
+        float totalWidth = yourProgressbarWidth - yourProgressbarInitWidth;
+
+        playerProgressBarBest.setSize(playerBestProgress * totalWidth + yourProgressbarInitWidth, progressbarHeight);
+        playerProgressBarBest.setX(-guiCamera.viewportWidth / 2f);
+        playerProgressBarBest.setY(guiCamera.viewportHeight / 2f - progressbarTopMargin - progressbarHeight);
+
+        playerProgressBar.setSize(colorMeta._percentage * totalWidth + yourProgressbarInitWidth, progressbarHeight);
+        playerProgressBar.setX(-guiCamera.viewportWidth / 2f);
+        playerProgressBar.setY(guiCamera.viewportHeight / 2f - progressbarTopMargin - progressbarHeight);
+
+        playerProgressBarBest.draw(batch);
+        playerProgressBar.draw(batch);
+
+        leaderboardFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
+        leaderboardFont.draw(batch, (colorMeta._percentage < 0.1f ? " " : "") + decimalFormat.format(colorMeta._percentage * 100f) + "%", playerProgressBar.getX() + playerProgressBar.getWidth() - yourProgressText.width, playerProgressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 2 * guiUnits);
+
+        leaderboardFont.setColor(TEXT_YOUR_BEST_PROGRESS_COLOR);
+        leaderboardFont.draw(batch, "BEST " + decimalFormat.format(playerBestProgress * 100) + "%", playerProgressBarBest.getX() + playerProgressBarBest.getWidth() - yourProgressBestText.width, playerProgressBarBest.getY() - 2 * guiUnits);
     }
 
     private void drawTime() {
@@ -908,12 +952,14 @@ public class PlayScreen extends ScreenAdapter {
         float lessValue = (guiCamera.viewportWidth < guiCamera.viewportHeight) ? guiCamera.viewportWidth : guiCamera.viewportHeight;
 
         progressbarWidth = lessValue * 0.6f;
+        yourProgressbarWidth = lessValue * 0.4f;
         progressbarInitWidth = lessValue * 0.25f;
+        yourProgressbarInitWidth = lessValue * 0.15f;
         guiUnits = lessValue * 0.002f;
 
         progressbarGap = 1;//lessValue / 400f;
         progressbarHeight = lessValue / 18f;
-        progressbarTopMargin = lessValue / 125f;
+        progressbarTopMargin = 0;//lessValue / 125f;
         progressbarExtraGapForCurrentPlayer = progressbarHeight + lessValue / 100f;
     }
 
@@ -1022,6 +1068,7 @@ public class PlayScreen extends ScreenAdapter {
                                 player.c.setCenter(player.x, player.y);
 
                                 if (player.clientId.equals(client.getId())) {
+                                    playerProgressBar.setColor(ColorUtil.c_color_index_to_rgba[player.color - 1]);
                                     player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
                                     player.indic.setSize(80, 80);
                                     player.indic.setColor(bcColor);
@@ -1119,7 +1166,7 @@ public class PlayScreen extends ScreenAdapter {
                         };
                         room.state.cells.onRemove = (cell, key) -> {
                             synchronized (cells) {
-                                System.out.println("cell removed " + cell.x + ", " + cell.y);
+//                                System.out.println("cell removed " + cell.x + ", " + cell.y);
                                 cells.remove(key);
                             }
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] != null) {
