@@ -124,7 +124,7 @@ project(":core") {
         implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-        implementation 'ir.doorbash:colyseus-java:2.1.0'
+        implementation 'ir.doorbash:colyseus-java:2.2.0'
     }
 }
 
