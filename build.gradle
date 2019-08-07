@@ -124,8 +124,7 @@ project(":core") {
         implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-        implementation 'org.java-websocket:Java-WebSocket:1.4.0'
-        implementation 'org.msgpack:jackson-dataformat-msgpack:0.8.17'
+        implementation 'ir.doorbash:colyseus-java:2.1.0'
     }
 }
 
