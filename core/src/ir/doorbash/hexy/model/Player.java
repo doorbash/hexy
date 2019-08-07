@@ -66,10 +66,11 @@ public class Player extends Schema {
 	public Sprite indic;
 	public Sprite bcGhost;
 	public GlyphLayout text;
-//	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
+	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
 	public TrailGraphic trailGraphic;
 	public final LinkedList<PathCellUpdate> pathCellUpdates = new LinkedList<>();
 	public String _name;
+	public float _angle;
 
 	@Override
 	public boolean equals(Object obj) {
