@@ -85,9 +85,9 @@ public class PlayScreen extends ScreenAdapter {
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
     private static final float LEADERBORAD_CHANGE_SPEED = 100;
 
-//    private static final String ENDPOINT = "ws://192.168.1.101:3334";
-            public static final String ENDPOINT = "ws://46.21.147.7:3334";
-//    public static final String ENDPOINT = "ws://127.0.0.1:3334";
+    private static final String ENDPOINT = "ws://192.168.1.101:3334";
+    //    public static final String ENDPOINT = "ws://46.21.147.7:3334";
+    //    public static final String ENDPOINT = "ws://127.0.0.1:3334";
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
     private static final String PATH_PACK_ATLAS = "pack.atlas";
@@ -164,8 +164,8 @@ public class PlayScreen extends ScreenAdapter {
     private float playerBestProgress = 0.448f;
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
-    private final ArrayList<Player> players = new ArrayList<>();
-    private final HashMap<String, Cell> cells = new HashMap<>();
+    //    private final ArrayList<Player> players = new ArrayList<>();
+//    private final HashMap<String, Cell> cells = new HashMap<>();
     private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
     private final Player[] playersByColor = new Player[100];
 
@@ -508,11 +508,11 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPaths() {
-        synchronized (players) {
-            for (Player player : players) {
+        synchronized (room.state.players.lock) {
+            for (Player player : room.state.players.values()) {
                 if (player != null && player.status == 0) {
-                    synchronized (player.pathCells) {
-                        for (Cell cell : player.pathCells.values()) {
+                    synchronized (player.cells.lock) {
+                        for (Cell cell : player.cells.items) {
                             if (cell != null && cell.id != null) {
                                 cell.id.draw(batch);
                             }
@@ -524,8 +524,8 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawTrails() {
-        synchronized (players) {
-            for (Player player : players) {
+        synchronized (room.state.players.lock) {
+            for (Player player : room.state.players.values()) {
                 if (player != null && player.status == 0 && player.trailGraphic != null) {
                     player.trailGraphic.render(batch.getProjectionMatrix());
                 }
@@ -534,8 +534,8 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawCells() {
-        synchronized (cells) {
-            for (Cell cell : cells.values()) {
+        synchronized (room.state.cells.lock) {
+            for (Cell cell : room.state.cells.values()) {
                 if (cell != null && cell.id != null) {
                     cell.id.draw(batch);
                 }
@@ -544,8 +544,8 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPlayers() {
-        synchronized (players) {
-            for (Player player : players) {
+        synchronized (room.state.players.lock) {
+            for (Player player : room.state.players.values()) {
                 if (player != null && player.status == 0) {
                     if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
                     if (player.bc != null) player.bc.draw(batch);
@@ -730,8 +730,8 @@ public class PlayScreen extends ScreenAdapter {
         Player player = room.state.players.get(clientId);
         if (player != null && player.trailGraphic != null) {
             Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
-            synchronized (player.pathCells) {
-                player.pathCells.clear();
+            synchronized (player.cells.lock) {
+                player.cells.items.clear();
             }
 //            if (ADD_FAKE_PATH_CELLS) {
 //                player.pathCellUpdates.clear();
@@ -751,8 +751,8 @@ public class PlayScreen extends ScreenAdapter {
     /* ***************************************** LOGIC *******************************************/
 
     private void updatePlayersPositions(float dt) {
-        synchronized (players) {
-            for (Player player : players) {
+        synchronized (room.state.players.lock) {
+            for (Player player : room.state.players.values()) {
                 if (player.bc != null) {
 
                     if (player.status == 0) {
@@ -957,7 +957,7 @@ public class PlayScreen extends ScreenAdapter {
         yourProgressbarInitWidth = lessValue * 0.15f;
         guiUnits = lessValue * 0.002f;
 
-        progressbarGap = 1;//lessValue / 400f;
+        progressbarGap = -1;//lessValue / 400f;
         progressbarHeight = lessValue / 18f;
         progressbarTopMargin = 0;//lessValue / 125f;
         progressbarExtraGapForCurrentPlayer = progressbarHeight + lessValue / 100f;
@@ -989,7 +989,7 @@ public class PlayScreen extends ScreenAdapter {
 
                     @Override
                     protected void onLeave() {
-                        System.out.println("left public_1");
+                        System.out.println("left " + getRoomName());
                     }
 
                     @Override
@@ -1027,162 +1027,18 @@ public class PlayScreen extends ScreenAdapter {
                     @Override
                     protected void onJoin() {
                         System.out.println("joined " + getRoomName());
-                        room.state.onChange = changes -> {
-                            for (DataChange change : changes) {
-                                switch (change.field) {
-                                    case "started":
-                                        break;
-                                    case "startTime":
-                                        System.out.println("value changed to " + change.value);
-                                        break;
-                                    case "ended":
-                                        System.out.println("value changed to " + change.value);
-                                        break;
-                                    case "endTime":
-                                        System.out.println("value changed to " + change.value);
-                                        break;
-                                }
-                            }
-                        };
                     }
 
                     @Override
                     protected void onStateChange(Object state, boolean isFirstState) {
                         if (isFirstState) {
-                            Gdx.app.postRunnable(() -> {
-                                synchronized (players) {
-                                    for (Entry<String, Player> keyValue : room.state.players.items.entrySet()) {
-                                        Player player = keyValue.getValue();
-                                        Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
-                                        Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
-
-                                        player._name = arFont.getText(player.name);
-
-                                        player.text = new GlyphLayout(usernameFont, player._name);
-
-                                        player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                                        player.bc.setSize(46, 46);
-                                        player.bc.setColor(bcColor);
-                                        player.bc.setCenter(player.x, player.y);
-
-                                        player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                                        player.c.setSize(36, 36);
-                                        player.c.setColor(cColor);
-                                        player.c.setCenter(player.x, player.y);
-
-                                        if (player.clientId.equals(client.getId())) {
-                                            playerProgressBar.setColor(ColorUtil.c_color_index_to_rgba[player.color - 1]);
-                                            player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
-                                            player.indic.setSize(80, 80);
-                                            player.indic.setColor(bcColor);
-                                            player.indic.setCenter(player.x, player.y);
-                                            player.indic.setOriginCenter();
-                                            player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
-                                        }
-
-                                        player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                                        player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
-                                        player.bcGhost.setCenter(player.x, player.y);
-                                        player.bcGhost.setSize(46, 46);
-
-                                        if (player.clientId.equals(client.getId())) {
-                                            camera.position.x = player.x;
-                                            camera.position.y = player.y;
-                                        }
-
-                                        player.trailGraphic = new TrailGraphic();
-                                        player.trailGraphic.setTint(bcColor);
-                                        player.trailGraphic.setRopeWidth(20);
-                                        player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
-
-                                        for (int key = 0; key < player.path.count(); key++) {
-                                            Point point = player.path.get(key);
-                                            if (key > 1) {
-                                                Point lastPoint = player.path.get(key - 1);
-                                                if (lastPoint != null) {
-                                                    float dx = point.x - lastPoint.x;
-                                                    float dy = point.y - lastPoint.y;
-                                                    player.trailGraphic.setPoint(key * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
-                                                }
-                                                player.trailGraphic.setPoint(key * 2, point.x, point.y);
-                                            } else if (key == 1) {
-                                                Point lastPoint = player.path.get(0);
-                                                if (lastPoint != null) {
-                                                    float dx = point.x - lastPoint.x;
-                                                    float dy = point.y - lastPoint.y;
-                                                    player.trailGraphic.setPoint(0, lastPoint.x - dx / 2f, lastPoint.y - dy / 2f);
-                                                    player.trailGraphic.setPoint(1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
-                                                }
-                                                player.trailGraphic.setPoint(2, point.x, point.y);
-                                            }
-                                        }
-
-                                        for (int key = 0; key < player.cells.count(); key++) {
-                                            Cell cell = player.cells.get(key);
-                                            cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-                                            cell.id.setSize(40, 46);
-                                            Vector2 pos = getHexPosition(cell.x, cell.y);
-                                            cell.id.setCenter(pos.x, pos.y);
-                                            Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
-                                            cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
-
-                                            if (ADD_FAKE_PATH_CELLS) {
-                                                player.pathCellUpdates.offer(new PathCellUpdate(cell, key, System.currentTimeMillis()));
-                                            } else {
-                                                synchronized (player.pathCells) {
-                                                    player.pathCells.put(key, cell);
-                                                }
-                                            }
-                                        }
-
-                                        registerPlayerCallbacks(player);
-
-                                        playersByColor[player.color - 1] = player;
-                                        players.add(player);
-                                    }
-                                }
-                                synchronized (cells) {
-                                    for (Entry<String, Cell> keyValue : room.state.cells.items.entrySet()) {
-                                        String key = keyValue.getKey();
-                                        Cell cell = keyValue.getValue();
-
-                                        //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] == null)
-//                                cellGrid[cell.x + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
-//                            cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = cell;
-
-                                        cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-                                        cell.id.setSize(40, 46);
-                                        Vector2 pos = getHexPosition(cell.x, cell.y);
-                                        cell.id.setCenter(pos.x, pos.y);
-                                        cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
-
-                                        cell.onChange = changes -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
-
-                                        cells.put(key, cell);
-
-                                    }
-                                }
-                                synchronized (colorMetas) {
-                                    for (Entry<String, ColorMeta> keyValue : room.state.colorMeta.items.entrySet()) {
-                                        String key = keyValue.getKey();
-                                        ColorMeta colorMeta = keyValue.getValue();
-                                        colorMeta._position = colorMetas.size() + 1;
-                                        colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
-                                        colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-                                        colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
-                                        colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
-                                        colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
-                                        colorMetas.add(colorMeta);
-                                    }
-                                }
-                                // TODO: Update completed
-                            });
+                            initFirstPatch();
                             registerCallbacks();
                         } else if (firstPatch) {
                             firstPatch = false;
                             Gdx.app.postRunnable(() -> {
-                                synchronized (players) {
-                                    for (Player player : players) {
+                                synchronized (room.state.players.lock) {
+                                    for (Player player : room.state.players.values()) {
                                         player.bc.setCenter(player.x, player.y);
                                         player.c.setCenter(player.x, player.y);
                                         player.bcGhost.setCenter(player.x, player.y);
@@ -1196,12 +1052,135 @@ public class PlayScreen extends ScreenAdapter {
                         }
                     }
 
+                    void initFirstPatch() {
+                        Gdx.app.postRunnable(() -> {
+                            synchronized (room.state.players.lock) {
+                                for (Entry<String, Player> keyValue : room.state.players.items.entrySet()) {
+                                    Player player = keyValue.getValue();
+                                    Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
+                                    Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
+
+                                    player._name = arFont.getText(player.name);
+
+                                    player.text = new GlyphLayout(usernameFont, player._name);
+
+                                    player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                    player.bc.setSize(46, 46);
+                                    player.bc.setColor(bcColor);
+                                    player.bc.setCenter(player.x, player.y);
+
+                                    player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                    player.c.setSize(36, 36);
+                                    player.c.setColor(cColor);
+                                    player.c.setCenter(player.x, player.y);
+
+                                    if (player.clientId.equals(client.getId())) {
+                                        playerProgressBar.setColor(ColorUtil.c_color_index_to_rgba[player.color - 1]);
+                                        player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
+                                        player.indic.setSize(80, 80);
+                                        player.indic.setColor(bcColor);
+                                        player.indic.setCenter(player.x, player.y);
+                                        player.indic.setOriginCenter();
+                                        player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                                    }
+
+                                    player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                    player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
+                                    player.bcGhost.setCenter(player.x, player.y);
+                                    player.bcGhost.setSize(46, 46);
+
+                                    if (player.clientId.equals(client.getId())) {
+                                        camera.position.x = player.x;
+                                        camera.position.y = player.y;
+                                    }
+
+                                    player.trailGraphic = new TrailGraphic();
+                                    player.trailGraphic.setTint(bcColor);
+                                    player.trailGraphic.setRopeWidth(20);
+                                    player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
+
+                                    for (int key = 0; key < player.path.count(); key++) {
+                                        Point point = player.path.get(key);
+                                        if (key > 1) {
+                                            Point lastPoint = player.path.get(key - 1);
+                                            if (lastPoint != null) {
+                                                float dx = point.x - lastPoint.x;
+                                                float dy = point.y - lastPoint.y;
+                                                player.trailGraphic.setPoint(key * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                                            }
+                                            player.trailGraphic.setPoint(key * 2, point.x, point.y);
+                                        } else if (key == 1) {
+                                            Point lastPoint = player.path.get(0);
+                                            if (lastPoint != null) {
+                                                float dx = point.x - lastPoint.x;
+                                                float dy = point.y - lastPoint.y;
+                                                player.trailGraphic.setPoint(0, lastPoint.x - dx / 2f, lastPoint.y - dy / 2f);
+                                                player.trailGraphic.setPoint(1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                                            }
+                                            player.trailGraphic.setPoint(2, point.x, point.y);
+                                        }
+                                    }
+
+                                    for (int key = 0; key < player.cells.count(); key++) {
+                                        Cell cell = player.cells.get(key);
+                                        cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                                        cell.id.setSize(40, 46);
+                                        Vector2 pos = getHexPosition(cell.x, cell.y);
+                                        cell.id.setCenter(pos.x, pos.y);
+                                        Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
+                                        cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
+
+                                        if (ADD_FAKE_PATH_CELLS) {
+                                            player.pathCellUpdates.offer(new PathCellUpdate(cell, key, System.currentTimeMillis()));
+                                        }
+                                    }
+
+                                    registerPlayerCallbacks(player);
+
+                                    playersByColor[player.color - 1] = player;
+                                }
+                            }
+                            synchronized (room.state.cells.lock) {
+                                for (Entry<String, Cell> keyValue : room.state.cells.items.entrySet()) {
+                                    String key = keyValue.getKey();
+                                    Cell cell = keyValue.getValue();
+
+                                    //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] == null)
+//                                cellGrid[cell.x + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
+//                            cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = cell;
+
+                                    cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                                    cell.id.setSize(40, 46);
+                                    Vector2 pos = getHexPosition(cell.x, cell.y);
+                                    cell.id.setCenter(pos.x, pos.y);
+                                    cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+
+                                    cell.onChange = changes -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+                                }
+                            }
+                            synchronized (room.state.colorMeta.lock) {
+                                synchronized (colorMetas) {
+                                    for (Entry<String, ColorMeta> keyValue : room.state.colorMeta.items.entrySet()) {
+                                        String key = keyValue.getKey();
+                                        ColorMeta colorMeta = keyValue.getValue();
+                                        colorMeta._position = colorMetas.size() + 1;
+                                        colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
+                                        colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+                                        colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
+                                        colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
+                                        colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                                        colorMetas.add(colorMeta);
+                                    }
+                                }
+                            }
+                            // TODO: Update completed
+                        });
+                    }
+
+
                     void registerCallbacks() {
                         room.state.players.onAdd = (player, key) -> {
                             if (player.color == 0) return;
-                            synchronized (players) {
-                                players.add(player);
-                            }
                             playersByColor[player.color - 1] = player;
 
                             player._name = arFont.getText(player.name);
@@ -1253,16 +1232,10 @@ public class PlayScreen extends ScreenAdapter {
                         room.state.players.onRemove = (player, key) -> {
                             System.out.println("player removed, color: " + player.color);
                             clearPlayerPath(player.clientId);
-                            synchronized (players) {
-                                players.remove(player);
-                            }
                             playersByColor[player.color - 1] = null;
                         };
 
                         room.state.cells.onAdd = (cell, key) -> {
-                            synchronized (cells) {
-                                cells.put(key, cell);
-                            }
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] == null)
 //                                cellGrid[cell.x + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
 //                            cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = cell;
@@ -1276,10 +1249,6 @@ public class PlayScreen extends ScreenAdapter {
                             cell.onChange = changes -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
                         };
                         room.state.cells.onRemove = (cell, key) -> {
-                            synchronized (cells) {
-//                                System.out.println("cell removed " + cell.x + ", " + cell.y);
-                                cells.remove(key);
-                            }
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] != null) {
 //                                cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = null;
 //                            }
@@ -1330,10 +1299,6 @@ public class PlayScreen extends ScreenAdapter {
 
                             if (ADD_FAKE_PATH_CELLS) {
                                 player.pathCellUpdates.offer(new PathCellUpdate(cell, key2, System.currentTimeMillis()));
-                            } else {
-                                synchronized (player.pathCells) {
-                                    player.pathCells.put(key2, cell);
-                                }
                             }
                         };
                     }
