@@ -32,7 +32,7 @@ import java.util.Map.Entry;
 
 import io.colyseus.Client;
 import io.colyseus.Room;
-import io.colyseus.serializer.schema.Change;
+import io.colyseus.serializer.schema.DataChange;
 import ir.doorbash.hexy.model.Cell;
 import ir.doorbash.hexy.model.ColorMeta;
 import ir.doorbash.hexy.model.MyState;
@@ -983,7 +983,7 @@ public class PlayScreen extends ScreenAdapter {
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
                 options.put("name", "milad");
                 room = client.join(getRoomName(), options, MyState.class);
-                room.setListener(new Room.Listener() {
+                room.addListener(new Room.Listener() {
 
                     boolean firstPatch = true;
 
@@ -1028,7 +1028,7 @@ public class PlayScreen extends ScreenAdapter {
                     protected void onJoin() {
                         System.out.println("joined " + getRoomName());
                         room.state.onChange = changes -> {
-                            for (Change change : changes) {
+                            for (DataChange change : changes) {
                                 switch (change.field) {
                                     case "started":
                                         break;
