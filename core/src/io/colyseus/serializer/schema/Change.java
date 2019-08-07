@@ -1,6 +1,6 @@
 package io.colyseus.serializer.schema;
 
-public class DataChange {
+public class Change {
     public String field;
     public Object value;
     public Object previousValue;
