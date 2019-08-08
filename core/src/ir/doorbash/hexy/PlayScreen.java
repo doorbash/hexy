@@ -72,6 +72,11 @@ public class PlayScreen extends ScreenAdapter {
     private static final int GAME_MODE_FFA = 0;
     private static final int GAME_MODE_BATTLE = 1;
 
+    private static final int CONNECTION_STATE_DISCONNECTED = 0;
+    private static final int CONNECTION_STATE_CONNECTING = 1;
+    private static final int CONNECTION_STATE_CONNECTED = 2;
+    private static final int CONNECTION_STATE_CLOSED = 3;
+
     private static final float CAMERA_LERP = 1f;
     private static final float CAMERA_INIT_ZOOM = 0.9f;
     private static final float PATH_CELL_ALPHA_TINT = 0.4f;
@@ -84,7 +89,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
     private static final float LEADERBORAD_CHANGE_SPEED = 100;
     private static final float PLAYER_ROTATE_SPEED = 2;
-    private static final float LOADING_ANIMATION_SIZE = 36;
+    private static final float HIGH_LERP_TIME = 2; // seconds
 
     //    private static final String ENDPOINT = "ws://192.168.1.101:3334";
     public static final String ENDPOINT = "ws://46.21.147.7:3334";
@@ -139,7 +144,6 @@ public class PlayScreen extends ScreenAdapter {
 
     private boolean leaderboardDrawAgain;
     private boolean mouseIsDown = false;
-    private boolean isConnected = false;
 
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
@@ -149,8 +153,10 @@ public class PlayScreen extends ScreenAdapter {
     private int screenHeight;
     private int currentPing;
     private int gameMode = GAME_MODE_FFA;
+    private int connectionState = CONNECTION_STATE_DISCONNECTED;
 
-    private long lastPingTime;
+    private long lastPingSentTime;
+    private long lastPingReplyTime;
     private long timeDiff;
 
     private float lastDirection;
@@ -169,6 +175,7 @@ public class PlayScreen extends ScreenAdapter {
     private float yourProgressbarWidth;
     private float playerBestProgress = 0.448f;
     private float time;
+    private float connectTime; // time past since the last time we were connected
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final ArrayList<Player> players = new ArrayList<>();
@@ -238,16 +245,6 @@ public class PlayScreen extends ScreenAdapter {
     public void render(float dt) {
         time += dt;
 
-//        if (!isConnected) {
-//            Gdx.gl.glClearColor(1f, 1f, 1f, 1);
-//            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-//            batch.begin();
-//            batch.setProjectionMatrix(fixedCamera.combined);
-//            drawConnecting(dt);
-//            batch.end();
-//        } else {
-
-
         Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         Gdx.gl20.glEnable(GL20.GL_BLEND);
@@ -309,10 +306,11 @@ public class PlayScreen extends ScreenAdapter {
             }
         }
 
-        if (isConnected) {
-            drawPing();
-        } else {
+        if (connectionState == CONNECTION_STATE_CONNECTING || connectionState == CONNECTION_STATE_DISCONNECTED) {
             drawConnecting(dt);
+        } else {
+            drawPing();
+            connectTime += dt;
         }
 
         batch.end();
@@ -326,7 +324,8 @@ public class PlayScreen extends ScreenAdapter {
             sendPing();
             sendPingTime = SEND_PING_INTERVAL;
         } else sendPingTime -= dt * 1000;
-//        }
+
+        checkConnection();
     }
 
     @Override
@@ -353,6 +352,8 @@ public class PlayScreen extends ScreenAdapter {
 
     @Override
     public void dispose() {
+        if (room != null) room.leave();
+        if (client != null) client.close();
         if (batch != null) batch.dispose();
         if (fbo != null) fbo.dispose();
         if (gameAtlas != null) gameAtlas.dispose();
@@ -519,7 +520,7 @@ public class PlayScreen extends ScreenAdapter {
         float gap = 8 * guiUnits;
         float x = -guiCamera.viewportWidth / 2f + 2 * guiUnits;
         float y = -guiCamera.viewportHeight / 2f + 2 * guiUnits;
-        loadingAnimation.render(dt, batch,x ,y , size, size);
+        loadingAnimation.render(dt, batch, x, y, size, size);
         float alpha = (MathUtils.sin(4 * time) + 1) / 2f;
         leaderboardFont.setColor(new Color(CONNECTING_TEXT_COLOR.r, CONNECTING_TEXT_COLOR.b, CONNECTING_TEXT_COLOR.g, alpha));
         leaderboardFont.draw(batch, "Connecting...", x + size + gap, y + size / 2f + leaderboardFont.getLineHeight() / 2f - 4 * guiUnits);
@@ -930,32 +931,50 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void correctPlayerPosition(Player player) {
-        float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
 
-        float d;
-        if (dst > 5625) {
-            d = dst;
-        } else if (dst > 625) {
-            d = 100f;
-        } else if (dst > 60) {
-            d = 10;
-        } else {
-            if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
-            return;
-        }
+        float lerp = calcualteLerp(player);
 
 //        float d = dst > 75 ? dst : dst > 25 ? 5f : Math.min(dst, 1.25f);
         if (player.clientId.equals(client.getId())) {
-            System.out.println("sqrt is " + dst);
-            System.out.println("lerp is " + d / dst);
+//            System.out.println("sqrt is " + dst);
+            System.out.println("lerp is " + lerp);
         }
 
-        if (dst > 0 && d > 0) {
-            player.bc.setCenterX(MathUtils.lerp(player.bc.getX() + player.bc.getWidth() / 2f, player.x, d / dst));
-            player.bc.setCenterY(MathUtils.lerp(player.bc.getY() + player.bc.getHeight() / 2f, player.y, d / dst));
+        if (lerp > 0) {
+            player.bc.setCenterX(MathUtils.lerp(player.bc.getX() + player.bc.getWidth() / 2f, player.x, lerp));
+            player.bc.setCenterY(MathUtils.lerp(player.bc.getY() + player.bc.getHeight() / 2f, player.y, lerp));
             player.c.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
             if (player.indic != null) {
                 player.indic.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
+            }
+        }
+    }
+
+    private float calcualteLerp(Player player) {
+        if (connectTime > HIGH_LERP_TIME) {
+            // normal
+            float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
+            if (dst > 5625) {
+                return 1;
+            } else if (dst > 625) {
+                return 100f / dst;
+            } else if (dst > 60) {
+                return 10 / dst;
+            } else {
+                if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
+                return 0;
+            }
+        } else {
+            // high lerp time
+            float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
+            if (dst > 5625) {
+                return 1;
+            } else if (dst > 625) {
+                return 0.8f;
+            } else if (dst > 60) {
+                return 0.6f;
+            } else {
+                return 0.4f;
             }
         }
     }
@@ -1020,10 +1039,22 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void connectToServer() {
-
+        connectionState = CONNECTION_STATE_CONNECTING;
         client = new Client(ENDPOINT, ConfigFile.get("clientId"), null, null, 10000, new Client.Listener() {
             @Override
             public void onOpen(String id) {
+                synchronized (players) {
+                    players.clear();
+                    for (int i = 0; i < playersByColor.length; i++) {
+                        playersByColor[i] = null;
+                    }
+                }
+                synchronized (cells) {
+                    cells.clear();
+                }
+                synchronized (colorMetas) {
+                    colorMetas.clear();
+                }
                 ConfigFile.set("clientId", id);
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
                 options.put("name", "milad");
@@ -1035,10 +1066,12 @@ public class PlayScreen extends ScreenAdapter {
                     @Override
                     protected void onLeave() {
                         System.out.println("left " + getRoomName());
+                        connectionState = CONNECTION_STATE_DISCONNECTED;
                     }
 
                     @Override
                     protected void onError(Exception e) {
+                        connectionState = CONNECTION_STATE_DISCONNECTED;
                         System.out.println("onError()");
                         e.printStackTrace();
                     }
@@ -1058,14 +1091,15 @@ public class PlayScreen extends ScreenAdapter {
 
                         } else if (data.get("op").equals("pg")) {
                             long t = (long) data.get("t");
-                            if (t == lastPingTime) {
-                                currentPing = (int) (System.currentTimeMillis() - t);
+                            if (t == lastPingSentTime) {
+                                lastPingReplyTime = System.currentTimeMillis();
+                                currentPing = (int) (lastPingReplyTime - t);
                             } else currentPing = 0;
                         } else if (data.get("op").equals("dt")) {
                             // dead
                             System.out.println("YOU ARE DEAD!");
-
-                            // TODO: show death dialog here
+                            connectionState = CONNECTION_STATE_CLOSED;
+                            // TODO: show death dialog
                         }
                     }
 
@@ -1077,6 +1111,8 @@ public class PlayScreen extends ScreenAdapter {
                     @Override
                     protected void onStateChange(Object state, boolean isFirstState) {
                         if (isFirstState) {
+                            connectionState = CONNECTION_STATE_CONNECTED;
+                            connectTime = 0;
                             initFirstPatch();
                             registerCallbacks();
                         } else if (firstPatch) {
@@ -1229,22 +1265,22 @@ public class PlayScreen extends ScreenAdapter {
                                     }
                                 }
                             }
-                            isConnected = true;
                         });
                     }
 
                     void registerCallbacks() {
                         room.state.players.onAdd = (player, key) -> {
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             if (player.color == 0) return;
                             playersByColor[player.color - 1] = player;
 
                             player._name = arFont.getText(player.name);
                             player._angle = player.angle;
 
-                            Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
-                            Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
-
                             Gdx.app.postRunnable(() -> {
+                                Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
+                                Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
+
                                 player.text = new GlyphLayout(usernameFont, player._name);
 
                                 player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
@@ -1291,6 +1327,7 @@ public class PlayScreen extends ScreenAdapter {
                             }
                         };
                         room.state.players.onRemove = (player, key) -> {
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             System.out.println("player removed, color: " + player.color);
                             clearPlayerPath(player.clientId);
                             playersByColor[player.color - 1] = null;
@@ -1301,23 +1338,30 @@ public class PlayScreen extends ScreenAdapter {
                         };
 
                         room.state.cells.onAdd = (cell, key) -> {
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] == null)
 //                                cellGrid[cell.x + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
 //                            cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = cell;
 
-                            cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-                            cell.id.setSize(40, 46);
-                            Vector2 pos = getHexPosition(cell.x, cell.y);
-                            cell.id.setCenter(pos.x, pos.y);
-                            cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+                            Gdx.app.postRunnable(() -> {
+                                cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                                cell.id.setSize(40, 46);
+                                Vector2 pos = getHexPosition(cell.x, cell.y);
+                                cell.id.setCenter(pos.x, pos.y);
+                                cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+                            });
 
-                            cell.onChange = changes -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+                            cell.onChange = changes -> {
+                                if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                                Gdx.app.postRunnable(() -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]));
+                            };
 
                             synchronized (cells) {
                                 cells.put(key, cell);
                             }
                         };
                         room.state.cells.onRemove = (cell, key) -> {
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] != null) {
 //                                cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = null;
 //                            }
@@ -1327,12 +1371,15 @@ public class PlayScreen extends ScreenAdapter {
                         };
 
                         room.state.colorMeta.onAdd = (colorMeta, key) -> {
-                            colorMeta._position = colorMetas.size() + 1;
-                            colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
-                            colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-                            colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
-                            colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
-                            colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                            Gdx.app.postRunnable(() -> {
+                                colorMeta._position = colorMetas.size() + 1;
+                                colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
+                                colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+                                colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
+                                colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
+                                colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                            });
                             synchronized (colorMetas) {
                                 if (!colorMetas.contains(colorMeta))
                                     colorMetas.add(colorMeta);
@@ -1341,28 +1388,31 @@ public class PlayScreen extends ScreenAdapter {
                     }
 
                     void registerPlayerCallbacks(Player player) {
-                        player.path.onAdd = (point, key2) -> Gdx.app.postRunnable(() -> {
-                            if (key2 > 1) {
-                                Point lastPoint = player.path.get(key2 - 1);
-                                if (lastPoint != null) {
-                                    float dx = point.x - lastPoint.x;
-                                    float dy = point.y - lastPoint.y;
-                                    player.trailGraphic.setPoint(key2 * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                        player.path.onAdd = (point, key2) -> {
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                            Gdx.app.postRunnable(() -> {
+                                if (key2 > 1) {
+                                    Point lastPoint = player.path.get(key2 - 1);
+                                    if (lastPoint != null) {
+                                        float dx = point.x - lastPoint.x;
+                                        float dy = point.y - lastPoint.y;
+                                        player.trailGraphic.setPoint(key2 * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                                    }
+                                    player.trailGraphic.setPoint(key2 * 2, point.x, point.y);
+                                } else if (key2 == 1) {
+                                    Point lastPoint = player.path.get(0);
+                                    if (lastPoint != null) {
+                                        float dx = point.x - lastPoint.x;
+                                        float dy = point.y - lastPoint.y;
+                                        player.trailGraphic.setPoint(0, lastPoint.x - dx / 2f, lastPoint.y - dy / 2f);
+                                        player.trailGraphic.setPoint(1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                                    }
+                                    player.trailGraphic.setPoint(2, point.x, point.y);
                                 }
-                                player.trailGraphic.setPoint(key2 * 2, point.x, point.y);
-                            } else if (key2 == 1) {
-                                Point lastPoint = player.path.get(0);
-                                if (lastPoint != null) {
-                                    float dx = point.x - lastPoint.x;
-                                    float dy = point.y - lastPoint.y;
-                                    player.trailGraphic.setPoint(0, lastPoint.x - dx / 2f, lastPoint.y - dy / 2f);
-                                    player.trailGraphic.setPoint(1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
-                                }
-                                player.trailGraphic.setPoint(2, point.x, point.y);
-                            }
-                        });
-
+                            });
+                        };
                         player.cells.onAdd = (cell, key2) -> {
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
                             cell.id.setSize(40, 46);
                             Vector2 pos = getHexPosition(cell.x, cell.y);
@@ -1392,14 +1442,24 @@ public class PlayScreen extends ScreenAdapter {
 
             @Override
             public void onClose(int i, String s, boolean b) {
-
+                connectionState = CONNECTION_STATE_DISCONNECTED;
             }
 
             @Override
             public void onError(Exception e) {
-
+                connectionState = CONNECTION_STATE_DISCONNECTED;
             }
         });
+    }
+
+    private void checkConnection() {
+        if (connectionState == CONNECTION_STATE_CONNECTED && lastPingReplyTime > 0 && System.currentTimeMillis() - lastPingReplyTime > 15000) {
+            // we are disconnected for sure
+            connectionState = CONNECTION_STATE_DISCONNECTED;
+        }
+        if (connectionState == CONNECTION_STATE_DISCONNECTED) {
+            connectToServer();
+        }
     }
 
     private void sendDirection() {
@@ -1414,9 +1474,9 @@ public class PlayScreen extends ScreenAdapter {
 
     private void sendPing() {
         if (room == null || !room.hasJoined()) return;
-        lastPingTime = System.currentTimeMillis();
+        lastPingSentTime = System.currentTimeMillis();
         message.put("op", "p");
-        message.put("v", lastPingTime);
+        message.put("v", lastPingSentTime);
         room.send(message);
     }
 }
