@@ -72,7 +72,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final int GAME_MODE_FFA = 0;
     private static final int GAME_MODE_BATTLE = 1;
 
-    private static final float CAMERA_LERP = 0.8f;
+    private static final float CAMERA_LERP = 1f;
     private static final float CAMERA_INIT_ZOOM = 0.9f;
     private static final float PATH_CELL_ALPHA_TINT = 0.4f;
     private static final float ON_SCREEN_PAD_RELEASE_TOTAL_TIME = 0.3f;
@@ -84,6 +84,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
     private static final float LEADERBORAD_CHANGE_SPEED = 100;
     private static final float PLAYER_ROTATE_SPEED = 2;
+    private static final float LOADING_ANIMATION_SIZE = 36;
 
     //    private static final String ENDPOINT = "ws://192.168.1.101:3334";
     public static final String ENDPOINT = "ws://46.21.147.7:3334";
@@ -92,6 +93,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
     private static final String PATH_PACK_ATLAS = "pack.atlas";
     private static final String PATH_TRAIL_TEXTURE = "traine.png";
+    private static final String PATH_LOADING_SPRITESHEET = "loading2.png";
     private static final String TEXTURE_REGION_HEX_WHITE = "hex_white";
     private static final String TEXTURE_REGION_THUMBSTICK_BG = "thumbstick-background";
     private static final String TEXTURE_REGION_THUMBSTICK_PAD = "thumbstick-pad";
@@ -103,11 +105,12 @@ public class PlayScreen extends ScreenAdapter {
     private static final Color TEXT_BACKGROUND_COLOR = Color.valueOf("#707070cc");
     private static final Color TEXT_YOUR_BEST_PROGRESS_COLOR = Color.valueOf("#707070aa");
     private static final Color YOUR_PROGRESS_BG_COLOR = Color.valueOf("#70707066");
+    private static final Color CONNECTING_TEXT_COLOR = Color.valueOf("#212121ff");
     private static final Comparator<ColorMeta> COLOR_META_COMP = (o1, o2) -> Integer.compare(o1._position, o2._position);
 
     private SpriteBatch batch;
-    private OrthographicCamera camera;
-    private OrthographicCamera controllerCamera;
+    private OrthographicCamera gameCamera;
+    private OrthographicCamera fixedCamera;
     private OrthographicCamera guiCamera;
     private TextureAtlas gameAtlas;
     private TextureAtlas.AtlasRegion whiteHex;
@@ -129,11 +132,14 @@ public class PlayScreen extends ScreenAdapter {
     private GlyphLayout youWillRspwnText;
     private GlyphLayout yourProgressText;
     private GlyphLayout yourProgressBestText;
+    private GlyphLayout connectingText;
+    private LoadingAnimation loadingAnimation;
 
     /* **************************************** FIELDS *******************************************/
 
     private boolean leaderboardDrawAgain;
     private boolean mouseIsDown = false;
+    private boolean isConnected = false;
 
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
@@ -162,6 +168,7 @@ public class PlayScreen extends ScreenAdapter {
     private float guiUnits;
     private float yourProgressbarWidth;
     private float playerBestProgress = 0.448f;
+    private float time;
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final ArrayList<Player> players = new ArrayList<>();
@@ -198,9 +205,10 @@ public class PlayScreen extends ScreenAdapter {
         playerProgressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest.setColor(YOUR_PROGRESS_BG_COLOR);
-        camera = new OrthographicCamera();
-        camera.zoom = CAMERA_INIT_ZOOM;
-        controllerCamera = new OrthographicCamera();
+        loadingAnimation = new LoadingAnimation(PATH_LOADING_SPRITESHEET);
+        gameCamera = new OrthographicCamera();
+        gameCamera.zoom = CAMERA_INIT_ZOOM;
+        fixedCamera = new OrthographicCamera();
         guiCamera = new OrthographicCamera();
 
         init(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
@@ -215,6 +223,7 @@ public class PlayScreen extends ScreenAdapter {
         youWillRspwnText = new GlyphLayout(timeFont, "You will respawn in 9 seconds");
         yourProgressText = new GlyphLayout(leaderboardFont, "99.99%");
         yourProgressBestText = new GlyphLayout(leaderboardFont, "BEST 99.99%");
+        connectingText = new GlyphLayout(leaderboardFont, "Connecting...");
 
         initTiles();
 
@@ -227,6 +236,18 @@ public class PlayScreen extends ScreenAdapter {
 
     @Override
     public void render(float dt) {
+        time += dt;
+
+//        if (!isConnected) {
+//            Gdx.gl.glClearColor(1f, 1f, 1f, 1);
+//            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+//            batch.begin();
+//            batch.setProjectionMatrix(fixedCamera.combined);
+//            drawConnecting(dt);
+//            batch.end();
+//        } else {
+
+
         Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
         Gdx.gl20.glEnable(GL20.GL_BLEND);
@@ -237,13 +258,13 @@ public class PlayScreen extends ScreenAdapter {
             if (player != null && player.bc != null) {
 //                camera.position.x = player.bc.getX() + player.bc.getWidth() / 2f;
 //                camera.position.y = player.bc.getY() + player.bc.getHeight() / 2f;
-                camera.position.x = MathUtils.lerp(camera.position.x, player.bc.getX() + player.bc.getWidth() / 2f, CAMERA_LERP);
-                camera.position.y = MathUtils.lerp(camera.position.y, player.bc.getY() + player.bc.getHeight() / 2f, CAMERA_LERP);
+                gameCamera.position.x = MathUtils.lerp(gameCamera.position.x, player.bc.getX() + player.bc.getWidth() / 2f, CAMERA_LERP);
+                gameCamera.position.y = MathUtils.lerp(gameCamera.position.y, player.bc.getY() + player.bc.getHeight() / 2f, CAMERA_LERP);
             }
         }
-        camera.update();
+        gameCamera.update();
 
-        batch.setProjectionMatrix(camera.combined);
+        batch.setProjectionMatrix(gameCamera.combined);
 
         batch.begin();
 
@@ -260,22 +281,20 @@ public class PlayScreen extends ScreenAdapter {
             drawPlayers();
         }
 
-        if (controllerType != CONTROLLER_TYPE_MOUSE) {
-            batch.setProjectionMatrix(controllerCamera.combined);
+        batch.setProjectionMatrix(fixedCamera.combined);
 
-            if (controllerType == CONTROLLER_TYPE_ON_SCREEN && !mouseIsDown && !MathUtils.isEqual(onScreenPadCurrentLen, 0)) {
+        if (controllerType == CONTROLLER_TYPE_ON_SCREEN && !mouseIsDown && !MathUtils.isEqual(onScreenPadCurrentLen, 0)) {
 //            System.out.println("bouncing....");
-                onScreenPadReleaseTimer += dt;
-                onScreenPadCurrentLen = (1 - ON_SCREEN_PAD_RELEASE_ELASTIC_OUT.apply(Math.min(1, onScreenPadReleaseTimer / ON_SCREEN_PAD_RELEASE_TOTAL_TIME))) * onScreenPadInitLen;
+            onScreenPadReleaseTimer += dt;
+            onScreenPadCurrentLen = (1 - ON_SCREEN_PAD_RELEASE_ELASTIC_OUT.apply(Math.min(1, onScreenPadReleaseTimer / ON_SCREEN_PAD_RELEASE_TOTAL_TIME))) * onScreenPadInitLen;
 //            System.out.println("current pad length is " + onScreenPadCurrentLen);
-                padVector.set(onScreenPadNorVector.x * onScreenPadCurrentLen, onScreenPadNorVector.y * onScreenPadCurrentLen);
-                thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
-            }
+            padVector.set(onScreenPadNorVector.x * onScreenPadCurrentLen, onScreenPadNorVector.y * onScreenPadCurrentLen);
+            thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
+        }
 
-            if ((controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) || controllerType == CONTROLLER_TYPE_ON_SCREEN) {
-                thumbstickBgSprite.draw(batch);
-                thumbstickPadSprite.draw(batch);
-            }
+        if ((controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) || controllerType == CONTROLLER_TYPE_ON_SCREEN) {
+            thumbstickBgSprite.draw(batch);
+            thumbstickPadSprite.draw(batch);
         }
 
         batch.setProjectionMatrix(guiCamera.combined);
@@ -290,11 +309,11 @@ public class PlayScreen extends ScreenAdapter {
             }
         }
 
-        String logText = "fps: " + Gdx.graphics.getFramesPerSecond();
-        if (currentPing > 0) {
-            logText += " - ping: " + currentPing;
+        if (isConnected) {
+            drawPing();
+        } else {
+            drawConnecting(dt);
         }
-        logFont.draw(batch, logText, -Gdx.graphics.getWidth() / 2f + 8 * guiUnits, -Gdx.graphics.getHeight() / 2f + 2 * guiUnits + logFont.getLineHeight());
 
         batch.end();
 
@@ -307,10 +326,7 @@ public class PlayScreen extends ScreenAdapter {
             sendPing();
             sendPingTime = SEND_PING_INTERVAL;
         } else sendPingTime -= dt * 1000;
-
-//        simpleMesh.render(guiCamera.combined);
-
-//        trailGraphic.render(camera.combined);
+//        }
     }
 
     @Override
@@ -318,13 +334,13 @@ public class PlayScreen extends ScreenAdapter {
         System.out.println("resize(" + width + ", " + height + ")");
         init(width, height);
 
-        camera.viewportWidth = screenWidth;
-        camera.viewportHeight = screenHeight;
-        camera.update();
+        gameCamera.viewportWidth = screenWidth;
+        gameCamera.viewportHeight = screenHeight;
+        gameCamera.update();
 
-        controllerCamera.viewportWidth = screenWidth;
-        controllerCamera.viewportHeight = screenHeight;
-        controllerCamera.update();
+        fixedCamera.viewportWidth = screenWidth;
+        fixedCamera.viewportHeight = screenHeight;
+        fixedCamera.update();
 
         guiCamera.viewportWidth = width;
         guiCamera.viewportHeight = height;
@@ -337,15 +353,16 @@ public class PlayScreen extends ScreenAdapter {
 
     @Override
     public void dispose() {
-        batch.dispose();
-        fbo.dispose();
-        gameAtlas.dispose();
-        logFont.dispose();
-        usernameFont.dispose();
-        leaderboardFont.dispose();
-        timeFont.dispose();
-        freetypeGeneratorNoto.dispose();
-        freetypeGeneratorArial.dispose();
+        if (batch != null) batch.dispose();
+        if (fbo != null) fbo.dispose();
+        if (gameAtlas != null) gameAtlas.dispose();
+        if (logFont != null) logFont.dispose();
+        if (usernameFont != null) usernameFont.dispose();
+        if (leaderboardFont != null) leaderboardFont.dispose();
+        if (timeFont != null) timeFont.dispose();
+        if (freetypeGeneratorNoto != null) freetypeGeneratorNoto.dispose();
+        if (freetypeGeneratorArial != null) freetypeGeneratorArial.dispose();
+        if (loadingAnimation != null) loadingAnimation.dispose();
     }
 
     /* ***************************************** INIT *******************************************/
@@ -469,8 +486,8 @@ public class PlayScreen extends ScreenAdapter {
             @Override
             public boolean touchDragged(int screenX, int screenY, int pointer) {
 //                System.out.println("touchDragged()");
-                screenX = (int) ((screenX - Gdx.graphics.getWidth() / 2f) * controllerCamera.viewportWidth / Gdx.graphics.getWidth());
-                screenY = (int) ((Gdx.graphics.getHeight() / 2f - screenY) * controllerCamera.viewportHeight / Gdx.graphics.getHeight());
+                screenX = (int) ((screenX - Gdx.graphics.getWidth() / 2f) * fixedCamera.viewportWidth / Gdx.graphics.getWidth());
+                screenY = (int) ((Gdx.graphics.getHeight() / 2f - screenY) * fixedCamera.viewportHeight / Gdx.graphics.getHeight());
                 handleTouchDownDrag(screenX, screenY);
                 return true;
             }
@@ -489,12 +506,31 @@ public class PlayScreen extends ScreenAdapter {
 
     /* ***************************************** DRAW *******************************************/
 
-    private void drawTiles() {
-        float actualWidth = camera.zoom * camera.viewportWidth;
-        float actualHeight = camera.zoom * camera.viewportHeight;
+//    private void drawConnecting(float dt) {
+//        float totalWidth = connectingText.width + LOADING_ANIMATION_SIZE + 16;
+//        loadingAnimation.render(dt, batch, -totalWidth / 2f, -LOADING_ANIMATION_SIZE / 2f, LOADING_ANIMATION_SIZE, LOADING_ANIMATION_SIZE);
+//        float alpha = (MathUtils.sin(4 * time) + 1) / 2f;
+//        usernameFont.setColor(new Color(CONNECTING_TEXT_COLOR.r, CONNECTING_TEXT_COLOR.b, CONNECTING_TEXT_COLOR.g, alpha));
+//        usernameFont.draw(batch, "Connecting...", -totalWidth / 2f + LOADING_ANIMATION_SIZE + 16, usernameFont.getLineHeight() / 2f - 4);
+//    }
 
-        float leftX = camera.position.x - actualWidth / 2f;
-        float topY = camera.position.y - actualHeight / 2f;
+    private void drawConnecting(float dt) {
+        float size = 20 * guiUnits;
+        float gap = 8 * guiUnits;
+        float x = -guiCamera.viewportWidth / 2f + 2 * guiUnits;
+        float y = -guiCamera.viewportHeight / 2f + 2 * guiUnits;
+        loadingAnimation.render(dt, batch,x ,y , size, size);
+        float alpha = (MathUtils.sin(4 * time) + 1) / 2f;
+        leaderboardFont.setColor(new Color(CONNECTING_TEXT_COLOR.r, CONNECTING_TEXT_COLOR.b, CONNECTING_TEXT_COLOR.g, alpha));
+        leaderboardFont.draw(batch, "Connecting...", x + size + gap, y + size / 2f + leaderboardFont.getLineHeight() / 2f - 4 * guiUnits);
+    }
+
+    private void drawTiles() {
+        float actualWidth = gameCamera.zoom * gameCamera.viewportWidth;
+        float actualHeight = gameCamera.zoom * gameCamera.viewportHeight;
+
+        float leftX = gameCamera.position.x - actualWidth / 2f;
+        float topY = gameCamera.position.y - actualHeight / 2f;
 
         int bottomYi = (int) Math.floor((topY + GRID_HEIGHT / 2f) / GRID_HEIGHT) - 1;
         int leftXi = (int) (bottomYi % 2 == 0 ? Math.floor((leftX + GRID_WIDTH / 2f) / GRID_WIDTH) : Math.floor(leftX / GRID_WIDTH)) - 1;
@@ -726,6 +762,14 @@ public class PlayScreen extends ScreenAdapter {
         timeFont.draw(batch, "You will respawn in " + seconds + " seconds", x, y);
     }
 
+    private void drawPing() {
+        String logText = "fps: " + Gdx.graphics.getFramesPerSecond();
+        if (currentPing > 0) {
+            logText += " - ping: " + currentPing;
+        }
+        logFont.draw(batch, logText, -Gdx.graphics.getWidth() / 2f + 8 * guiUnits, -Gdx.graphics.getHeight() / 2f + 2 * guiUnits + logFont.getLineHeight());
+    }
+
     private void clearPlayerPath(String clientId) {
         Player player = room.state.players.get(clientId);
         if (player != null && player.trailGraphic != null) {
@@ -877,7 +921,7 @@ public class PlayScreen extends ScreenAdapter {
 //        float percentage = cm.numCells / (float) TOTAL_CELLS;
 //        System.out.println("percentage = " + percentage);
 //        camera.zoom = Math.min(CAMERA_INIT_ZOOM + 2f * percentage, 1.7f);
-        camera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 1.7f);
+        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 1.7f);
     }
 
     // TODO: we need to improve this a little bit
@@ -1093,8 +1137,8 @@ public class PlayScreen extends ScreenAdapter {
                                         player.bcGhost.setSize(46, 46);
 
                                         if (player.clientId.equals(client.getId())) {
-                                            camera.position.x = player.x;
-                                            camera.position.y = player.y;
+                                            gameCamera.position.x = player.x;
+                                            gameCamera.position.y = player.y;
                                         }
 
                                         player.trailGraphic = new TrailGraphic();
@@ -1185,7 +1229,7 @@ public class PlayScreen extends ScreenAdapter {
                                     }
                                 }
                             }
-                            // TODO: Update completed
+                            isConnected = true;
                         });
                     }
 
@@ -1229,8 +1273,8 @@ public class PlayScreen extends ScreenAdapter {
                                 player.bcGhost.setSize(46, 46);
 
                                 if (player.clientId.equals(client.getId())) {
-                                    camera.position.x = player.x;
-                                    camera.position.y = player.y;
+                                    gameCamera.position.x = player.x;
+                                    gameCamera.position.y = player.y;
                                 }
 
                                 player.trailGraphic = new TrailGraphic();
