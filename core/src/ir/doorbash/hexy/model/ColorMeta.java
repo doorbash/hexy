@@ -33,6 +33,11 @@ public class ColorMeta extends Schema {
         return obj instanceof ColorMeta && ((ColorMeta) obj).color == color;
     }
 
+    @Override
+    public String toString() {
+        return "{" + "color=" + color + ", " + "numcells=" + numCells + ", " + "position=" + position + ", " + "_position=" + _position + "}";
+    }
+
     public Sprite progressBar;
     public int _position; // positioni ke alan dare draw mishe
     public boolean positionIsChanging = false; // aya jash too list dare avaz mishe ya na
