@@ -12,7 +12,7 @@ import com.badlogic.gdx.math.Matrix4;
 /**
  * Created by Milad Doorbash on 7/28/2019.
  */
-public class ProgressBar {
+public class Bar {
 
     private static ShaderProgram shader;
 
@@ -26,8 +26,8 @@ public class ProgressBar {
 
     static void init() {
         shader = new ShaderProgram(
-                Gdx.files.internal("shaders/progressbar_vertex.glsl").readString(),
-                Gdx.files.internal("shaders/progressbar_fragment.glsl").readString()
+                Gdx.files.internal("shaders/bar_vertex.glsl").readString(),
+                Gdx.files.internal("shaders/bar_fragment.glsl").readString()
         );
         if (!shader.isCompiled()) {
             System.err.println(shader.getLog());
