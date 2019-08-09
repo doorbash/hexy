@@ -91,8 +91,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final float PLAYER_ROTATE_SPEED = 2;
     private static final float HIGH_LERP_TIME = 2; // seconds
 
-    //    private static final String ENDPOINT = "ws://192.168.1.101:3334";
-    public static final String ENDPOINT = "ws://46.21.147.7:3334";
+    private static final String ENDPOINT = "ws://192.168.1.101:3334";
+    //    public static final String ENDPOINT = "ws://46.21.147.7:3334";
     //    public static final String ENDPOINT = "ws://127.0.0.1:3334";
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
@@ -267,7 +267,8 @@ public class PlayScreen extends ScreenAdapter {
 
         drawTiles();
         if (room != null) {
-            updatePlayersPositions(dt);
+            if (connectionState == CONNECTION_STATE_CONNECTED)
+                updatePlayersPositions(dt);
             updateZoom();
 
             drawCells();
@@ -1066,12 +1067,14 @@ public class PlayScreen extends ScreenAdapter {
                     @Override
                     protected void onLeave() {
                         System.out.println("left " + getRoomName());
-                        connectionState = CONNECTION_STATE_DISCONNECTED;
+                        if (connectionState != CONNECTION_STATE_CLOSED)
+                            connectionState = CONNECTION_STATE_DISCONNECTED;
                     }
 
                     @Override
                     protected void onError(Exception e) {
-                        connectionState = CONNECTION_STATE_DISCONNECTED;
+                        if (connectionState != CONNECTION_STATE_CLOSED)
+                            connectionState = CONNECTION_STATE_DISCONNECTED;
                         System.out.println("onError()");
                         e.printStackTrace();
                     }
@@ -1442,12 +1445,14 @@ public class PlayScreen extends ScreenAdapter {
 
             @Override
             public void onClose(int i, String s, boolean b) {
-                connectionState = CONNECTION_STATE_DISCONNECTED;
+                if (connectionState != CONNECTION_STATE_CLOSED)
+                    connectionState = CONNECTION_STATE_DISCONNECTED;
             }
 
             @Override
             public void onError(Exception e) {
-                connectionState = CONNECTION_STATE_DISCONNECTED;
+                if (connectionState != CONNECTION_STATE_CLOSED)
+                    connectionState = CONNECTION_STATE_DISCONNECTED;
             }
         });
     }
@@ -1455,7 +1460,8 @@ public class PlayScreen extends ScreenAdapter {
     private void checkConnection() {
         if (connectionState == CONNECTION_STATE_CONNECTED && lastPingReplyTime > 0 && System.currentTimeMillis() - lastPingReplyTime > 15000) {
             // we are disconnected for sure
-            connectionState = CONNECTION_STATE_DISCONNECTED;
+            if (connectionState != CONNECTION_STATE_CLOSED)
+                connectionState = CONNECTION_STATE_DISCONNECTED;
         }
         if (connectionState == CONNECTION_STATE_DISCONNECTED) {
             connectToServer();
