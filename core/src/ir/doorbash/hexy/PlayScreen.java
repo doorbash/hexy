@@ -108,8 +108,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final String PATH_TRAIL_TEXTURE = "gfx/traine5.png";
     private static final String PATH_LOADING_SPRITESHEET = "gfx/loading2.png";
 
-            private static final String PATH_SOUND_CAPTURE = "sfx/capture1.wav";
-//    private static final String PATH_SOUND_CAPTURE = "sfx/capture2.mp3";
+    private static final String PATH_SOUND_CAPTURE = "sfx/capture1.wav";
+    //    private static final String PATH_SOUND_CAPTURE = "sfx/capture2.mp3";
     private static final String PATH_SOUND_CLICK = "sfx/click2.wav";
     private static final String PATH_SOUND_BOOST = "sfx/boost1.wav";
     private static final String PATH_SOUND_HIT = "sfx/hit1.wav";
@@ -360,6 +360,10 @@ public class PlayScreen extends ScreenAdapter {
         } else sendPingTime -= dt * 1000;
 
         checkConnection();
+
+        while (!todoList.isEmpty()) {
+            todoList.pop().run();
+        }
     }
 
     @Override
@@ -584,29 +588,29 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPaths() {
-        synchronized (players) {
-            for (Player player : players) {
-                if (player != null && player.status == 0) {
-                    synchronized (player.pathCells) {
-                        for (Cell cell : player.pathCells.values()) {
-                            if (cell != null && cell.id != null) {
-                                cell.id.draw(batch);
-                            }
+//        synchronized (players) {
+        for (Player player : players) {
+            if (player != null && player.status == 0) {
+                synchronized (player.pathCells) {
+                    for (Cell cell : player.pathCells.values()) {
+                        if (cell != null && cell.id != null) {
+                            cell.id.draw(batch);
                         }
                     }
                 }
             }
         }
+//        }
     }
 
     private void drawTrails() {
-        synchronized (players) {
-            for (Player player : players) {
-                if (player != null && player.status == 0 && player.trailGraphic != null) {
-                    player.trailGraphic.render(batch.getProjectionMatrix());
-                }
+//        synchronized (players) {
+        for (Player player : players) {
+            if (player != null && player.status == 0 && player.trailGraphic != null) {
+                player.trailGraphic.render(batch.getProjectionMatrix());
             }
         }
+//        }
     }
 
     private void drawCells() {
@@ -620,22 +624,22 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPlayers() {
-        synchronized (players) {
-            for (Player player : players) {
-                if (player != null && player.status == 0) {
-                    if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
-                    if (player.bc != null) player.bc.draw(batch);
-                    if (player.c != null) player.c.draw(batch);
-                    if (player.bc != null && player.text != null) {
-                        float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
-                        float y = player.bc.getY() + 70;
-                        usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
-                        usernameFont.draw(batch, player._name, x, y);
-                    }
-                    if (player.indic != null) player.indic.draw(batch);
+//        synchronized (players) {
+        for (Player player : players) {
+            if (player != null && player.status == 0) {
+                if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
+                if (player.bc != null) player.bc.draw(batch);
+                if (player.c != null) player.c.draw(batch);
+                if (player.bc != null && player.text != null) {
+                    float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
+                    float y = player.bc.getY() + 70;
+                    usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
+                    usernameFont.draw(batch, player._name, x, y);
                 }
+                if (player.indic != null) player.indic.draw(batch);
             }
         }
+//        }
     }
 
 //    private void drawCurrentPlayerName() {
@@ -688,73 +692,73 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawLeaderboard(float dt) {
-        synchronized (colorMetas) {
+//        synchronized (colorMetas) {
+
+        Collections.sort(colorMetas, COLOR_META_COMP);
+
+        if (leaderboardDrawAgain) {
+            for (ColorMeta colorMeta : colorMetas) {
+                colorMeta.positionIsChanging = false;
+                if (colorMeta.progressBar != null) {
+                    colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
+                    colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                }
+            }
+            leaderboardDrawAgain = false;
+        } else {
+
+            for (int i = 0; i < colorMetas.size() - 1; i++) {
+                ColorMeta colorMeta = colorMetas.get(i);
+                if (colorMeta.positionIsChanging) continue;
+                if (colorMeta.position > colorMeta._position) { // yani bayad bere paeen
+                    ColorMeta next = colorMetas.get(i + 1);
+                    if (!next.positionIsChanging && next.position <= next._position) {
+                        if (colorMeta._position <= LEADERBOARD_NUM) {
+                            if (next._position <= LEADERBOARD_NUM + 1) {
+                                colorMeta.positionIsChanging = true;
+                                colorMeta.changeDir = ColorMeta.CHANGE_DIRECTION_DOWN;
+                                next.positionIsChanging = true;
+                                next.changeDir = ColorMeta.CHANGE_DIRECTION_UP;
+                            }
+                        }
+                        colorMeta._position++;
+                        next._position--;
+                        i++;
+                    }
+                }
+            }
 
             Collections.sort(colorMetas, COLOR_META_COMP);
-
-            if (leaderboardDrawAgain) {
-                for (ColorMeta colorMeta : colorMetas) {
-                    colorMeta.positionIsChanging = false;
-                    if (colorMeta.progressBar != null) {
-                        colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
-                        colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
-                    }
-                }
-                leaderboardDrawAgain = false;
-            } else {
-
-                for (int i = 0; i < colorMetas.size() - 1; i++) {
-                    ColorMeta colorMeta = colorMetas.get(i);
-                    if (colorMeta.positionIsChanging) continue;
-                    if (colorMeta.position > colorMeta._position) { // yani bayad bere paeen
-                        ColorMeta next = colorMetas.get(i + 1);
-                        if (!next.positionIsChanging && next.position <= next._position) {
-                            if (colorMeta._position <= LEADERBOARD_NUM) {
-                                if (next._position <= LEADERBOARD_NUM + 1) {
-                                    colorMeta.positionIsChanging = true;
-                                    colorMeta.changeDir = ColorMeta.CHANGE_DIRECTION_DOWN;
-                                    next.positionIsChanging = true;
-                                    next.changeDir = ColorMeta.CHANGE_DIRECTION_UP;
-                                }
-                            }
-                            colorMeta._position++;
-                            next._position--;
-                            i++;
-                        }
-                    }
-                }
-
-                Collections.sort(colorMetas, COLOR_META_COMP);
-            }
-
-            boolean playerProgressPrinted = false;
-            Player currentPlayer = room.state.players.get(client.getId());
-            int limit = Math.min(LEADERBOARD_NUM + 1, colorMetas.size());
-            for (int i = limit - 1; i >= 0; i--) {
-                ColorMeta colorMeta = colorMetas.get(i); // _position = i + 1
-                if (colorMeta == null || colorMeta.progressBar == null) continue;
-                if (i == LEADERBOARD_NUM) {
-                    if (!colorMeta.positionIsChanging) continue;
-                    if (colorMeta.changeDir == ColorMeta.CHANGE_DIRECTION_UP) continue;
-                }
-                Player player = playersByColor[colorMeta.color - 1];
-                if (player == null) {
-                    colorMeta.positionIsChanging = false;
-                    continue;
-                }
-                drawProgressbar(colorMeta, player._name, dt, false);
-                if (currentPlayer != null && currentPlayer.color == colorMeta.color)
-                    playerProgressPrinted = true;
-            }
-
-            if (!playerProgressPrinted) {
-                if (currentPlayer == null) return;
-                ColorMeta colorMeta = room.state.colorMeta.get(currentPlayer.color + "");
-                if (colorMeta == null || colorMeta.progressBar == null) return;
-                drawProgressbar(colorMeta, currentPlayer._name, dt, true);
-            }
-
         }
+
+        boolean playerProgressPrinted = false;
+        Player currentPlayer = room.state.players.get(client.getId());
+        int limit = Math.min(LEADERBOARD_NUM + 1, colorMetas.size());
+        for (int i = limit - 1; i >= 0; i--) {
+            ColorMeta colorMeta = colorMetas.get(i); // _position = i + 1
+            if (colorMeta == null || colorMeta.progressBar == null) continue;
+            if (i == LEADERBOARD_NUM) {
+                if (!colorMeta.positionIsChanging) continue;
+                if (colorMeta.changeDir == ColorMeta.CHANGE_DIRECTION_UP) continue;
+            }
+            Player player = playersByColor[colorMeta.color - 1];
+            if (player == null) {
+                colorMeta.positionIsChanging = false;
+                continue;
+            }
+            drawProgressbar(colorMeta, player._name, dt, false);
+            if (currentPlayer != null && currentPlayer.color == colorMeta.color)
+                playerProgressPrinted = true;
+        }
+
+        if (!playerProgressPrinted) {
+            if (currentPlayer == null) return;
+            ColorMeta colorMeta = room.state.colorMeta.get(currentPlayer.color + "");
+            if (colorMeta == null || colorMeta.progressBar == null) return;
+            drawProgressbar(colorMeta, currentPlayer._name, dt, true);
+        }
+
+//        }
 
     }
 
@@ -824,29 +828,19 @@ public class PlayScreen extends ScreenAdapter {
     private void clearPlayerPath(String clientId) {
         Player player = room.state.players.get(clientId);
         if (player != null && player.trailGraphic != null) {
-            Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
-            synchronized (player.pathCells) {
-                player.pathCells.clear();
-            }
-//            if (ADD_FAKE_PATH_CELLS) {
-//                player.pathCellUpdates.clear();
-//                synchronized (pathCellGrid) {
-//                    for (int i = 0; i < CELL_GRID_WIDTH; i++) {
-//                        for (int j = 0; j < CELL_GRID_HEIGHT; j++) {
-//                            if (pathCellGrid[i] != null && pathCellGrid[i][j] != null && pathCellGrid[i][j].color == player.color) {
-//                                pathCellGrid[i][j] = null;
-//                            }
-//                        }
-//                    }
+            todoList.offer(() -> {
+                player.trailGraphic.truncateAt(0);
+//                synchronized (player.pathCells) {
+                    player.pathCells.clear();
 //                }
-//            }
+            });
         }
     }
 
     /* ***************************************** LOGIC *******************************************/
 
     private void updatePlayersPositions(float dt) {
-        synchronized (players) {
+//        synchronized (players) {
             for (Player player : players) {
                 if (player.bc != null) {
 
@@ -924,7 +918,7 @@ public class PlayScreen extends ScreenAdapter {
                     }
                 }
             }
-        }
+//        }
     }
 
 //    private void processPlayerPosition(Player player, float x, float y) {
@@ -1144,7 +1138,7 @@ public class PlayScreen extends ScreenAdapter {
                             clearPlayerPath(clientId);
                             if (clientId.equals(client.getId())) {
                                 if (num > 4)
-                                    Gdx.app.postRunnable(() -> captureSound.play(0.5f));
+                                    todoList.offer(() -> captureSound.play(0.5f));
                                 Gdx.app.log(TAG, "+" + num + " blocks");
                             }
                         } else if (data.get("op").equals("pg")) {
@@ -1159,13 +1153,13 @@ public class PlayScreen extends ScreenAdapter {
                             } else currentPing = 0;
                         } else if (data.get("op").equals("dt")) {
                             // dead
-                            Gdx.app.postRunnable(() -> deathSound.play());
+                            todoList.offer(() -> deathSound.play());
                             System.out.println("YOU ARE DEAD!");
                             connectionState = CONNECTION_STATE_CLOSED;
                             // TODO: show death dialog
                         } else if (data.get("op").equals("ht")) {
                             // dead
-                            Gdx.app.postRunnable(() -> hitSound.play());
+                            todoList.offer(() -> hitSound.play());
                         }
                     }
 
@@ -1183,8 +1177,8 @@ public class PlayScreen extends ScreenAdapter {
                             registerCallbacks();
                         } else if (firstPatch) {
                             firstPatch = false;
-                            Gdx.app.postRunnable(() -> {
-                                synchronized (players) {
+                            todoList.offer(() -> {
+//                                synchronized (players) {
                                     for (Player player : players) {
                                         player.bc.setCenter(player.x, player.y);
                                         player.c.setCenter(player.x, player.y);
@@ -1194,16 +1188,16 @@ public class PlayScreen extends ScreenAdapter {
                                             player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
                                         }
                                     }
-                                }
+//                                }
                             });
                         }
                     }
 
                     void initFirstPatch() {
                         System.out.println("initFirstPatch...");
-                        Gdx.app.postRunnable(() -> {
+                        todoList.offer(() -> {
                             synchronized (room.state.players.lock) {
-                                synchronized (players) {
+//                                synchronized (players) {
                                     players.clear();
                                     for (int i = 0; i < playersByColor.length; i++) {
                                         playersByColor[i] = null;
@@ -1296,10 +1290,10 @@ public class PlayScreen extends ScreenAdapter {
                                         if (!players.contains(player))
                                             players.add(player);
                                     }
-                                }
+//                                }
                             }
                             synchronized (room.state.cells.lock) {
-                                synchronized (cells) {
+//                                synchronized (cells) {
                                     cells.clear();
                                     for (Entry<String, Cell> keyValue : room.state.cells.items.entrySet()) {
                                         String key = keyValue.getKey();
@@ -1319,10 +1313,10 @@ public class PlayScreen extends ScreenAdapter {
 
                                         cells.put(key, cell);
                                     }
-                                }
+//                                }
                             }
                             synchronized (room.state.colorMeta.lock) {
-                                synchronized (colorMetas) {
+//                                synchronized (colorMetas) {
                                     colorMetas.clear();
                                     for (Entry<String, ColorMeta> keyValue : room.state.colorMeta.items.entrySet()) {
                                         String key = keyValue.getKey();
@@ -1337,7 +1331,7 @@ public class PlayScreen extends ScreenAdapter {
                                             colorMetas.add(colorMeta);
                                         }
                                     }
-                                }
+//                                }
                             }
                         });
                     }
@@ -1351,7 +1345,7 @@ public class PlayScreen extends ScreenAdapter {
                             player._name = arFont.getText(player.name);
                             player._angle = player.angle;
 
-                            Gdx.app.postRunnable(() -> {
+                            todoList.offer(() -> {
                                 Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
                                 Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
 
@@ -1394,10 +1388,10 @@ public class PlayScreen extends ScreenAdapter {
 
                                 registerPlayerCallbacks(player);
 
-                                synchronized (players) {
+//                                synchronized (players) {
                                     if (!players.contains(player))
                                         players.add(player);
-                                }
+//                                }
                             });
                         };
                         room.state.players.onRemove = (player, key) -> {
@@ -1406,9 +1400,9 @@ public class PlayScreen extends ScreenAdapter {
                             clearPlayerPath(player.clientId);
                             playersByColor[player.color - 1] = null;
 
-                            synchronized (players) {
+//                            synchronized (players) {
                                 players.remove(player);
-                            }
+//                            }
                         };
 
                         room.state.cells.onAdd = (cell, key) -> {
@@ -1417,7 +1411,7 @@ public class PlayScreen extends ScreenAdapter {
 //                                cellGrid[cell.x + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
 //                            cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = cell;
 
-                            Gdx.app.postRunnable(() -> {
+                            todoList.offer(() -> {
                                 cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
                                 cell.id.setSize(40, 46);
                                 Vector2 pos = getHexPosition(cell.x, cell.y);
@@ -1427,37 +1421,37 @@ public class PlayScreen extends ScreenAdapter {
 
                             cell.onChange = changes -> {
                                 if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                                Gdx.app.postRunnable(() -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]));
+                                todoList.offer(() -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]));
                             };
 
-                            synchronized (cells) {
+//                            synchronized (cells) {
                                 cells.put(key, cell);
-                            }
+//                            }
                         };
                         room.state.cells.onRemove = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] != null) {
 //                                cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = null;
 //                            }
-                            synchronized (cells) {
+//                            synchronized (cells) {
                                 cells.remove(key);
-                            }
+//                            }
                         };
 
                         room.state.colorMeta.onAdd = (colorMeta, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            Gdx.app.postRunnable(() -> {
+                            todoList.offer(() -> {
                                 colorMeta._position = colorMetas.size() + 1;
                                 colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
                                 colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
                                 colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
                                 colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
                                 colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
-                                synchronized (colorMetas) {
+//                                synchronized (colorMetas) {
                                     if (!colorMetas.contains(colorMeta)) {
                                         colorMetas.add(colorMeta);
                                     }
-                                }
+//                                }
                             });
                         };
                     }
@@ -1466,7 +1460,7 @@ public class PlayScreen extends ScreenAdapter {
                         player.path.onAdd = (point, key2) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             if (player.trailGraphic == null) return;
-                            Gdx.app.postRunnable(() -> {
+                            todoList.offer(() -> {
                                 if (key2 > 1) {
                                     Point lastPoint = player.path.get(key2 - 1);
                                     if (lastPoint != null) {
@@ -1489,7 +1483,7 @@ public class PlayScreen extends ScreenAdapter {
                         };
                         player.cells.onAdd = (cell, key2) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            Gdx.app.postRunnable(() -> {
+                            todoList.offer(() -> {
                                 cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
                                 cell.id.setSize(40, 46);
                                 Vector2 pos = getHexPosition(cell.x, cell.y);
@@ -1501,9 +1495,9 @@ public class PlayScreen extends ScreenAdapter {
                                     player.pathCellUpdates.offer(new PathCellUpdate(cell, key2, System.currentTimeMillis()));
                                 }
 
-                                synchronized (player.pathCells) {
+//                                synchronized (player.pathCells) {
                                     player.pathCells.put(key2, cell);
-                                }
+//                                }
                             });
                         };
 
