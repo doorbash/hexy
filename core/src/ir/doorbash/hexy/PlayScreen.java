@@ -3,6 +3,7 @@ package ir.doorbash.hexy;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.ScreenAdapter;
+import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -91,14 +92,17 @@ public class PlayScreen extends ScreenAdapter {
     private static final float PLAYER_ROTATE_SPEED = 2;
     private static final float HIGH_LERP_TIME = 2; // seconds
 
-    private static final String ENDPOINT = "ws://192.168.1.101:3334";
-    //    public static final String ENDPOINT = "ws://46.21.147.7:3334";
-    //    public static final String ENDPOINT = "ws://127.0.0.1:3334";
+//    private static final String ENDPOINT = "ws://192.168.1.101:3334";
+        public static final String ENDPOINT = "ws://46.21.147.7:3334";
+//        public static final String ENDPOINT = "ws://127.0.0.1:3334";
+
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
     private static final String PATH_PACK_ATLAS = "pack.atlas";
     private static final String PATH_TRAIL_TEXTURE = "traine.png";
     private static final String PATH_LOADING_SPRITESHEET = "loading2.png";
+    private static final String PATH_SOUND_CAPTURE = "sounds/capture.wav";
+
     private static final String TEXTURE_REGION_HEX_WHITE = "hex_white";
     private static final String TEXTURE_REGION_THUMBSTICK_BG = "thumbstick-background";
     private static final String TEXTURE_REGION_THUMBSTICK_PAD = "thumbstick-pad";
@@ -107,9 +111,9 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TEXTURE_REGION_PROGRESSBAR = "progressbar";
 
     private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3, 2, 3, 0.5f);
-    private static final Color TEXT_BACKGROUND_COLOR = Color.valueOf("#707070cc");
-    private static final Color TEXT_YOUR_BEST_PROGRESS_COLOR = Color.valueOf("#707070aa");
-    private static final Color YOUR_PROGRESS_BG_COLOR = Color.valueOf("#70707066");
+    private static final Color COLOR_TIME_TEXT_BACKGROUND = Color.valueOf("#707070cc");
+    private static final Color COLOR_YOUR_BEST_PROGRESS_TEXT = new Color(0x707070cc);
+    private static final Color COLOR_YOUR_PROGRESS_BG = new Color(0x70707088);
     private static final Color CONNECTING_TEXT_COLOR = Color.valueOf("#212121ff");
     private static final Comparator<ColorMeta> COLOR_META_COMP = (o1, o2) -> Integer.compare(o1._position, o2._position);
 
@@ -139,6 +143,7 @@ public class PlayScreen extends ScreenAdapter {
     private GlyphLayout yourProgressBestText;
     private GlyphLayout connectingText;
     private LoadingAnimation loadingAnimation;
+    private Sound captureSound;
 
     /* **************************************** FIELDS *******************************************/
 
@@ -207,16 +212,18 @@ public class PlayScreen extends ScreenAdapter {
         thumbstickPadSprite.setSize(70, 70);
         timeBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         youWillRspwnBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-        youWillRspwnBg.setColor(TEXT_BACKGROUND_COLOR);
-        timeBg.setColor(TEXT_BACKGROUND_COLOR);
+        youWillRspwnBg.setColor(COLOR_TIME_TEXT_BACKGROUND);
+        timeBg.setColor(COLOR_TIME_TEXT_BACKGROUND);
         playerProgressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-        playerProgressBarBest.setColor(YOUR_PROGRESS_BG_COLOR);
+        playerProgressBarBest.setColor(COLOR_YOUR_PROGRESS_BG);
         loadingAnimation = new LoadingAnimation(PATH_LOADING_SPRITESHEET);
         gameCamera = new OrthographicCamera();
         gameCamera.zoom = CAMERA_INIT_ZOOM;
         fixedCamera = new OrthographicCamera();
         guiCamera = new OrthographicCamera();
+
+        captureSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CAPTURE));
 
         init(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
@@ -295,6 +302,8 @@ public class PlayScreen extends ScreenAdapter {
             thumbstickPadSprite.draw(batch);
         }
 
+//        if(room != null) drawCurrentPlayerName();
+
         batch.setProjectionMatrix(guiCamera.combined);
 
         if (room != null && room.state.started) {
@@ -365,6 +374,7 @@ public class PlayScreen extends ScreenAdapter {
         if (freetypeGeneratorNoto != null) freetypeGeneratorNoto.dispose();
         if (freetypeGeneratorArial != null) freetypeGeneratorArial.dispose();
         if (loadingAnimation != null) loadingAnimation.dispose();
+        if (captureSound != null) captureSound.dispose();
     }
 
     /* ***************************************** INIT *******************************************/
@@ -588,17 +598,26 @@ public class PlayScreen extends ScreenAdapter {
                     if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
                     if (player.bc != null) player.bc.draw(batch);
                     if (player.c != null) player.c.draw(batch);
-                    if (player.indic != null) player.indic.draw(batch);
-                    if (player.bc != null) {
+                    if (player.bc != null && player.text != null) {
                         float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
                         float y = player.bc.getY() + 70;
                         usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
                         usernameFont.draw(batch, player._name, x, y);
                     }
+                    if (player.indic != null) player.indic.draw(batch);
                 }
             }
         }
     }
+
+//    private void drawCurrentPlayerName() {
+//        Player currentPlayer = room.state.players.get(client.getId());
+//        if(currentPlayer == null || currentPlayer.text == null) return;
+//        float x = -currentPlayer.text.width / 2f;
+//        float y = 60;
+//        usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[currentPlayer.color - 1]);
+//        usernameFont.draw(batch, currentPlayer._name, x, y);
+//    }
 
     private void drawProgressbar(ColorMeta colorMeta, String name, float dt, boolean drawStatic) {
         DecimalFormat decimalFormat = new DecimalFormat("#0.0");
@@ -734,7 +753,7 @@ public class PlayScreen extends ScreenAdapter {
         leaderboardFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.color - 1]);
         leaderboardFont.draw(batch, (colorMeta._percentage < 0.1f ? " " : "") + decimalFormat.format(colorMeta._percentage * 100f) + "%", playerProgressBar.getX() + playerProgressBar.getWidth() - yourProgressText.width + guiUnits * 8, playerProgressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 2 * guiUnits);
 
-        leaderboardFont.setColor(TEXT_YOUR_BEST_PROGRESS_COLOR);
+        leaderboardFont.setColor(COLOR_YOUR_BEST_PROGRESS_TEXT);
         leaderboardFont.draw(batch, "BEST " + decimalFormat.format(playerBestProgress * 100) + "%", playerProgressBarBest.getX() + playerProgressBarBest.getWidth() - yourProgressBestText.width + guiUnits * 8, playerProgressBarBest.getY() - 2 * guiUnits);
     }
 
@@ -1082,11 +1101,17 @@ public class PlayScreen extends ScreenAdapter {
                         } else if (data.get("op").equals("cp")) {
                             String clientId = (String) data.get("player");
                             clearPlayerPath(clientId);
-
+                            if (clientId.equals(client.getId())) {
+                                captureSound.play();
+                            }
                         } else if (data.get("op").equals("pg")) {
                             long t = (long) data.get("t");
+                            long st = (long) data.get("st");
+                            long currentTimeMillis = System.currentTimeMillis();
+                            timeDiff = st - currentTimeMillis;
+                            // System.out.println("new timeDiff = " + timeDiff);
                             if (t == lastPingSentTime) {
-                                lastPingReplyTime = System.currentTimeMillis();
+                                lastPingReplyTime = currentTimeMillis;
                                 currentPing = (int) (lastPingReplyTime - t);
                             } else currentPing = 0;
                         } else if (data.get("op").equals("dt")) {
