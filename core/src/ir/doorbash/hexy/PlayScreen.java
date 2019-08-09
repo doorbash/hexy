@@ -648,8 +648,10 @@ public class PlayScreen extends ScreenAdapter {
             if (leaderboardDrawAgain) {
                 for (ColorMeta colorMeta : colorMetas) {
                     colorMeta.positionIsChanging = false;
-                    colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
-                    colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                    if (colorMeta.progressBar != null) {
+                        colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
+                        colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                    }
                 }
                 leaderboardDrawAgain = false;
             } else {
@@ -933,13 +935,13 @@ public class PlayScreen extends ScreenAdapter {
 
     private void correctPlayerPosition(Player player) {
 
-        float lerp = calcualteLerp(player);
+        float lerp = calculateLerp(player);
 
 //        float d = dst > 75 ? dst : dst > 25 ? 5f : Math.min(dst, 1.25f);
-        if (player.clientId.equals(client.getId())) {
+//        if (player.clientId.equals(client.getId())) {
 //            System.out.println("sqrt is " + dst);
-            System.out.println("lerp is " + lerp);
-        }
+        // System.out.println("lerp is " + lerp);
+//        }
 
         if (lerp > 0) {
             player.bc.setCenterX(MathUtils.lerp(player.bc.getX() + player.bc.getWidth() / 2f, player.x, lerp));
@@ -951,7 +953,7 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
-    private float calcualteLerp(Player player) {
+    private float calculateLerp(Player player) {
         if (connectTime > HIGH_LERP_TIME) {
             // normal
             float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
@@ -962,7 +964,7 @@ public class PlayScreen extends ScreenAdapter {
             } else if (dst > 60) {
                 return 10 / dst;
             } else {
-                if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
+                // if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
                 return 0;
             }
         } else {
@@ -973,9 +975,9 @@ public class PlayScreen extends ScreenAdapter {
             } else if (dst > 625) {
                 return 0.8f;
             } else if (dst > 60) {
-                return 0.6f;
+                return 0.5f;
             } else {
-                return 0.4f;
+                return 0.3f;
             }
         }
     }
@@ -1040,22 +1042,11 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void connectToServer() {
+        System.out.println("ConnectToServer...");
         connectionState = CONNECTION_STATE_CONNECTING;
         client = new Client(ENDPOINT, ConfigFile.get("clientId"), null, null, 10000, new Client.Listener() {
             @Override
             public void onOpen(String id) {
-                synchronized (players) {
-                    players.clear();
-                    for (int i = 0; i < playersByColor.length; i++) {
-                        playersByColor[i] = null;
-                    }
-                }
-                synchronized (cells) {
-                    cells.clear();
-                }
-                synchronized (colorMetas) {
-                    colorMetas.clear();
-                }
                 ConfigFile.set("clientId", id);
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
                 options.put("name", "milad");
@@ -1137,9 +1128,14 @@ public class PlayScreen extends ScreenAdapter {
                     }
 
                     void initFirstPatch() {
+                        System.out.println("initFirstPatch...");
                         Gdx.app.postRunnable(() -> {
                             synchronized (room.state.players.lock) {
                                 synchronized (players) {
+                                    players.clear();
+                                    for (int i = 0; i < playersByColor.length; i++) {
+                                        playersByColor[i] = null;
+                                    }
                                     for (Entry<String, Player> keyValue : room.state.players.items.entrySet()) {
                                         Player player = keyValue.getValue();
                                         Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
@@ -1232,6 +1228,7 @@ public class PlayScreen extends ScreenAdapter {
                             }
                             synchronized (room.state.cells.lock) {
                                 synchronized (cells) {
+                                    cells.clear();
                                     for (Entry<String, Cell> keyValue : room.state.cells.items.entrySet()) {
                                         String key = keyValue.getKey();
                                         Cell cell = keyValue.getValue();
@@ -1254,6 +1251,7 @@ public class PlayScreen extends ScreenAdapter {
                             }
                             synchronized (room.state.colorMeta.lock) {
                                 synchronized (colorMetas) {
+                                    colorMetas.clear();
                                     for (Entry<String, ColorMeta> keyValue : room.state.colorMeta.items.entrySet()) {
                                         String key = keyValue.getKey();
                                         ColorMeta colorMeta = keyValue.getValue();
@@ -1263,8 +1261,9 @@ public class PlayScreen extends ScreenAdapter {
                                         colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
                                         colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
                                         colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
-                                        if (!colorMetas.contains(colorMeta))
+                                        if (!colorMetas.contains(colorMeta)) {
                                             colorMetas.add(colorMeta);
+                                        }
                                     }
                                 }
                             }
@@ -1320,14 +1319,14 @@ public class PlayScreen extends ScreenAdapter {
                                 player.trailGraphic.setTint(bcColor);
                                 player.trailGraphic.setRopeWidth(20);
                                 player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
+
+                                registerPlayerCallbacks(player);
+
+                                synchronized (players) {
+                                    if (!players.contains(player))
+                                        players.add(player);
+                                }
                             });
-
-                            registerPlayerCallbacks(player);
-
-                            synchronized (players) {
-                                if (!players.contains(player))
-                                    players.add(player);
-                            }
                         };
                         room.state.players.onRemove = (player, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
@@ -1382,11 +1381,12 @@ public class PlayScreen extends ScreenAdapter {
                                 colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
                                 colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
                                 colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                                synchronized (colorMetas) {
+                                    if (!colorMetas.contains(colorMeta)) {
+                                        colorMetas.add(colorMeta);
+                                    }
+                                }
                             });
-                            synchronized (colorMetas) {
-                                if (!colorMetas.contains(colorMeta))
-                                    colorMetas.add(colorMeta);
-                            }
                         };
                     }
 
@@ -1416,20 +1416,22 @@ public class PlayScreen extends ScreenAdapter {
                         };
                         player.cells.onAdd = (cell, key2) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-                            cell.id.setSize(40, 46);
-                            Vector2 pos = getHexPosition(cell.x, cell.y);
-                            cell.id.setCenter(pos.x, pos.y);
-                            Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
-                            cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
+                            Gdx.app.postRunnable(() -> {
+                                cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                                cell.id.setSize(40, 46);
+                                Vector2 pos = getHexPosition(cell.x, cell.y);
+                                cell.id.setCenter(pos.x, pos.y);
+                                Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
+                                cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
 
-                            if (ADD_FAKE_PATH_CELLS) {
-                                player.pathCellUpdates.offer(new PathCellUpdate(cell, key2, System.currentTimeMillis()));
-                            }
+                                if (ADD_FAKE_PATH_CELLS) {
+                                    player.pathCellUpdates.offer(new PathCellUpdate(cell, key2, System.currentTimeMillis()));
+                                }
 
-                            synchronized (player.pathCells) {
-                                player.pathCells.put(key2, cell);
-                            }
+                                synchronized (player.pathCells) {
+                                    player.pathCells.put(key2, cell);
+                                }
+                            });
                         };
 
                         player.cells.triggerAll();
