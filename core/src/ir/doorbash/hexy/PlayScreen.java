@@ -29,6 +29,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 import java.util.Map.Entry;
 
 import io.colyseus.Client;
@@ -50,7 +51,7 @@ public class PlayScreen extends ScreenAdapter {
 
     /* *************************************** CONSTANTS *****************************************/
 
-    private static final boolean DEBUG_SHOW_GHOST = false;
+    private static final boolean DEBUG_SHOW_GHOST = true;
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
@@ -60,13 +61,14 @@ public class PlayScreen extends ScreenAdapter {
     private static final int CONTROLLER_TYPE_MOUSE = 1;
     private static final int CONTROLLER_TYPE_PAD = 2;
     private static final int CONTROLLER_TYPE_ON_SCREEN = 3;
-    private static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
+    private static final int CORRECT_PLAYER_POSITION_INTERVAL = 200;
     private static final int SEND_DIRECTION_INTERVAL = 200;
     private static final int SEND_PING_INTERVAL = 5000;
     private static final int PAD_CONTROLLER_MAX_LENGTH = 42;
     private static final int LEADERBOARD_NUM = 10;
     private static final int SCREEN_WIDTH_PORTRAIT = 480;
     private static final int SCREEN_WIDTH_LANDSCAPE = 800;
+
     //    private static final int PATH_CELLS_UPDATE_TIME = 500;
     //    private static final int CELL_GRID_WIDTH = 2 * MAP_SIZE + 10;
     //    private static final int CELL_GRID_HEIGHT = 2 * MAP_SIZE + 10;
@@ -90,18 +92,28 @@ public class PlayScreen extends ScreenAdapter {
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
     private static final float LEADERBORAD_CHANGE_SPEED = 100;
     private static final float PLAYER_ROTATE_SPEED = 2;
-    private static final float HIGH_LERP_TIME = 2; // seconds
+    //    private static final float HIGH_LERP_TIME = 2; // seconds
+    private static final float ROPE_WIDTH = 20;
 
-//    private static final String ENDPOINT = "ws://192.168.1.101:3334";
-        public static final String ENDPOINT = "ws://46.21.147.7:3334";
-//        public static final String ENDPOINT = "ws://127.0.0.1:3334";
+    private static final String TAG = "PlayScreen";
+
+    //    private static final String ENDPOINT = "ws://192.168.1.101:3334";
+    public static final String ENDPOINT = "ws://46.21.147.7:3334";
+//    public static final String ENDPOINT = "ws://127.0.0.1:3334";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
-    private static final String PATH_PACK_ATLAS = "pack.atlas";
-    private static final String PATH_TRAIL_TEXTURE = "traine.png";
-    private static final String PATH_LOADING_SPRITESHEET = "loading2.png";
-    private static final String PATH_SOUND_CAPTURE = "sounds/capture.wav";
+
+    private static final String PATH_PACK_ATLAS = "gfx/pack.atlas";
+    private static final String PATH_TRAIL_TEXTURE = "gfx/traine5.png";
+    private static final String PATH_LOADING_SPRITESHEET = "gfx/loading2.png";
+
+            private static final String PATH_SOUND_CAPTURE = "sfx/capture1.wav";
+//    private static final String PATH_SOUND_CAPTURE = "sfx/capture2.mp3";
+    private static final String PATH_SOUND_CLICK = "sfx/click2.wav";
+    private static final String PATH_SOUND_BOOST = "sfx/boost1.wav";
+    private static final String PATH_SOUND_HIT = "sfx/hit1.wav";
+    private static final String PATH_SOUND_DEATH = "sfx/lose1.wav";
 
     private static final String TEXTURE_REGION_HEX_WHITE = "hex_white";
     private static final String TEXTURE_REGION_THUMBSTICK_BG = "thumbstick-background";
@@ -121,6 +133,7 @@ public class PlayScreen extends ScreenAdapter {
     private OrthographicCamera gameCamera;
     private OrthographicCamera fixedCamera;
     private OrthographicCamera guiCamera;
+    private Texture trailTexture;
     private TextureAtlas gameAtlas;
     private TextureAtlas.AtlasRegion whiteHex;
     private FrameBuffer fbo;
@@ -143,7 +156,12 @@ public class PlayScreen extends ScreenAdapter {
     private GlyphLayout yourProgressBestText;
     private GlyphLayout connectingText;
     private LoadingAnimation loadingAnimation;
+
     private Sound captureSound;
+    private Sound clickSound;
+    private Sound hitSound;
+    private Sound boostSound;
+    private Sound deathSound;
 
     /* **************************************** FIELDS *******************************************/
 
@@ -196,6 +214,7 @@ public class PlayScreen extends ScreenAdapter {
     private Client client;
     private Room<MyState> room;
     private final ArFont arFont = new ArFont();
+    private LinkedList<Runnable> todoList = new LinkedList<>();
 
     //    private final Cell[][] cellGrid = new Cell[CELL_GRID_WIDTH][];
     //    private final Cell[][] pathCellGrid = new Cell[CELL_GRID_WIDTH][];
@@ -223,14 +242,19 @@ public class PlayScreen extends ScreenAdapter {
         fixedCamera = new OrthographicCamera();
         guiCamera = new OrthographicCamera();
 
+
+        boostSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_BOOST));
+        clickSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CLICK));
+        deathSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_DEATH));
+        hitSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_HIT));
         captureSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CAPTURE));
 
         init(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
         updateGuiValues();
-//        trailTexture = new Texture(Gdx.files.internal(PATH_TRAIL_TEXTURE), true);
-//        trailTexture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
-//        trailTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
+        trailTexture = new Texture(Gdx.files.internal(PATH_TRAIL_TEXTURE), true);
+        trailTexture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
+        trailTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
         initFonts();
 
         timeText = new GlyphLayout(timeFont, "99:99");
@@ -375,6 +399,10 @@ public class PlayScreen extends ScreenAdapter {
         if (freetypeGeneratorArial != null) freetypeGeneratorArial.dispose();
         if (loadingAnimation != null) loadingAnimation.dispose();
         if (captureSound != null) captureSound.dispose();
+        if (boostSound != null) boostSound.dispose();
+        if (hitSound != null) hitSound.dispose();
+        if (deathSound != null) deathSound.dispose();
+        if (clickSound != null) clickSound.dispose();
     }
 
     /* ***************************************** INIT *******************************************/
@@ -944,7 +972,7 @@ public class PlayScreen extends ScreenAdapter {
 //        float percentage = cm.numCells / (float) TOTAL_CELLS;
 //        System.out.println("percentage = " + percentage);
 //        camera.zoom = Math.min(CAMERA_INIT_ZOOM + 2f * percentage, 1.7f);
-        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 1.7f);
+        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 1.5f);
     }
 
     // TODO: we need to improve this a little bit
@@ -956,49 +984,61 @@ public class PlayScreen extends ScreenAdapter {
 
         float lerp = calculateLerp(player);
 
-//        float d = dst > 75 ? dst : dst > 25 ? 5f : Math.min(dst, 1.25f);
-//        if (player.clientId.equals(client.getId())) {
-//            System.out.println("sqrt is " + dst);
-        // System.out.println("lerp is " + lerp);
-//        }
+//                    float d = dst > 75 ? dst : dst > 25 ? 5f : Math.min(dst, 1.25f);
 
         if (lerp > 0) {
+            if (player.clientId.equals(client.getId())) {
+                System.out.println("lerp is " + lerp);
+            }
             player.bc.setCenterX(MathUtils.lerp(player.bc.getX() + player.bc.getWidth() / 2f, player.x, lerp));
             player.bc.setCenterY(MathUtils.lerp(player.bc.getY() + player.bc.getHeight() / 2f, player.y, lerp));
             player.c.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
             if (player.indic != null) {
                 player.indic.setCenter(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f);
             }
+            if (lerp > 0.5f) {
+                player._angle = player.angle;
+            }
         }
     }
 
     private float calculateLerp(Player player) {
-        if (connectTime > HIGH_LERP_TIME) {
-            // normal
-            float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
-            if (dst > 5625) {
-                return 1;
-            } else if (dst > 625) {
-                return 100f / dst;
-            } else if (dst > 60) {
-                return 10 / dst;
-            } else {
-                // if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
-                return 0;
-            }
-        } else {
-            // high lerp time
-            float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
-            if (dst > 5625) {
-                return 1;
-            } else if (dst > 625) {
-                return 0.8f;
-            } else if (dst > 60) {
-                return 0.5f;
-            } else {
-                return 0.3f;
-            }
+//        if (connectTime > HIGH_LERP_TIME) {
+//            // normal
+//            float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
+//            if (dst > 5625) {
+//                return 1;
+//            } else if (dst > 625) {
+//                return 100f / dst;
+//            } else if (dst > 60) {
+//                return 10 / dst;
+//            } else {
+//                if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
+//                return 0;
+//            }
+//        } else {
+        // high lerp time
+
+        float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
+//        if (dst > 5625) { // > 75
+//            return 1;
+//        } else if (dst > 625) { // > 25
+//            return 0.4f;
+//        } else if (dst > 25) { // > 5
+//            return 0.1f;
+//        } else {
+//            if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
+////                return 0.3f;
+//            return 0;
+//        }
+
+        float l = 1 + (dst - 5625) / 6222f;
+        if (l > 1) return 1;
+        if (l < 0.1f) {
+            if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
+            return 0;
         }
+        return l;
     }
 
     private Vector2 getHexPosition(int x, int y) {
@@ -1100,9 +1140,12 @@ public class PlayScreen extends ScreenAdapter {
                             System.out.println("time diff: " + timeDiff);
                         } else if (data.get("op").equals("cp")) {
                             String clientId = (String) data.get("player");
+                            int num = (int) data.get("num");
                             clearPlayerPath(clientId);
                             if (clientId.equals(client.getId())) {
-                                captureSound.play();
+                                if (num > 4)
+                                    Gdx.app.postRunnable(() -> captureSound.play(0.5f));
+                                Gdx.app.log(TAG, "+" + num + " blocks");
                             }
                         } else if (data.get("op").equals("pg")) {
                             long t = (long) data.get("t");
@@ -1116,9 +1159,13 @@ public class PlayScreen extends ScreenAdapter {
                             } else currentPing = 0;
                         } else if (data.get("op").equals("dt")) {
                             // dead
+                            Gdx.app.postRunnable(() -> deathSound.play());
                             System.out.println("YOU ARE DEAD!");
                             connectionState = CONNECTION_STATE_CLOSED;
                             // TODO: show death dialog
+                        } else if (data.get("op").equals("ht")) {
+                            // dead
+                            Gdx.app.postRunnable(() -> hitSound.play());
                         }
                     }
 
@@ -1201,9 +1248,9 @@ public class PlayScreen extends ScreenAdapter {
                                             gameCamera.position.y = player.y;
                                         }
 
-                                        player.trailGraphic = new TrailGraphic();
+                                        player.trailGraphic = new TrailGraphic(trailTexture);
                                         player.trailGraphic.setTint(bcColor);
-                                        player.trailGraphic.setRopeWidth(20);
+                                        player.trailGraphic.setRopeWidth(ROPE_WIDTH);
                                         player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
 
                                         for (int key = 0; key < player.path.count(); key++) {
@@ -1340,9 +1387,9 @@ public class PlayScreen extends ScreenAdapter {
                                     gameCamera.position.y = player.y;
                                 }
 
-                                player.trailGraphic = new TrailGraphic();
+                                player.trailGraphic = new TrailGraphic(trailTexture);
                                 player.trailGraphic.setTint(bcColor);
-                                player.trailGraphic.setRopeWidth(20);
+                                player.trailGraphic.setRopeWidth(ROPE_WIDTH);
                                 player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
 
                                 registerPlayerCallbacks(player);
@@ -1418,6 +1465,7 @@ public class PlayScreen extends ScreenAdapter {
                     void registerPlayerCallbacks(Player player) {
                         player.path.onAdd = (point, key2) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                            if (player.trailGraphic == null) return;
                             Gdx.app.postRunnable(() -> {
                                 if (key2 > 1) {
                                     Point lastPoint = player.path.get(key2 - 1);
