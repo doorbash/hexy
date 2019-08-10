@@ -54,7 +54,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
     private static final int MAP_SIZE = 20;
-    private static final int EXTENDED_CELLS = 3;
+    private static final int EXTENDED_CELLS = 4;
     private static final int TOTAL_CELLS = (2 * MAP_SIZE + 1) * (2 * MAP_SIZE + 1);
     private static final int CONTROLLER_TYPE_MOUSE = 1;
     private static final int CONTROLLER_TYPE_PAD = 2;
@@ -97,8 +97,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TAG = "PlayScreen";
 
     //    private static final String ENDPOINT = "ws://192.168.1.101:3334";
-    public static final String ENDPOINT = "ws://46.21.147.7:3334";
-//    public static final String ENDPOINT = "ws://127.0.0.1:3334";
+//    public static final String ENDPOINT = "ws://46.21.147.7:3334";
+    public static final String ENDPOINT = "ws://127.0.0.1:3334";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
@@ -122,7 +122,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TEXTURE_REGION_PROGRESSBAR = "progressbar";
 
     private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3, 2, 3, 0.5f);
-    private static final Color COLOR_TIME_TEXT_BACKGROUND = Color.valueOf("#707070cc");
+    private static final Color COLOR_TIME_TEXT_BACKGROUND = new Color(0x707070cc);
+    private static final Color COLOR_KILLS_TEXT_BACKGROUND = new Color(0x707070aa);
     private static final Color COLOR_YOUR_BEST_PROGRESS_TEXT = new Color(0x707070cc);
     private static final Color COLOR_YOUR_PROGRESS_BG = new Color(0x70707088);
     private static final Color CONNECTING_TEXT_COLOR = Color.valueOf("#212121ff");
@@ -140,6 +141,7 @@ public class PlayScreen extends ScreenAdapter {
     private Sprite thumbstickBgSprite;
     private Sprite thumbstickPadSprite;
     private Sprite timeBg;
+    private Sprite killsBg;
     private Sprite youWillRspwnBg;
     private Sprite playerProgressBar;
     private Sprite playerProgressBarBest;
@@ -148,6 +150,7 @@ public class PlayScreen extends ScreenAdapter {
     private BitmapFont logFont;
     private BitmapFont usernameFont;
     private BitmapFont leaderboardFont;
+    private BitmapFont statsFont;
     private BitmapFont timeFont;
     private GlyphLayout timeText;
     private GlyphLayout youWillRspwnText;
@@ -230,9 +233,11 @@ public class PlayScreen extends ScreenAdapter {
         thumbstickPadSprite = gameAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_PAD);
         thumbstickPadSprite.setSize(70, 70);
         timeBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        killsBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         youWillRspwnBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         youWillRspwnBg.setColor(COLOR_TIME_TEXT_BACKGROUND);
         timeBg.setColor(COLOR_TIME_TEXT_BACKGROUND);
+        killsBg.setColor(COLOR_KILLS_TEXT_BACKGROUND);
         playerProgressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest.setColor(COLOR_YOUR_PROGRESS_BG);
@@ -351,6 +356,7 @@ public class PlayScreen extends ScreenAdapter {
         if (connectionState == CONNECTION_STATE_CONNECTING || connectionState == CONNECTION_STATE_DISCONNECTED) {
             drawConnecting(dt);
         } else {
+//            drawKills();
             drawPing();
             connectTime += dt;
         }
@@ -409,6 +415,7 @@ public class PlayScreen extends ScreenAdapter {
         if (logFont != null) logFont.dispose();
         if (usernameFont != null) usernameFont.dispose();
         if (leaderboardFont != null) leaderboardFont.dispose();
+        if (statsFont != null) statsFont.dispose();
         if (timeFont != null) timeFont.dispose();
         if (freetypeGeneratorNoto != null) freetypeGeneratorNoto.dispose();
         if (freetypeGeneratorArial != null) freetypeGeneratorArial.dispose();
@@ -451,6 +458,15 @@ public class PlayScreen extends ScreenAdapter {
         leaderboardFontParams.incremental = true;
         leaderboardFontParams.minFilter = leaderboardFontParams.magFilter = Texture.TextureFilter.Linear;
         leaderboardFont = freetypeGeneratorArial.generateFont(leaderboardFontParams);
+
+        FreeTypeFontGenerator.FreeTypeFontParameter statsFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
+        statsFontParams.characters += ArUtils.getAllChars().toString("");
+        statsFontParams.size = 16 * Gdx.graphics.getWidth() / screenWidth;
+        statsFontParams.color = new Color(1f, 1f, 1f, 1.0f);
+        statsFontParams.flip = false;
+        statsFontParams.incremental = true;
+        statsFontParams.minFilter = statsFontParams.magFilter = Texture.TextureFilter.Linear;
+        statsFont = freetypeGeneratorArial.generateFont(statsFontParams);
 
         FreeTypeFontGenerator.FreeTypeFontParameter usernameFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
         usernameFontParams.characters += ArUtils.getAllChars().toString("");
@@ -814,6 +830,20 @@ public class PlayScreen extends ScreenAdapter {
         timeFont.draw(batch, minutesText + ":" + secondsText, x, y);
     }
 
+    private void drawKills() {
+        if (currentPlayer == null) return;
+        ColorMeta colorMeta = room.state.colorMeta.get(currentPlayer.color + "");
+        if(colorMeta == null) return;
+        float x = -Gdx.graphics.getWidth() / 2f;
+        float y = Gdx.graphics.getHeight() / 2f - 120 * guiUnits;
+        killsBg.setSize(120 * guiUnits, 50 * guiUnits);
+        killsBg.setPosition(x, y);
+        killsBg.draw(batch);
+        statsFont.setColor(Color.WHITE);
+        statsFont.draw(batch, "Blocks : " + colorMeta.numCells, x + 4 * guiUnits, y + killsBg.getHeight() - 8 * guiUnits);
+        statsFont.draw(batch, "Kills : " +  currentPlayer.kills, x + 4 * guiUnits, y + killsBg.getHeight() - 1 * statsFont.getLineHeight() - 8 * guiUnits);
+    }
+
     private void drawYouWillRespawnText() {
 //        Player player = room.state.players.get(client.getId());
         if (currentPlayer == null || currentPlayer.status != 1) return;
@@ -841,10 +871,10 @@ public class PlayScreen extends ScreenAdapter {
         if (player != null && player.trailGraphic != null) {
             Gdx.app.postRunnable(() -> {
                 player.trailGraphic.truncateAt(0);
+                synchronized (player.pathCells) {
+                    player.pathCells.clear();
+                }
             });
-            synchronized (player.pathCells) {
-                player.pathCells.clear();
-            }
         }
     }
 
@@ -1166,8 +1196,8 @@ public class PlayScreen extends ScreenAdapter {
                         } else if (data.get("op").equals("dt")) {
                             // dead
                             connectionState = CONNECTION_STATE_CLOSED;
-                            double x = (double) data.get("x");
-                            double y = (double) data.get("y");
+                            double x = Double.valueOf(data.get("x") + "");
+                            double y = Double.valueOf(data.get("y") + "");
                             deathPosition.set((float) x, (float) y);
                             Gdx.app.postRunnable(() -> {
                                 deathSound.play();
