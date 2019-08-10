@@ -58,6 +58,9 @@ public class Player extends Schema {
 	@SchemaField("11/uint16")
 	public int speed = 0;
 
+	@SchemaField("12/uint16")
+	public int kills = 0;
+
 //    @SchemaField("12/boolean")
 //    public boolean home = false;
 
