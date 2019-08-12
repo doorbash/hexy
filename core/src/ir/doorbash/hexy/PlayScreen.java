@@ -53,7 +53,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
-    private static final int MAP_SIZE = 20;
+    private static final int MAP_SIZE = 50;
     private static final int EXTENDED_CELLS = 4;
     private static final int TOTAL_CELLS = (2 * MAP_SIZE + 1) * (2 * MAP_SIZE + 1);
     private static final int CONTROLLER_TYPE_MOUSE = 1;
@@ -63,7 +63,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final int SEND_DIRECTION_INTERVAL = 200;
     private static final int SEND_PING_INTERVAL = 5000;
     private static final int PAD_CONTROLLER_MAX_LENGTH = 42;
-    private static final int LEADERBOARD_NUM = 10;
+    private static final int LEADERBOARD_NUM = 20;
     private static final int SCREEN_WIDTH_PORTRAIT = 480;
     private static final int SCREEN_WIDTH_LANDSCAPE = 800;
 
@@ -96,9 +96,9 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-    //    private static final String ENDPOINT = "ws://192.168.1.101:3334";
+    private static final String ENDPOINT = "ws://192.168.1.134:3334";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3334";
-    public static final String ENDPOINT = "ws://127.0.0.1:3334";
+//    public static final String ENDPOINT = "ws://127.0.0.1:3334";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
@@ -339,7 +339,7 @@ public class PlayScreen extends ScreenAdapter {
             thumbstickPadSprite.draw(batch);
         }
 
-//        if(room != null) drawCurrentPlayerName();
+//        if(room != null) drawCurrentPlayerName(); // zoom o chikar konim nmishe
 
         batch.setProjectionMatrix(guiCamera.combined);
 
@@ -721,6 +721,8 @@ public class PlayScreen extends ScreenAdapter {
     private void drawLeaderboard(float dt) {
         synchronized (colorMetas) {
 
+//            System.out.println(colorMetas);
+
             Collections.sort(colorMetas, COLOR_META_COMP);
 
             if (leaderboardDrawAgain) {
@@ -833,7 +835,7 @@ public class PlayScreen extends ScreenAdapter {
     private void drawKills() {
         if (currentPlayer == null) return;
         ColorMeta colorMeta = room.state.colorMeta.get(currentPlayer.color + "");
-        if(colorMeta == null) return;
+        if (colorMeta == null) return;
         float x = -Gdx.graphics.getWidth() / 2f;
         float y = Gdx.graphics.getHeight() / 2f - 120 * guiUnits;
         killsBg.setSize(120 * guiUnits, 50 * guiUnits);
@@ -841,7 +843,7 @@ public class PlayScreen extends ScreenAdapter {
         killsBg.draw(batch);
         statsFont.setColor(Color.WHITE);
         statsFont.draw(batch, "Blocks : " + colorMeta.numCells, x + 4 * guiUnits, y + killsBg.getHeight() - 8 * guiUnits);
-        statsFont.draw(batch, "Kills : " +  currentPlayer.kills, x + 4 * guiUnits, y + killsBg.getHeight() - 1 * statsFont.getLineHeight() - 8 * guiUnits);
+        statsFont.draw(batch, "Kills : " + currentPlayer.kills, x + 4 * guiUnits, y + killsBg.getHeight() - 1 * statsFont.getLineHeight() - 8 * guiUnits);
     }
 
     private void drawYouWillRespawnText() {
@@ -1447,6 +1449,7 @@ public class PlayScreen extends ScreenAdapter {
                         };
                         room.state.players.onRemove = (player, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                            if (player.color == 0) return;
                             System.out.println("player removed, color: " + player.color);
                             clearPlayerPath(player.clientId);
                             playersByColor[player.color - 1] = null;
@@ -1499,8 +1502,12 @@ public class PlayScreen extends ScreenAdapter {
                                 colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
                                 colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
                                 synchronized (colorMetas) {
+                                    System.out.println("new color meta to add: color=" + colorMeta.color);
                                     if (!colorMetas.contains(colorMeta)) {
                                         colorMetas.add(colorMeta);
+                                        System.out.println("added color meta to colorMetas: color=" + colorMeta.color);
+                                    } else {
+                                        System.out.println("XXX not gonna add color meta to colorMetas: color=" + colorMeta.color);
                                     }
                                 }
                             });
