@@ -7,7 +7,7 @@ public class HexyGame extends Game {
 
     private static final boolean SHOW_SPLASH = false;
 
-    private SplashScreen splashScreen;
+//    private SplashScreen splashScreen;
     private PlayScreen playScreen;
 
     @Override
@@ -15,19 +15,19 @@ public class HexyGame extends Game {
         TrailGraphic.init();
         Bar.init();
 
-        splashScreen = new SplashScreen();
+//        splashScreen = new SplashScreen();
         playScreen = new PlayScreen();
         if (SHOW_SPLASH) {
-            new Thread(() -> {
-                Gdx.app.postRunnable(() -> setScreen(splashScreen));
-                try {
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } finally {
-                    Gdx.app.postRunnable(() -> setScreen(playScreen));
-                }
-            }).start();
+//            new Thread(() -> {
+//                Gdx.app.postRunnable(() -> setScreen(splashScreen));
+//                try {
+//                    Thread.sleep(2000);
+//                } catch (InterruptedException e) {
+//                    e.printStackTrace();
+//                } finally {
+//                    Gdx.app.postRunnable(() -> setScreen(playScreen));
+//                }
+//            }).start();
         } else {
             setScreen(playScreen);
         }
