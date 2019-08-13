@@ -24,7 +24,7 @@ public class ColorMeta extends Schema {
     @SchemaField("1/uint16")
     public int numCells = 0;
 
-    @SchemaField("2/uint8")
+//    @SchemaField("2/uint8")
     public short position = 0;
 
     @Override
