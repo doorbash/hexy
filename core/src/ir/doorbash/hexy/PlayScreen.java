@@ -29,6 +29,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import io.colyseus.Client;
 import io.colyseus.Room;
@@ -96,8 +98,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-    private static final String ENDPOINT = "ws://192.168.1.134:3334";
-//    public static final String ENDPOINT = "ws://46.21.147.7:3334";
+//        private static final String ENDPOINT = "ws://192.168.1.134:3334";
+    public static final String ENDPOINT = "ws://46.21.147.7:3334";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3334";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
@@ -200,7 +202,7 @@ public class PlayScreen extends ScreenAdapter {
     private float yourProgressbarWidth;
     private float playerBestProgress = 0.448f;
     private float time;
-    private float connectTime; // time past since the last time we were connected
+//    private float connectTime; // time past since the last time we were connected
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final ArrayList<Player> players = new ArrayList<>();
@@ -358,7 +360,7 @@ public class PlayScreen extends ScreenAdapter {
         } else {
 //            drawKills();
             drawPing();
-            connectTime += dt;
+//            connectTime += dt;
         }
 
         batch.end();
@@ -1140,7 +1142,7 @@ public class PlayScreen extends ScreenAdapter {
     private void connectToServer() {
         System.out.println("ConnectToServer...");
         connectionState = CONNECTION_STATE_CONNECTING;
-        client = new Client(ENDPOINT, ConfigFile.get("clientId"), null, null, 10000, new Client.Listener() {
+        client = new Client(ENDPOINT, null /*ConfigFile.get("clientId")*/, null, null, 10000, new Client.Listener() {
             @Override
             public void onOpen(String id) {
                 ConfigFile.set("clientId", id);
@@ -1168,8 +1170,8 @@ public class PlayScreen extends ScreenAdapter {
 
                     @Override
                     protected void onMessage(Object message) {
-//                        System.out.println("onMessage()");
-//                        System.out.println(message);
+                        System.out.println("onMessage()");
+                        System.out.println(message);
                         LinkedHashMap<String, Object> data = (LinkedHashMap<String, Object>) message;
                         if (data.get("op").equals("wlc")) {
                             long time = (long) data.get("time");
@@ -1217,17 +1219,20 @@ public class PlayScreen extends ScreenAdapter {
                     protected void onJoin() {
                         System.out.println("joined " + getRoomName());
                         connectionState = CONNECTION_STATE_CONNECTED;
-                        registerCallbacks();
+//                        registerCallbacks();
                     }
 
                     @Override
                     protected void onStateChange(Object state, boolean isFirstState) {
-//                        if (isFirstState) {
-//                            connectionState = CONNECTION_STATE_CONNECTED;
+                        if (isFirstState) {
 //                            connectTime = 0;
-//                            initFirstPatch();
-//                            registerCallbacks();
-                        /*} else if (firstPatch) {
+                            connectionState = CONNECTION_STATE_CONNECTED;
+                            registerCallbacks();
+                            initFirstPatch();
+                            // send ready to play message
+                            message.put("op", "r");
+                            room.send(message);
+                        } /*else if (firstPatch) {
                             firstPatch = false;
                             Gdx.app.postRunnable(() -> {
                                 synchronized (players) {
@@ -1245,155 +1250,155 @@ public class PlayScreen extends ScreenAdapter {
                         }*/
                     }
 
-//                    void initFirstPatch() {
-//                        System.out.println("initFirstPatch...");
-//                        Gdx.app.postRunnable(() -> {
-//                            synchronized (room.state.players.lock) {
-//                                synchronized (players) {
-//                                    players.clear();
-//                                    for (int i = 0; i < playersByColor.length; i++) {
-//                                        playersByColor[i] = null;
-//                                    }
-//                                    for (Entry<String, Player> keyValue : room.state.players.items.entrySet()) {
-//                                        Player player = keyValue.getValue();
-//                                        Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
-//                                        Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
-//
-//                                        player._name = arFont.getText(player.name);
-//                                        player._angle = player.angle;
-//
-//                                        player.text = new GlyphLayout(usernameFont, player._name);
-//
-//                                        player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
-//                                        player.bc.setSize(46, 46);
-//                                        player.bc.setColor(bcColor);
-//                                        player.bc.setCenter(player.x, player.y);
-//
-//                                        player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
-//                                        player.c.setSize(36, 36);
-//                                        player.c.setColor(cColor);
-//                                        player.c.setCenter(player.x, player.y);
-//
-//                                        if (player.clientId.equals(client.getId())) {
-//                                            playerProgressBar.setColor(ColorUtil.c_color_index_to_rgba[player.color - 1]);
-//                                            player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
-//                                            player.indic.setSize(80, 80);
-//                                            player.indic.setColor(bcColor);
-//                                            player.indic.setCenter(player.x, player.y);
-//                                            player.indic.setOriginCenter();
-//                                            player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
-//                                        }
-//
-//                                        player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
-//                                        player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
-//                                        player.bcGhost.setCenter(player.x, player.y);
-//                                        player.bcGhost.setSize(46, 46);
-//
-//                                        if (player.clientId.equals(client.getId())) {
-//                                            gameCamera.position.x = player.x;
-//                                            gameCamera.position.y = player.y;
-//                                        }
-//
-//                                        player.trailGraphic = new TrailGraphic(trailTexture);
-//                                        player.trailGraphic.setTint(bcColor);
-//                                        player.trailGraphic.setRopeWidth(ROPE_WIDTH);
-//                                        player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
-//
-//                                        for (int key = 0; key < player.path.count(); key++) {
-//                                            Point point = player.path.get(key);
-//                                            if (key > 1) {
-//                                                Point lastPoint = player.path.get(key - 1);
-//                                                if (lastPoint != null) {
-//                                                    float dx = point.x - lastPoint.x;
-//                                                    float dy = point.y - lastPoint.y;
-//                                                    player.trailGraphic.setPoint(key * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
-//                                                }
-//                                                player.trailGraphic.setPoint(key * 2, point.x, point.y);
-//                                            } else if (key == 1) {
-//                                                Point lastPoint = player.path.get(0);
-//                                                if (lastPoint != null) {
-//                                                    float dx = point.x - lastPoint.x;
-//                                                    float dy = point.y - lastPoint.y;
-//                                                    player.trailGraphic.setPoint(0, lastPoint.x - dx / 2f, lastPoint.y - dy / 2f);
-//                                                    player.trailGraphic.setPoint(1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
-//                                                }
-//                                                player.trailGraphic.setPoint(2, point.x, point.y);
-//                                            }
-//                                        }
-//
-//                                        for (int key = 0; key < player.cells.count(); key++) {
-//                                            Cell cell = player.cells.get(key);
-//                                            cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-//                                            cell.id.setSize(40, 46);
-//                                            Vector2 pos = getHexPosition(cell.x, cell.y);
-//                                            cell.id.setCenter(pos.x, pos.y);
-//                                            Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
-//                                            cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
-//
-//                                            if (ADD_FAKE_PATH_CELLS) {
-//                                                player.pathCellUpdates.offer(new PathCellUpdate(cell, key, System.currentTimeMillis()));
-//                                            }
-//                                        }
-//
-//                                        registerPlayerCallbacks(player);
-//
-//                                        playersByColor[player.color - 1] = player;
-//
-//                                        if (!players.contains(player))
-//                                            players.add(player);
-//                                    }
-////                                }
-//                                }
-//                                synchronized (room.state.cells.lock) {
-//                                    synchronized (cells) {
-//                                        cells.clear();
-//                                        for (Entry<String, Cell> keyValue : room.state.cells.items.entrySet()) {
-//                                            String key = keyValue.getKey();
-//                                            Cell cell = keyValue.getValue();
-//
-//                                            //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] == null)
-////                                cellGrid[cell.x + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
-////                            cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = cell;
-//
-//                                            cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-//                                            cell.id.setSize(40, 46);
-//                                            Vector2 pos = getHexPosition(cell.x, cell.y);
-//                                            cell.id.setCenter(pos.x, pos.y);
-//                                            cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
-//
-//                                            cell.onChange = changes -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
-//
-//                                            cells.put(key, cell);
-//                                        }
-//                                    }
-//                                }
-//                                synchronized (room.state.colorMeta.lock) {
-//                                    synchronized (colorMetas) {
-//                                        colorMetas.clear();
-//                                        for (Entry<String, ColorMeta> keyValue : room.state.colorMeta.items.entrySet()) {
-//                                            String key = keyValue.getKey();
-//                                            ColorMeta colorMeta = keyValue.getValue();
-//                                            colorMeta._position = colorMetas.size() + 1;
-//                                            colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
-//                                            colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-//                                            colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
-//                                            colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
-//                                            colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
-//                                            if (!colorMetas.contains(colorMeta)) {
-//                                                colorMetas.add(colorMeta);
-//                                            }
-//                                        }
-//                                    }
-//                                }
-//                            }
-//                        });
-//                    }
+                    void initFirstPatch() {
+                        System.out.println("initFirstPatch...");
+                        Gdx.app.postRunnable(() -> {
+                            synchronized (room.state.players.lock) {
+                                synchronized (players) {
+                                    players.clear();
+                                    for (int i = 0; i < playersByColor.length; i++) {
+                                        playersByColor[i] = null;
+                                    }
+                                    for (Entry<String, Player> keyValue : room.state.players.items.entrySet()) {
+                                        Player player = keyValue.getValue();
+                                        Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
+                                        Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
+
+                                        player._name = arFont.getText(player.name);
+                                        player._angle = player.angle;
+
+                                        player.text = new GlyphLayout(usernameFont, player._name);
+
+                                        player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                        player.bc.setSize(46, 46);
+                                        player.bc.setColor(bcColor);
+                                        player.bc.setCenter(player.x, player.y);
+
+                                        player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                        player.c.setSize(36, 36);
+                                        player.c.setColor(cColor);
+                                        player.c.setCenter(player.x, player.y);
+
+                                        if (player.clientId.equals(client.getId())) {
+                                            playerProgressBar.setColor(ColorUtil.c_color_index_to_rgba[player.color - 1]);
+                                            player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
+                                            player.indic.setSize(80, 80);
+                                            player.indic.setColor(bcColor);
+                                            player.indic.setCenter(player.x, player.y);
+                                            player.indic.setOriginCenter();
+                                            player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                                        }
+
+                                        player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                        player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
+                                        player.bcGhost.setCenter(player.x, player.y);
+                                        player.bcGhost.setSize(46, 46);
+
+                                        if (player.clientId.equals(client.getId())) {
+                                            gameCamera.position.x = player.x;
+                                            gameCamera.position.y = player.y;
+                                        }
+
+                                        player.trailGraphic = new TrailGraphic(trailTexture);
+                                        player.trailGraphic.setTint(bcColor);
+                                        player.trailGraphic.setRopeWidth(ROPE_WIDTH);
+                                        player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
+
+                                        for (int key = 0; key < player.path.count(); key++) {
+                                            Point point = player.path.get(key);
+                                            if (key > 1) {
+                                                Point lastPoint = player.path.get(key - 1);
+                                                if (lastPoint != null) {
+                                                    float dx = point.x - lastPoint.x;
+                                                    float dy = point.y - lastPoint.y;
+                                                    player.trailGraphic.setPoint(key * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                                                }
+                                                player.trailGraphic.setPoint(key * 2, point.x, point.y);
+                                            } else if (key == 1) {
+                                                Point lastPoint = player.path.get(0);
+                                                if (lastPoint != null) {
+                                                    float dx = point.x - lastPoint.x;
+                                                    float dy = point.y - lastPoint.y;
+                                                    player.trailGraphic.setPoint(0, lastPoint.x - dx / 2f, lastPoint.y - dy / 2f);
+                                                    player.trailGraphic.setPoint(1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                                                }
+                                                player.trailGraphic.setPoint(2, point.x, point.y);
+                                            }
+                                        }
+
+                                        for (int key = 0; key < player.cells.count(); key++) {
+                                            Cell cell = player.cells.get(key);
+                                            cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                                            cell.id.setSize(40, 46);
+                                            Vector2 pos = getHexPosition(cell.x, cell.y);
+                                            cell.id.setCenter(pos.x, pos.y);
+                                            Color color = ColorUtil.bc_color_index_to_rgba[cell.color - 1];
+                                            cell.id.setColor((1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.r, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.g, (1 - PATH_CELL_ALPHA_TINT) + PATH_CELL_ALPHA_TINT * color.b, 1.0f);
+
+                                            if (ADD_FAKE_PATH_CELLS) {
+                                                player.pathCellUpdates.offer(new PathCellUpdate(cell, key, System.currentTimeMillis()));
+                                            }
+                                        }
+
+                                        registerPlayerCallbacks(player);
+
+                                        playersByColor[player.color - 1] = player;
+
+                                        if (!players.contains(player))
+                                            players.add(player);
+                                    }
+                                }
+                            }
+                            synchronized (room.state.cells.lock) {
+                                synchronized (cells) {
+                                    cells.clear();
+                                    for (Entry<String, Cell> keyValue : room.state.cells.items.entrySet()) {
+                                        String key = keyValue.getKey();
+                                        Cell cell = keyValue.getValue();
+
+                                        //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] == null)
+//                                cellGrid[cell.x + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
+//                            cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = cell;
+
+                                        cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                                        cell.id.setSize(40, 46);
+                                        Vector2 pos = getHexPosition(cell.x, cell.y);
+                                        cell.id.setCenter(pos.x, pos.y);
+                                        cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+
+                                        cell.onChange = changes -> cell.id.setColor(ColorUtil.bc_color_index_to_rgba[cell.color - 1]);
+
+                                        cells.put(key, cell);
+                                    }
+                                }
+                            }
+                            synchronized (room.state.colorMeta.lock) {
+                                synchronized (colorMetas) {
+                                    colorMetas.clear();
+                                    for (Entry<String, ColorMeta> keyValue : room.state.colorMeta.items.entrySet()) {
+                                        String key = keyValue.getKey();
+                                        ColorMeta colorMeta = keyValue.getValue();
+                                        colorMeta._position = colorMetas.size() + 1;
+                                        colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
+                                        colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+                                        colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
+                                        colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
+                                        colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
+                                        if (!colorMetas.contains(colorMeta)) {
+                                            colorMetas.add(colorMeta);
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+
 
                     void registerCallbacks() {
                         room.state.players.onAdd = (player, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             if (player.color == 0) return;
-                            playersByColor[player.color - 1] = player;
+                            if (players.contains(player)) return;
 
                             player._name = arFont.getText(player.name);
                             player._angle = player.angle;
@@ -1442,8 +1447,10 @@ public class PlayScreen extends ScreenAdapter {
                                 registerPlayerCallbacks(player);
 
                                 synchronized (players) {
-                                    if (!players.contains(player))
+                                    if (!players.contains(player)) {
                                         players.add(player);
+                                        playersByColor[player.color - 1] = player;
+                                    }
                                 }
                             });
                         };
@@ -1461,6 +1468,7 @@ public class PlayScreen extends ScreenAdapter {
 
                         room.state.cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                            if(cells.containsKey(key)) return;
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] == null)
 //                                cellGrid[cell.x + CELL_GRID_WIDTH / 2] = new Cell[CELL_GRID_HEIGHT];
 //                            cellGrid[cell.x + CELL_GRID_WIDTH / 2][cell.y + CELL_GRID_HEIGHT / 2] = cell;
@@ -1494,6 +1502,7 @@ public class PlayScreen extends ScreenAdapter {
 
                         room.state.colorMeta.onAdd = (colorMeta, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                            if(colorMetas.contains(colorMeta)) return;
                             Gdx.app.postRunnable(() -> {
                                 colorMeta._position = colorMetas.size() + 1;
                                 colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
