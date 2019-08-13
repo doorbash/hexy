@@ -20,7 +20,6 @@ import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.utils.Timer;
 import com.crowni.gdx.rtllang.support.ArFont;
 import com.crowni.gdx.rtllang.support.ArUtils;
 
@@ -219,10 +218,8 @@ public class PlayScreen extends ScreenAdapter {
     private int sizeY;
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
-    private final ArrayList<Player> players = new ArrayList<>();
-    //    private final HashMap<String, Cell> cells = new HashMap<>();
     private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
-    private final Player[] playersByColor = new Player[100];
+    private final Player[] players = new Player[100];
     private final boolean[] drawList = new boolean[100];
 
     private final Vector2 padAnchorPoint = new Vector2();
@@ -660,15 +657,16 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawTrails() {
-        synchronized (players) {
-            for (Player player : players) {
-                if (player == null) continue;
-                if (!drawList[player.color - 1]) continue;
-                if (player.status == 0 && player.trailGraphic != null) {
-                    player.trailGraphic.render(batch.getProjectionMatrix());
-                }
+//        synchronized (players) {
+        for (int i = 0; i < players.length; i++) {
+            Player player = players[i];
+            if (player == null) continue;
+            if (!drawList[player.color - 1]) continue;
+            if (player.status == 0 && player.trailGraphic != null) {
+                player.trailGraphic.render(batch.getProjectionMatrix());
             }
         }
+//        }
     }
 
     private void drawCells() {
@@ -693,24 +691,25 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPlayers() {
-        synchronized (players) {
-            for (Player player : players) {
-                if (player == null) continue;
-                if (!drawList[player.color - 1]) continue;
-                if (player.status == 0) {
-                    if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
-                    if (player.bc != null) player.bc.draw(batch);
-                    if (player.c != null) player.c.draw(batch);
-                    if (player.bc != null && player.text != null) {
-                        float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
-                        float y = player.bc.getY() + 70;
-                        usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
-                        usernameFont.draw(batch, player._name, x, y);
-                    }
-                    if (player.indic != null) player.indic.draw(batch);
+//        synchronized (players) {
+        for (int i = 0; i < players.length; i++) {
+            Player player = players[i];
+            if (player == null) continue;
+            if (!drawList[player.color - 1]) continue;
+            if (player.status == 0) {
+                if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
+                if (player.bc != null) player.bc.draw(batch);
+                if (player.c != null) player.c.draw(batch);
+                if (player.bc != null && player.text != null) {
+                    float x = player.bc.getX() + player.bc.getWidth() / 2f - player.text.width / 2f;
+                    float y = player.bc.getY() + 70;
+                    usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[player.color - 1]);
+                    usernameFont.draw(batch, player._name, x, y);
                 }
+                if (player.indic != null) player.indic.draw(batch);
             }
         }
+//        }
     }
 
 //    private void drawCurrentPlayerName() {
@@ -827,7 +826,7 @@ public class PlayScreen extends ScreenAdapter {
                     if (!colorMeta.positionIsChanging) continue;
                     if (colorMeta.changeDir == ColorMeta.CHANGE_DIRECTION_UP) continue;
                 }
-                Player player = playersByColor[colorMeta.color - 1];
+                Player player = players[colorMeta.color - 1];
                 if (player == null) {
                     colorMeta.positionIsChanging = false;
                     continue;
@@ -960,11 +959,12 @@ public class PlayScreen extends ScreenAdapter {
     /* ***************************************** LOGIC *******************************************/
 
     private void updatePlayersPositions(float dt) {
-        synchronized (players) {
-            for (Player player : players) {
-                if (player.bc != null) {
+//        synchronized (players) {
+        for (int i = 0; i < players.length; i++) {
+            Player player = players[i];
+            if (player == null || player.bc == null) continue;
 
-                    if (player.status == 0) {
+            if (player.status == 0) {
 
 //                    if (ADD_FAKE_PATH_CELLS) {
 //                        synchronized (player.pathCells) {
@@ -991,54 +991,54 @@ public class PlayScreen extends ScreenAdapter {
 //                        }
 //                    }
 
-                        if (CORRECT_PLAYER_POSITION) {
-                            if (correctPlayerPositionTime < 0) {
-                                correctPlayerPosition(player);
-                                correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
-                            } else correctPlayerPositionTime -= dt * 1000;
-                        }
+                if (CORRECT_PLAYER_POSITION) {
+                    if (correctPlayerPositionTime < 0) {
+                        correctPlayerPosition(player);
+                        correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
+                    } else correctPlayerPositionTime -= dt * 1000;
+                }
 
-                        player._angle += _Math.angleDistance(player._angle, player.new_angle) * PLAYER_ROTATE_SPEED * dt;
+                player._angle += _Math.angleDistance(player._angle, player.new_angle) * PLAYER_ROTATE_SPEED * dt;
 
-                        float x = player.bc.getX() + player.bc.getWidth() / 2f;
-                        float y = player.bc.getY() + player.bc.getHeight() / 2f;
+                float x = player.bc.getX() + player.bc.getWidth() / 2f;
+                float y = player.bc.getY() + player.bc.getHeight() / 2f;
 
-                        float newX = x + MathUtils.cos(player.angle) * player.speed * dt;
-                        float newY = y + MathUtils.sin(player.angle) * player.speed * dt;
+                float newX = x + MathUtils.cos(player.angle) * player.speed * dt;
+                float newY = y + MathUtils.sin(player.angle) * player.speed * dt;
 
-                        if (newX <= MAP_SIZE_X_EXT_PIXEL && newX >= -MAP_SIZE_X_EXT_PIXEL) x = newX;
-                        if (newY <= MAP_SIZE_Y_EXT_PIXEL && newY >= -MAP_SIZE_Y_EXT_PIXEL) y = newY;
+                if (newX <= MAP_SIZE_X_EXT_PIXEL && newX >= -MAP_SIZE_X_EXT_PIXEL) x = newX;
+                if (newY <= MAP_SIZE_Y_EXT_PIXEL && newY >= -MAP_SIZE_Y_EXT_PIXEL) y = newY;
 
-                        player.bc.setCenter(x, y);
+                player.bc.setCenter(x, y);
 
-                        player.c.setCenter(x, y);
+                player.c.setCenter(x, y);
 
-                        if (player.indic != null) {
-                            player.indic.setCenter(x, y);
-                            player.indic.setRotation(player._angle * MathUtils.radiansToDegrees - 90);
-                        }
+                if (player.indic != null) {
+                    player.indic.setCenter(x, y);
+                    player.indic.setRotation(player._angle * MathUtils.radiansToDegrees - 90);
+                }
 
-                        player.bcGhost.setCenter(player.x, player.y);
+                player.bcGhost.setCenter(player.x, player.y);
 
 //                    if (ADD_FAKE_PATH_CELLS) {
 //                        if (room.state.started && !room.state.ended)
 //                            processPlayerPosition(player, x, y);
 //                    }
-                    } else {
-                        float x = player.x;
-                        float y = player.y;
+            } else {
+                float x = player.x;
+                float y = player.y;
 
-                        player.bc.setCenter(x, y);
-                        player.c.setCenter(x, y);
-                        if (player.indic != null) {
-                            player.indic.setCenter(x, y);
-                            player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
-                        }
-                        player.bcGhost.setCenter(player.x, player.y);
-                    }
+                player.bc.setCenter(x, y);
+                player.c.setCenter(x, y);
+                if (player.indic != null) {
+                    player.indic.setCenter(x, y);
+                    player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
                 }
+                player.bcGhost.setCenter(player.x, player.y);
             }
+
         }
+//        }
     }
 
 //    private void processPlayerPosition(Player player, float x, float y) {
@@ -1334,66 +1334,70 @@ public class PlayScreen extends ScreenAdapter {
                         System.out.println("initFirstPatch...");
                         Gdx.app.postRunnable(() -> {
 //                            synchronized (room.state.players.lock) {
-                            synchronized (players) {
-                                players.clear();
-                                for (int i = 0; i < playersByColor.length; i++) {
-                                    playersByColor[i] = null;
-                                }
-                                for (Entry<String, Player> keyValue : room.state.players.items.entrySet()) {
-                                    Player player = keyValue.getValue();
-                                    Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
-                                    Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
-
-                                    player._name = arFont.getText(player.name);
-                                    player._angle = player.angle;
-
-                                    player.text = new GlyphLayout(usernameFont, player._name);
-
-                                    player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                                    player.bc.setSize(BC_SIZE, BC_SIZE);
-                                    player.bc.setColor(bcColor);
-                                    player.bc.setCenter(player.x, player.y);
-
-                                    player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                                    player.c.setSize(C_SIZE, C_SIZE);
-                                    player.c.setColor(cColor);
-                                    player.c.setCenter(player.x, player.y);
-
-                                    if (player.clientId.equals(client.getId())) {
-                                        playerProgressBar.setColor(ColorUtil.c_color_index_to_rgba[player.color - 1]);
-                                        player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
-                                        player.indic.setSize(INDIC_SIZE, INDIC_SIZE);
-                                        player.indic.setColor(bcColor);
-                                        player.indic.setCenter(player.x, player.y);
-                                        player.indic.setOriginCenter();
-                                        player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
-                                    }
-
-                                    player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
-                                    player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
-                                    player.bcGhost.setCenter(player.x, player.y);
-                                    player.bcGhost.setSize(BC_SIZE, BC_SIZE);
-
-                                    if (player.clientId.equals(client.getId())) {
-                                        gameCamera.position.x = player.x;
-                                        gameCamera.position.y = player.y;
-                                    }
-
-                                    player.trailGraphic = new TrailGraphic(trailTexture);
-                                    player.trailGraphic.setTint(bcColor);
-                                    player.trailGraphic.setRopeWidth(ROPE_WIDTH);
-                                    player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
-
-                                    registerPlayerCallbacks(player);
-
-                                    playersByColor[player.color - 1] = player;
-
-                                    if (!players.contains(player)) {
-                                        players.add(player);
-                                        System.out.println("added player " + player.name + ", " + player.color);
-                                    }
-                                }
+//                            synchronized (players) {
+//                                players.clear();
+                            for (int i = 0; i < players.length; i++) {
+                                players[i] = null;
                             }
+                            for (Entry<String, Player> keyValue : room.state.players.items.entrySet()) {
+                                Player player = keyValue.getValue();
+
+                                if (player.color == 0) continue;
+                                if (players[player.color - 1] != null) continue;
+
+                                Color bcColor = ColorUtil.bc_color_index_to_rgba[player.color - 1];
+                                Color cColor = ColorUtil.c_color_index_to_rgba[player.color - 1];
+
+                                player._name = arFont.getText(player.name);
+                                player._angle = player.angle;
+
+                                player.text = new GlyphLayout(usernameFont, player._name);
+
+                                player.bc = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                player.bc.setSize(BC_SIZE, BC_SIZE);
+                                player.bc.setColor(bcColor);
+                                player.bc.setCenter(player.x, player.y);
+
+                                player.c = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                player.c.setSize(C_SIZE, C_SIZE);
+                                player.c.setColor(cColor);
+                                player.c.setCenter(player.x, player.y);
+
+                                if (player.clientId.equals(client.getId())) {
+                                    playerProgressBar.setColor(ColorUtil.c_color_index_to_rgba[player.color - 1]);
+                                    player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
+                                    player.indic.setSize(INDIC_SIZE, INDIC_SIZE);
+                                    player.indic.setColor(bcColor);
+                                    player.indic.setCenter(player.x, player.y);
+                                    player.indic.setOriginCenter();
+                                    player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                                }
+
+                                player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                player.bcGhost.setColor(bcColor.r, bcColor.g, bcColor.b, bcColor.a / 2f);
+                                player.bcGhost.setCenter(player.x, player.y);
+                                player.bcGhost.setSize(BC_SIZE, BC_SIZE);
+
+                                if (player.clientId.equals(client.getId())) {
+                                    gameCamera.position.x = player.x;
+                                    gameCamera.position.y = player.y;
+                                }
+
+                                player.trailGraphic = new TrailGraphic(trailTexture);
+                                player.trailGraphic.setTint(bcColor);
+                                player.trailGraphic.setRopeWidth(ROPE_WIDTH);
+                                player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
+
+                                registerPlayerCallbacks(player);
+
+                                players[player.color - 1] = player;
+
+//                                    if (!players.contains(player)) {
+//                                        players.add(player);
+//                                        System.out.println("added player " + player.name + ", " + player.color);
+//                                    }
+                            }
+//                            }
 //                            }
 //                            synchronized (room.state.cells.lock) {
                             synchronized (cells) {
@@ -1451,7 +1455,8 @@ public class PlayScreen extends ScreenAdapter {
                         room.state.players.onAdd = (player, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             if (player.color == 0) return;
-                            if (players.contains(player)) return;
+//                            if (players.contains(player)) return;
+                            if (players[player.color - 1] != null) return;
 
                             player._name = arFont.getText(player.name);
                             player._angle = player.angle;
@@ -1499,13 +1504,15 @@ public class PlayScreen extends ScreenAdapter {
 
                                 registerPlayerCallbacks(player);
 
-                                synchronized (players) {
-                                    if (!players.contains(player)) {
-                                        players.add(player);
-                                        playersByColor[player.color - 1] = player;
-                                        System.out.println("callback: added player " + player.name + ", " + player.color);
-                                    }
-                                }
+//                                synchronized (players) {
+//                                    if (!players.contains(player)) {
+//                                        players.add(player);
+//
+//                                        System.out.println("callback: added player " + player.name + ", " + player.color);
+//                                    }
+//                                }
+
+                                players[player.color - 1] = player;
                             });
                         };
                         room.state.players.onRemove = (player, key) -> {
@@ -1513,11 +1520,11 @@ public class PlayScreen extends ScreenAdapter {
                             if (player.color == 0) return;
                             System.out.println("player removed, color: " + player.color);
                             clearPlayerPath(player.clientId);
-                            playersByColor[player.color - 1] = null;
+                            players[player.color - 1] = null;
 
-                            synchronized (players) {
-                                players.remove(player);
-                            }
+//                            synchronized (players) {
+//                                players.remove(player);
+//                            }
                         };
 
                         room.state.cells.onAdd = (cell, key) -> {
