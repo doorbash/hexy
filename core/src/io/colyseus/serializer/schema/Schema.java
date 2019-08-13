@@ -78,7 +78,7 @@ public class Schema {
 
     public static class ArraySchema<T> implements ISchemaCollection<Integer, T> {
 
-        public final Object lock = new Object();
+//        public final Object lock = new Object();
 
         public interface onAddListener<T> {
             public void onAdd(T value, int key);
@@ -193,7 +193,7 @@ public class Schema {
 
     public static class MapSchema<T> implements ISchemaCollection<String, T> {
 
-        public final Object lock = new Object();
+//        public final Object lock = new Object();
 
         public interface onAddListener<T> {
             public void onAdd(T value, String key);
@@ -376,7 +376,7 @@ public class Schema {
                     ArraySchema valueRef = (ArraySchema) thiz(field);
                     ArraySchema currentValue = (ArraySchema) valueRef._clone();
 
-                    synchronized (valueRef.lock) {
+//                    synchronized (valueRef.lock) {
 
                         int newLength = (int) decode.decodeNumber(bytes, it);
                         int numChanges = Math.min((int) decode.decodeNumber(bytes, it), newLength);
@@ -451,13 +451,13 @@ public class Schema {
                             ((ArrayList) change).add(currentValue.get(newIndex));
                         }
                         value = currentValue;
-                    }
+//                    }
                     break;
                 }
                 case "map": {
                     MapSchema valueRef = (MapSchema) thiz(field);
                     MapSchema currentValue = (MapSchema) valueRef._clone();
-                    synchronized (valueRef.lock) {
+//                    synchronized (valueRef.lock) {
                         int length = (int) decode.decodeNumber(bytes, it);
                         hasChange = (length > 0);
 
@@ -527,7 +527,7 @@ public class Schema {
                             }
                         }
                         value = currentValue;
-                    }
+//                    }
                     break;
                 }
                 default:
@@ -645,4 +645,7 @@ public class Schema {
         public static final byte TYPE_ID = (byte) 213;
     }
 
+    public Schema _clone() {
+        return this;
+    }
 }
