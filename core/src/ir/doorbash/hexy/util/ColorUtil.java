@@ -8,13 +8,13 @@ import com.badlogic.gdx.graphics.Color;
 public class ColorUtil {
 
     public static final Color[] bc_color_index_to_rgba = new Color[]{
-            new Color(0x2196f3ff),
-            new Color(0x795548ff),
-            new Color(0x4caf50ff),
-            new Color(0xff9800ff),
-            new Color(0x9c27b0ff),
-            new Color(0xf44336ff),
-            new Color(0x3f51b5ff),
+            new Color(0x2196f3ff), // blue
+            new Color(0x795548ff), // brown
+            new Color(0x4caf50ff), // green
+            new Color(0xff9800ff), // orange
+            new Color(0x9c27b0ff), // purple
+            new Color(0xf44336ff), // red
+            new Color(0x3f51b5ff), // indigo
 
             new Color(0xc4c340ff),
             new Color(0x9e2e2eff),
