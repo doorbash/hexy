@@ -219,8 +219,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
-    private final Player[] players = new Player[100];
-    private final boolean[] drawList = new boolean[100];
+    private final Player[] players = new Player[50];
+    private final boolean[] drawList = new boolean[50];
 
     private final Vector2 padAnchorPoint = new Vector2();
     private final Vector2 padVector = new Vector2();
@@ -398,13 +398,6 @@ public class PlayScreen extends ScreenAdapter {
         } else sendPingTime -= dt * 1000;
 
         checkConnection();
-//
-//        synchronized (todo) {
-//            while (!todo.isEmpty()) {
-//                Runnable runnable = todo.pop();
-//                if (runnable != null) runnable.run();
-//            }
-//        }
     }
 
     @Override
@@ -630,19 +623,6 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPaths() {
-//        synchronized (players) {
-//            for (Player player : players) {
-//                if (player != null && player.status == 0) {
-//                    synchronized (player.pathCells) {
-//                        for (Cell cell : player.pathCells.values()) {
-//                            if (cell != null && cell.id != null) {
-//                                cell.id.draw(batch);
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-//        }
         for (int x = leftXi; x <= leftXi + sizeX; x++) {
             if (x < -MAP_SIZE || x > MAP_SIZE) continue;
             for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
@@ -657,26 +637,16 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawTrails() {
-//        synchronized (players) {
-        for (int i = 0; i < players.length; i++) {
-            Player player = players[i];
+        for (Player player : players) {
             if (player == null) continue;
             if (!drawList[player.color - 1]) continue;
             if (player.status == 0 && player.trailGraphic != null) {
                 player.trailGraphic.render(batch.getProjectionMatrix());
             }
         }
-//        }
     }
 
     private void drawCells() {
-//        synchronized (cells) {
-//            for (Cell cell : cells.values()) {
-//                if (cell != null && cell.id != null) {
-//                    cell.id.draw(batch);
-//                }
-//            }
-//        }
         for (int x = leftXi; x <= leftXi + sizeX; x++) {
             if (x < -MAP_SIZE || x > MAP_SIZE) continue;
             for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
@@ -691,9 +661,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPlayers() {
-//        synchronized (players) {
-        for (int i = 0; i < players.length; i++) {
-            Player player = players[i];
+        for (Player player : players) {
             if (player == null) continue;
             if (!drawList[player.color - 1]) continue;
             if (player.status == 0) {
@@ -709,17 +677,7 @@ public class PlayScreen extends ScreenAdapter {
                 if (player.indic != null) player.indic.draw(batch);
             }
         }
-//        }
     }
-
-//    private void drawCurrentPlayerName() {
-//        Player currentPlayer = room.state.players.get(client.getId());
-//        if(currentPlayer == null || currentPlayer.text == null) return;
-//        float x = -currentPlayer.text.width / 2f;
-//        float y = 60;
-//        usernameFont.setColor(ColorUtil.bc_color_index_to_rgba[currentPlayer.color - 1]);
-//        usernameFont.draw(batch, currentPlayer._name, x, y);
-//    }
 
     private void drawProgressbar(ColorMeta colorMeta, String name, float dt, boolean drawStatic) {
         DecimalFormat decimalFormat = new DecimalFormat("#0.0");
@@ -1296,22 +1254,25 @@ public class PlayScreen extends ScreenAdapter {
                     @Override
                     protected void onJoin() {
                         System.out.println("joined " + getRoomName());
-//                        connectionState = CONNECTION_STATE_CONNECTED;
-//                        registerCallbacks();
+                        connectionState = CONNECTION_STATE_CONNECTED;
+                        registerCallbacks();
+                        message.put("op", "r");
+                        room.send(message);
+                        isUpdating =false;
                     }
 
                     @Override
                     protected void onStateChange(Schema state, boolean isFirstState) {
                         if (isFirstState) {
 //                            connectTime = 0;
-                            connectionState = CONNECTION_STATE_CONNECTED;
-                            isUpdating = true;
-                            initFirstPatch();
-                            registerCallbacks();
-                            // send ready to play message
-                            message.put("op", "r");
-                            room.send(message);
-                            isUpdating = false;
+//                            connectionState = CONNECTION_STATE_CONNECTED;
+//                            isUpdating = true;
+////                            initFirstPatch();
+//                            registerCallbacks();
+//                            // send ready to play message
+//                            message.put("op", "r");
+//                            room.send(message);
+//                            isUpdating = false;
                         } /*else if (firstPatch) {
                             firstPatch = false;
                             Gdx.app.postRunnable(() -> {
