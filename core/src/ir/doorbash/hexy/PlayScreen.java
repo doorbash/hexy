@@ -2,6 +2,7 @@ package ir.doorbash.hexy;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputProcessor;
+import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
@@ -40,7 +41,6 @@ import ir.doorbash.hexy.model.MyState;
 import ir.doorbash.hexy.model.Player;
 import ir.doorbash.hexy.model.Point;
 import ir.doorbash.hexy.util.ColorUtil;
-import ir.doorbash.hexy.util.ConfigFile;
 import ir.doorbash.hexy.util.PathCellUpdate;
 import ir.doorbash.hexy.util._Math;
 
@@ -166,7 +166,6 @@ public class PlayScreen extends ScreenAdapter {
     private GlyphLayout yourProgressText;
     private GlyphLayout yourProgressBestText;
     private LoadingAnimation loadingAnimation;
-
     private Sound captureSound;
     private Sound clickSound;
     private Sound hitSound;
@@ -222,6 +221,8 @@ public class PlayScreen extends ScreenAdapter {
     private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
     private final Player[] players = new Player[50];
     private final boolean[] drawList = new boolean[50];
+    private final Cell[][] cells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
+    private final Cell[][] pathCells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
 
     private final Vector2 padAnchorPoint = new Vector2();
     private final Vector2 padVector = new Vector2();
@@ -233,12 +234,13 @@ public class PlayScreen extends ScreenAdapter {
     private Room<MyState> room;
     private final ArFont arFont = new ArFont();
     private Player currentPlayer;
-    private final Cell[][] cells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
-    private final Cell[][] pathCells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
+    private Preferences prefs;
 
     /* ************************************** CONSTRUCTOR ****************************************/
 
     PlayScreen() {
+        prefs = Gdx.app.getPreferences("settings");
+
         batch = new SpriteBatch();
         gameAtlas = new TextureAtlas(PATH_PACK_ATLAS);
         whiteHex = gameAtlas.findRegion(TEXTURE_REGION_HEX_WHITE);
@@ -260,7 +262,6 @@ public class PlayScreen extends ScreenAdapter {
         gameCamera.zoom = CAMERA_INIT_ZOOM;
         fixedCamera = new OrthographicCamera();
         guiCamera = new OrthographicCamera();
-
 
         boostSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_BOOST));
         clickSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CLICK));
@@ -1146,16 +1147,16 @@ public class PlayScreen extends ScreenAdapter {
     private void connectToServer() {
         System.out.println("ConnectToServer...");
         connectionState = CONNECTION_STATE_CONNECTING;
-        client = new Client(ENDPOINT, ConfigFile.get("clientId"), null, null, 10000, new Client.Listener() {
+
+        client = new Client(ENDPOINT, prefs.getString("clientId"), null, null, 10000, new Client.Listener() {
             @Override
             public void onOpen(String id) {
-                ConfigFile.set("clientId", id);
+                prefs.putString("clientId", id);
+                prefs.flush();
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
                 options.put("name", "milad");
                 room = client.join(getRoomName(), options, MyState.class);
                 room.addListener(new Room.Listener() {
-
-                    boolean firstPatch = true;
 
                     @Override
                     protected void onLeave() {
