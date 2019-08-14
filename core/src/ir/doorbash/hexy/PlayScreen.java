@@ -20,6 +20,7 @@ import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.utils.Timer;
 import com.crowni.gdx.rtllang.support.ArFont;
 import com.crowni.gdx.rtllang.support.ArUtils;
 
@@ -103,8 +104,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-    private static final String ENDPOINT = "ws://192.168.1.134:3333";
-//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+//    private static final String ENDPOINT = "ws://192.168.1.134:3333";
+    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
@@ -340,7 +341,6 @@ public class PlayScreen extends ScreenAdapter {
             }
 
             drawCells();
-            drawPaths();
             batch.end();
             drawTrails();
             batch.begin();
@@ -622,20 +622,6 @@ public class PlayScreen extends ScreenAdapter {
         tiles.draw(batch);
     }
 
-    private void drawPaths() {
-        for (int x = leftXi; x <= leftXi + sizeX; x++) {
-            if (x < -MAP_SIZE || x > MAP_SIZE) continue;
-            for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
-                if (y < -MAP_SIZE || y > MAP_SIZE) continue;
-                Cell cell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
-                if (cell != null && cell.id != null) {
-                    cell.id.draw(batch);
-                    drawList[cell.color - 1] = true;
-                }
-            }
-        }
-    }
-
     private void drawTrails() {
         for (Player player : players) {
             if (player == null) continue;
@@ -652,9 +638,24 @@ public class PlayScreen extends ScreenAdapter {
             for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
                 if (y < -MAP_SIZE || y > MAP_SIZE) continue;
                 Cell cell = cells[x + MAP_SIZE][y + MAP_SIZE];
-                if (cell != null && cell.id != null) {
+                Cell pathCell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
+                boolean hasCell = cell != null && cell.id != null;
+                boolean hasPathCell = pathCell != null && pathCell.id != null;
+                if (hasCell && hasPathCell) {
+                    if (cell.color == pathCell.color) {
+                        cell.id.draw(batch);
+                        drawList[cell.color - 1] = true;
+                    } else {
+                        pathCell.id.draw(batch);
+                        drawList[cell.color - 1] = true;
+                        drawList[pathCell.color - 1] = true;
+                    }
+                } else if (hasCell) {
                     cell.id.draw(batch);
                     drawList[cell.color - 1] = true;
+                } else if (hasPathCell) {
+                    pathCell.id.draw(batch);
+                    drawList[pathCell.color - 1] = true;
                 }
             }
         }
@@ -881,39 +882,6 @@ public class PlayScreen extends ScreenAdapter {
         }
         logFont.draw(batch, logText, -Gdx.graphics.getWidth() / 2f + 8 * guiUnits, -Gdx.graphics.getHeight() / 2f + 2 * guiUnits + logFont.getLineHeight());
     }
-
-    private void clearPlayerPath(String clientId) {
-        Player player = room.state.players.get(clientId);
-        if (player != null) {
-
-            for (int x = leftXi; x <= leftXi + sizeX; x++) {
-                if (x < -MAP_SIZE || x > MAP_SIZE) continue;
-                for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
-                    if (y < -MAP_SIZE || y > MAP_SIZE) continue;
-                    Cell cell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
-                    if (cell != null && cell.color == player.color) {
-                        pathCells[x + MAP_SIZE][y + MAP_SIZE] = null;
-                    }
-                }
-            }
-
-            for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
-                for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
-                    Cell pathCell = pathCells[i][j];
-                    if (pathCell != null && pathCell.color == player.color) {
-                        pathCells[i][j] = null;
-                    }
-                }
-            }
-
-            if (player.trailGraphic != null) {
-                Gdx.app.postRunnable(() -> {
-                    player.trailGraphic.truncateAt(0);
-                });
-            }
-        }
-    }
-
     /* ***************************************** LOGIC *******************************************/
 
     private void updatePlayersPositions(float dt) {
@@ -1178,7 +1146,7 @@ public class PlayScreen extends ScreenAdapter {
     private void connectToServer() {
         System.out.println("ConnectToServer...");
         connectionState = CONNECTION_STATE_CONNECTING;
-        client = new Client(ENDPOINT, null /*ConfigFile.get("clientId")*/, null, null, 10000, new Client.Listener() {
+        client = new Client(ENDPOINT, ConfigFile.get("clientId"), null, null, 10000, new Client.Listener() {
             @Override
             public void onOpen(String id) {
                 ConfigFile.set("clientId", id);
@@ -1217,7 +1185,36 @@ public class PlayScreen extends ScreenAdapter {
                             if (connectionState == CONNECTION_STATE_CLOSED) return;
                             String clientId = (String) data.get("player");
                             int num = (int) data.get("num");
-                            clearPlayerPath(clientId);
+                            Player player = room.state.players.get(clientId);
+                            if (player != null) {
+                                if (player.trailGraphic != null) {
+                                    Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
+                                }
+                                Timer.schedule(new Timer.Task() {
+                                    @Override
+                                    public void run() {
+                                        for (int x = leftXi; x <= leftXi + sizeX; x++) {
+                                            if (x < -MAP_SIZE || x > MAP_SIZE) continue;
+                                            for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
+                                                if (y < -MAP_SIZE || y > MAP_SIZE) continue;
+                                                Cell cell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
+                                                if (cell != null && cell.color == player.color) {
+                                                    pathCells[x + MAP_SIZE][y + MAP_SIZE] = null;
+                                                }
+                                            }
+                                        }
+
+                                        for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
+                                            for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
+                                                Cell pathCell = pathCells[i][j];
+                                                if (pathCell != null && pathCell.color == player.color) {
+                                                    pathCells[i][j] = null;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }, 0.3f);
+                            }
                             if (clientId.equals(client.getId())) {
                                 if (num > 4)
                                     Gdx.app.postRunnable(() -> captureSound.play());
@@ -1255,15 +1252,21 @@ public class PlayScreen extends ScreenAdapter {
                     protected void onJoin() {
                         System.out.println("joined " + getRoomName());
                         connectionState = CONNECTION_STATE_CONNECTED;
+                        isUpdating = true;
                         registerCallbacks();
-                        message.put("op", "r");
-                        room.send(message);
-                        isUpdating =false;
                     }
 
                     @Override
                     protected void onStateChange(Schema state, boolean isFirstState) {
                         if (isFirstState) {
+                            Timer.schedule(new Timer.Task() {
+                                @Override
+                                public void run() {
+                                    message.put("op", "r");
+                                    room.send(message);
+                                    isUpdating = false;
+                                }
+                            }, 1f);
 //                            connectTime = 0;
 //                            connectionState = CONNECTION_STATE_CONNECTED;
 //                            isUpdating = true;
@@ -1417,7 +1420,7 @@ public class PlayScreen extends ScreenAdapter {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             if (player.color == 0) return;
 //                            if (players.contains(player)) return;
-                            if (players[player.color - 1] != null) return;
+//                            if (players[player.color - 1] != null) return;
 
                             player._name = arFont.getText(player.name);
                             player._angle = player.angle;
@@ -1480,7 +1483,28 @@ public class PlayScreen extends ScreenAdapter {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             if (player.color == 0) return;
                             System.out.println("player removed, color: " + player.color);
-                            clearPlayerPath(player.clientId);
+                            if (player.trailGraphic != null) {
+                                Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
+                            }
+                            for (int x = leftXi; x <= leftXi + sizeX; x++) {
+                                if (x < -MAP_SIZE || x > MAP_SIZE) continue;
+                                for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
+                                    if (y < -MAP_SIZE || y > MAP_SIZE) continue;
+                                    Cell cell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
+                                    if (cell != null && cell.color == player.color) {
+                                        pathCells[x + MAP_SIZE][y + MAP_SIZE] = null;
+                                    }
+                                }
+                            }
+
+                            for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
+                                for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
+                                    Cell pathCell = pathCells[i][j];
+                                    if (pathCell != null && pathCell.color == player.color) {
+                                        pathCells[i][j] = null;
+                                    }
+                                }
+                            }
                             players[player.color - 1] = null;
 
 //                            synchronized (players) {
@@ -1491,8 +1515,8 @@ public class PlayScreen extends ScreenAdapter {
                         room.state.cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
 
-                            Cell c = cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE];
-                            if (c != null && c.color == cell.color) return;
+//                            Cell c = cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE];
+//                            if (c != null && c.color == cell.color) return;
 
 //                            if (cells.containsKey(key)) return;
 //                            if (cellGrid[cell.x + CELL_GRID_WIDTH / 2] == null)
@@ -1550,9 +1574,9 @@ public class PlayScreen extends ScreenAdapter {
                             });
                         };
 
-//                        room.state.players.triggerAll();
-//                        room.state.cells.triggerAll();
-//                        room.state.colorMeta.triggerAll();
+                        room.state.players.triggerAll();
+                        room.state.cells.triggerAll();
+                        room.state.colorMeta.triggerAll();
                     }
 
                     void registerPlayerCallbacks(Player player) {
@@ -1576,8 +1600,8 @@ public class PlayScreen extends ScreenAdapter {
                         player.cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
 //                            if (player.pathCells.containsKey(key2)) return;
-                            Cell c = pathCells[cell.x + MAP_SIZE][cell.y + MAP_SIZE];
-                            if (c != null && c.color == cell.color) return;
+//                            Cell c = pathCells[cell.x + MAP_SIZE][cell.y + MAP_SIZE];
+//                            if (c != null && c.color == cell.color) return;
                             Gdx.app.postRunnable(() -> {
                                 cell.id = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
                                 cell.id.setSize(40, 46);
