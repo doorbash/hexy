@@ -23,7 +23,7 @@ import ir.doorbash.hexy.util.PathCellUpdate;
 @SchemaClass
 public class Player extends Schema {
 	@SchemaField("0/uint8")	
-	public short color = 0;
+	public short pid = 0;
 
 	@SchemaField("1/float32")
 	public float x = 0;

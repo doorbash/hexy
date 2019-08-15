@@ -21,7 +21,7 @@ public class Cell extends Schema {
 	public short y = 0;
 
 	@SchemaField("2/uint8")	
-	public short color = 0;
+	public short pid = 0;
 
 //	@SchemaField("3/string")
 //	public String owner = "";

@@ -35,7 +35,6 @@ public class MyState extends Schema {
 
     @Override
     public MyState _clone() {
-        System.out.println("I'm getting called! that's a good thing");
         MyState copy = new MyState();
         copy.cells = (MapSchema<Cell>) cells._clone();
         copy.players = (MapSchema<Player>) players._clone();

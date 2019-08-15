@@ -19,7 +19,7 @@ public class ColorMeta extends Schema {
     public static final int CHANGE_DIRECTION_DOWN = -1;
 
     @SchemaField("0/uint8")
-    public short color = 0;
+    public short pid = 0;
 
     @SchemaField("1/uint16")
     public int numCells = 0;
@@ -29,12 +29,12 @@ public class ColorMeta extends Schema {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof ColorMeta && ((ColorMeta) obj).color == color;
+        return obj instanceof ColorMeta && ((ColorMeta) obj).pid == pid;
     }
 
     @Override
     public String toString() {
-        return "{" + "color=" + color + ", " + "numcells=" + numCells + ", " + "position=" + position + ", " + "_position=" + _position + "}";
+        return "{" + "color=" + pid + ", " + "numcells=" + numCells + ", " + "position=" + position + ", " + "_position=" + _position + "}";
     }
 
     public Sprite progressBar;
