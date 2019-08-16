@@ -30,13 +30,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map.Entry;
 
 import io.colyseus.Client;
 import io.colyseus.Room;
 import io.colyseus.serializer.schema.Schema;
 import ir.doorbash.hexy.model.Cell;
-import ir.doorbash.hexy.model.ColorMeta;
 import ir.doorbash.hexy.model.MyState;
 import ir.doorbash.hexy.model.Player;
 import ir.doorbash.hexy.model.Point;
@@ -104,7 +104,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-//    private static final String ENDPOINT = "ws://192.168.1.134:3333";
+    //    private static final String ENDPOINT = "ws://192.168.1.134:3333";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
     public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
@@ -135,8 +135,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final Color COLOR_YOUR_BEST_PROGRESS_TEXT = new Color(0x707070cc);
     private static final Color COLOR_YOUR_PROGRESS_BG = new Color(0x70707088);
     private static final Color CONNECTING_TEXT_COLOR = Color.valueOf("#212121ff");
-    private static final Comparator<ColorMeta> COLOR_META_COMP2 = (o1, o2) -> Integer.compare(o2.numCells, o1.numCells);
-    private static final Comparator<ColorMeta> COLOR_META_COMP = (o1, o2) -> Integer.compare(o1._position, o2._position);
+    private static final Comparator<Player> SORT_PLAYERS_BY_NUM_CELLS = (o1, o2) -> Integer.compare(o2.numCells, o1.numCells);
+    private static final Comparator<Player> SORT_PLAYERS_BY_POSITION = (o1, o2) -> Integer.compare(o1._position, o2._position);
 
     private SpriteBatch batch;
     private OrthographicCamera gameCamera;
@@ -218,8 +218,8 @@ public class PlayScreen extends ScreenAdapter {
     private int sizeY;
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
-    private final ArrayList<ColorMeta> colorMetas = new ArrayList<>();
     private final Player[] players = new Player[50];
+    private final List<Player> playerList = new ArrayList<>();
     private final boolean[] drawList = new boolean[50];
     private final Cell[][] cells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
     private final Cell[][] pathCells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
@@ -681,7 +681,7 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
-    private void drawProgressbar(ColorMeta colorMeta, String name, float dt, boolean drawStatic) {
+    private void drawProgressbar(Player colorMeta, String name, float dt, boolean drawStatic) {
         DecimalFormat decimalFormat = new DecimalFormat("#0.0");
         float totalWidth = progressbarWidth - progressbarInitWidth;
         float percentage = colorMeta.numCells / (float) TOTAL_CELLS;
@@ -722,27 +722,24 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawLeaderboard(float dt) {
-        synchronized (colorMetas) {
 
-//            for (int i = 0; i < colorMetas.size(); i++) {
-//                Player player = playersByColor[colorMetas.get(i).color - 1];
-//                if (player != null) {
-//                    System.out.println(colorMetas.get(i) + " >>> " + player.name + ", " + player.color);
-//                }
-//            }
+        synchronized (playerList) {
 
-
-            Collections.sort(colorMetas, COLOR_META_COMP2);
+            // sort players by numCells
+            Collections.sort(playerList, SORT_PLAYERS_BY_NUM_CELLS);
 
             short kk = 1;
-            for (ColorMeta cm : colorMetas) {
+            for (Player cm : playerList) {
                 cm.position = kk++;
             }
 
-            Collections.sort(colorMetas, COLOR_META_COMP);
+            Collections.sort(playerList, SORT_PLAYERS_BY_POSITION);
+
+//            System.out.println("---------------------------------");
+//            for (Player player : playerList) System.out.println(player._position);
 
             if (leaderboardDrawAgain) {
-                for (ColorMeta colorMeta : colorMetas) {
+                for (Player colorMeta : playerList) {
                     colorMeta.positionIsChanging = false;
                     if (colorMeta.progressBar != null) {
                         colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
@@ -752,18 +749,18 @@ public class PlayScreen extends ScreenAdapter {
                 leaderboardDrawAgain = false;
             } else {
 
-                for (int i = 0; i < colorMetas.size() - 1; i++) {
-                    ColorMeta colorMeta = colorMetas.get(i);
+                for (int i = 0; i < playerList.size() - 1; i++) {
+                    Player colorMeta = playerList.get(i);
                     if (colorMeta.positionIsChanging) continue;
                     if (colorMeta.position > colorMeta._position) { // yani bayad bere paeen
-                        ColorMeta next = colorMetas.get(i + 1);
+                        Player next = playerList.get(i + 1);
                         if (!next.positionIsChanging && next.position <= next._position) {
                             if (colorMeta._position <= LEADERBOARD_NUM) {
                                 if (next._position <= LEADERBOARD_NUM + 1) {
                                     colorMeta.positionIsChanging = true;
-                                    colorMeta.changeDir = ColorMeta.CHANGE_DIRECTION_DOWN;
+                                    colorMeta.changeDir = Player.CHANGE_DIRECTION_DOWN;
                                     next.positionIsChanging = true;
-                                    next.changeDir = ColorMeta.CHANGE_DIRECTION_UP;
+                                    next.changeDir = Player.CHANGE_DIRECTION_UP;
                                 }
                             }
                             colorMeta._position++;
@@ -773,18 +770,18 @@ public class PlayScreen extends ScreenAdapter {
                     }
                 }
 
-                Collections.sort(colorMetas, COLOR_META_COMP);
+                Collections.sort(playerList, SORT_PLAYERS_BY_POSITION);
             }
 
             boolean playerProgressPrinted = false;
 //            Player currentPlayer = room.state.players.get(client.getId());
-            int limit = Math.min(LEADERBOARD_NUM + 1, colorMetas.size());
+            int limit = Math.min(LEADERBOARD_NUM + 1, playerList.size());
             for (int i = limit - 1; i >= 0; i--) {
-                ColorMeta colorMeta = colorMetas.get(i); // _position = i + 1
+                Player colorMeta = playerList.get(i); // _position = i + 1
                 if (colorMeta == null || colorMeta.progressBar == null) continue;
                 if (i == LEADERBOARD_NUM) {
                     if (!colorMeta.positionIsChanging) continue;
-                    if (colorMeta.changeDir == ColorMeta.CHANGE_DIRECTION_UP) continue;
+                    if (colorMeta.changeDir == Player.CHANGE_DIRECTION_UP) continue;
                 }
                 Player player = players[colorMeta.pid - 1];
                 if (player == null) {
@@ -797,12 +794,9 @@ public class PlayScreen extends ScreenAdapter {
             }
 
             if (!playerProgressPrinted) {
-                if (currentPlayer == null) return;
-                ColorMeta colorMeta = room.state.colorMeta.get(currentPlayer.pid + "");
-                if (colorMeta == null || colorMeta.progressBar == null) return;
-                drawProgressbar(colorMeta, currentPlayer._name, dt, true);
+                if (currentPlayer == null || currentPlayer.progressBar == null) return;
+                drawProgressbar(currentPlayer, currentPlayer._name, dt, true);
             }
-
         }
 
     }
@@ -810,8 +804,6 @@ public class PlayScreen extends ScreenAdapter {
     private void drawPlayerProgress() {
 //        Player currentPlayer = room.state.players.get(client.getId());
         if (currentPlayer == null) return;
-        ColorMeta colorMeta = room.state.colorMeta.get(String.valueOf(currentPlayer.pid));
-        if (colorMeta == null) return;
 
         DecimalFormat decimalFormat = new DecimalFormat("#0.0");
         float totalWidth = yourProgressbarWidth - yourProgressbarInitWidth;
@@ -820,15 +812,15 @@ public class PlayScreen extends ScreenAdapter {
         playerProgressBarBest.setX(-guiCamera.viewportWidth / 2f);
         playerProgressBarBest.setY(guiCamera.viewportHeight / 2f - progressbarTopMargin - progressbarHeight);
 
-        playerProgressBar.setSize(colorMeta._percentage * totalWidth + yourProgressbarInitWidth, progressbarHeight);
+        playerProgressBar.setSize(currentPlayer._percentage * totalWidth + yourProgressbarInitWidth, progressbarHeight);
         playerProgressBar.setX(-guiCamera.viewportWidth / 2f);
         playerProgressBar.setY(guiCamera.viewportHeight / 2f - progressbarTopMargin - progressbarHeight);
 
         playerProgressBarBest.draw(batch);
         playerProgressBar.draw(batch);
 
-        leaderboardFont.setColor(ColorUtil.bc_color_index_to_rgba[colorMeta.pid - 1]);
-        leaderboardFont.draw(batch, (colorMeta._percentage < 0.1f ? " " : "") + decimalFormat.format(colorMeta._percentage * 100f) + "%", playerProgressBar.getX() + playerProgressBar.getWidth() - yourProgressText.width + guiUnits * 8, playerProgressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 2 * guiUnits);
+        leaderboardFont.setColor(ColorUtil.bc_color_index_to_rgba[currentPlayer.pid - 1]);
+        leaderboardFont.draw(batch, (currentPlayer._percentage < 0.1f ? " " : "") + decimalFormat.format(currentPlayer._percentage * 100f) + "%", playerProgressBar.getX() + playerProgressBar.getWidth() - yourProgressText.width + guiUnits * 8, playerProgressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 2 * guiUnits);
 
         leaderboardFont.setColor(COLOR_YOUR_BEST_PROGRESS_TEXT);
         leaderboardFont.draw(batch, "BEST " + decimalFormat.format(playerBestProgress * 100) + "%", playerProgressBarBest.getX() + playerProgressBarBest.getWidth() - yourProgressBestText.width + guiUnits * 8, playerProgressBarBest.getY() - 2 * guiUnits);
@@ -1006,17 +998,10 @@ public class PlayScreen extends ScreenAdapter {
 //    }
 
     private void updateZoom() {
-//        Player player = room.state.players.get(client.getId());
         if (currentPlayer == null) return;
-        ColorMeta cm = room.state.colorMeta.get(currentPlayer.pid + "");
-        if (cm == null) return;
-//        float percentage = cm.numCells / (float) TOTAL_CELLS;
-//        System.out.println("percentage = " + percentage);
-//        camera.zoom = Math.min(CAMERA_INIT_ZOOM + 2f * percentage, 1.7f);
-        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + cm.numCells * 0.001f, 1.5f);
+        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + currentPlayer.numCells * 0.001f, 1.5f);
     }
 
-    // TODO: we need to improve this a little bit
     private long getServerTime() {
         return System.currentTimeMillis() + timeDiff;
     }
@@ -1044,6 +1029,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private float calculateLerp(Player player) {
+        // TODO: add alternative lerp/move methods
 //        if (connectTime > HIGH_LERP_TIME) {
 //            // normal
 //            float dst = Vector2.dst2(player.bc.getX() + player.bc.getWidth() / 2f, player.bc.getY() + player.bc.getHeight() / 2f, player.x, player.y);
@@ -1392,26 +1378,6 @@ public class PlayScreen extends ScreenAdapter {
                                     cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
                                 }
                             }
-//                            }
-//                            synchronized (room.state.colorMeta.lock) {
-                            synchronized (colorMetas) {
-                                colorMetas.clear();
-                                for (Entry<String, ColorMeta> keyValue : room.state.colorMeta.items.entrySet()) {
-                                    String key = keyValue.getKey();
-                                    ColorMeta colorMeta = keyValue.getValue();
-                                    colorMeta._position = colorMetas.size() + 1;
-                                    colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
-                                    colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-                                    colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
-                                    colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
-                                    colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
-                                    if (!colorMetas.contains(colorMeta)) {
-                                        colorMetas.add(colorMeta);
-                                        System.out.println("added color meta to colorMetas: color=" + colorMeta.pid);
-                                    }
-                                }
-                            }
-//                            }
                         });
                     }
 
@@ -1469,15 +1435,17 @@ public class PlayScreen extends ScreenAdapter {
 
                                 registerPlayerCallbacks(player);
 
-//                                synchronized (players) {
-//                                    if (!players.contains(player)) {
-//                                        players.add(player);
-//
-//                                        System.out.println("callback: added player " + player.name + ", " + player.color);
-//                                    }
-//                                }
+                                player._position = playerList.size() + 1;
+                                player._percentage = player.numCells / (float) TOTAL_CELLS;
+                                player.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+                                player.progressBar.setColor(ColorUtil.c_color_index_to_rgba[player.pid - 1]);
+                                player.progressBar.setX(Gdx.graphics.getWidth() / 2f - (player._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
+                                player.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(player._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
 
                                 players[player.pid - 1] = player;
+                                synchronized (playerList) {
+                                    if (!playerList.contains(player)) playerList.add(player);
+                                }
                             });
                         };
                         room.state.players.onRemove = (player, key) -> {
@@ -1507,10 +1475,9 @@ public class PlayScreen extends ScreenAdapter {
                                 }
                             }
                             players[player.pid - 1] = null;
-
-//                            synchronized (players) {
-//                                players.remove(player);
-//                            }
+                            synchronized (playerList) {
+                                playerList.remove(player);
+                            }
                         };
 
                         room.state.cells.onAdd = (cell, key) -> {
@@ -1553,31 +1520,8 @@ public class PlayScreen extends ScreenAdapter {
                             cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = null;
                         };
 
-                        room.state.colorMeta.onAdd = (colorMeta, key) -> {
-                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            if (colorMetas.contains(colorMeta)) return;
-                            Gdx.app.postRunnable(() -> {
-                                colorMeta._position = colorMetas.size() + 1;
-                                colorMeta._percentage = colorMeta.numCells / (float) TOTAL_CELLS;
-                                colorMeta.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-                                colorMeta.progressBar.setColor(ColorUtil.c_color_index_to_rgba[Integer.parseInt(key) - 1]);
-                                colorMeta.progressBar.setX(Gdx.graphics.getWidth() / 2f - (colorMeta._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
-                                colorMeta.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(colorMeta._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
-                                synchronized (colorMetas) {
-                                    System.out.println("new color meta to add: color=" + colorMeta.pid);
-                                    if (!colorMetas.contains(colorMeta)) {
-                                        colorMetas.add(colorMeta);
-                                        System.out.println("added color meta to colorMetas: color=" + colorMeta.pid);
-                                    } else {
-                                        System.out.println("XXX not gonna add color meta to colorMetas: color=" + colorMeta.pid);
-                                    }
-                                }
-                            });
-                        };
-
                         room.state.players.triggerAll();
                         room.state.cells.triggerAll();
-                        room.state.colorMeta.triggerAll();
                     }
 
                     void registerPlayerCallbacks(Player player) {

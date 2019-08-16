@@ -18,19 +18,16 @@ public class MyState extends Schema {
     @SchemaField("1/map/ref")
     public MapSchema<Player> players = new MapSchema<>(Player.class);
 
-    @SchemaField("2/map/ref")
-    public MapSchema<ColorMeta> colorMeta = new MapSchema<>(ColorMeta.class);
-
-    @SchemaField("3/boolean")
+    @SchemaField("2/boolean")
     public boolean started = false;
 
-    @SchemaField("4/boolean")
+    @SchemaField("3/boolean")
     public boolean ended = false;
 
-    @SchemaField("5/int64")
+    @SchemaField("4/int64")
     public long startTime = 0;
 
-    @SchemaField("6/int64")
+    @SchemaField("5/int64")
     public long endTime = 0;
 
     @Override
@@ -38,7 +35,6 @@ public class MyState extends Schema {
         MyState copy = new MyState();
         copy.cells = (MapSchema<Cell>) cells._clone();
         copy.players = (MapSchema<Player>) players._clone();
-        copy.colorMeta = (MapSchema<ColorMeta>) colorMeta._clone();
         copy.started = started;
         copy.ended = ended;
         copy.startTime = startTime;

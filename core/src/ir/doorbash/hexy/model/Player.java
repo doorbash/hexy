@@ -9,10 +9,7 @@ package ir.doorbash.hexy.model;//
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 
-import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import io.colyseus.serializer.schema.Schema;
 import io.colyseus.serializer.schema.annotations.SchemaClass;
@@ -22,6 +19,10 @@ import ir.doorbash.hexy.util.PathCellUpdate;
 
 @SchemaClass
 public class Player extends Schema {
+
+	public static final boolean CHANGE_DIRECTION_DOWN = false;
+	public static final boolean CHANGE_DIRECTION_UP = true;
+
 	@SchemaField("0/uint8")	
 	public short pid = 0;
 
@@ -61,6 +62,9 @@ public class Player extends Schema {
 	@SchemaField("12/uint16")
 	public int kills = 0;
 
+	@SchemaField("13/uint16")
+	public int numCells = 0;
+
 //    @SchemaField("12/boolean")
 //    public boolean home = false;
 
@@ -68,12 +72,18 @@ public class Player extends Schema {
 	public Sprite c;
 	public Sprite indic;
 	public Sprite bcGhost;
+	public Sprite progressBar;
 	public GlyphLayout text;
 //	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
 	public TrailGraphic trailGraphic;
 	public final LinkedList<PathCellUpdate> pathCellUpdates = new LinkedList<>();
 	public String _name;
 	public float _angle;
+	public int _position;
+	public float _percentage;
+	public boolean positionIsChanging;
+	public int position;
+	public boolean changeDir;
 
 	@Override
 	public boolean equals(Object obj) {
