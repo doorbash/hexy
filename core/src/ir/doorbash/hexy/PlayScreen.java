@@ -1511,13 +1511,13 @@ public class PlayScreen extends ScreenAdapter {
                             });
                         };
 
-                        player.cells.onAdd = (cell, key) -> {
+                        player.path_cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             Gdx.app.postRunnable(() -> initPathCellGraphics(cell));
                             pathCells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
                         };
 
-                        player.cells.triggerAll();
+                        player.path_cells.triggerAll();
                         player.path.triggerAll();
                     }
                 });

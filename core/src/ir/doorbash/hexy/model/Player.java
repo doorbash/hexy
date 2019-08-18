@@ -45,16 +45,16 @@ public class Player extends Schema {
 	@SchemaField("6/array/ref")	
 	public ArraySchema<Point> path = new ArraySchema<>(Point.class);
 
-	@SchemaField("7/array/ref")	
-	public ArraySchema<Cell> cells = new ArraySchema<>(Cell.class);
+	@SchemaField("7/array/ref")
+	public ArraySchema<Cell> path_cells = new ArraySchema<>(Cell.class);
 
-	@SchemaField("8/uint8")	
+	@SchemaField("8/uint8")
 	public short status = 0;
 
-	@SchemaField("9/int64")	
+	@SchemaField("9/int64")
 	public long rspwnTime = 0;
 
-	@SchemaField("10/string")	
+	@SchemaField("10/string")
 	public String name = "";
 
 	@SchemaField("11/uint16")
