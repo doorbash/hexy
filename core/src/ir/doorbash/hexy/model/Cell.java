@@ -20,12 +20,12 @@ public class Cell extends Schema {
 	@SchemaField("1/int16")	
 	public short y = 0;
 
-	@SchemaField("2/uint8")	
+	@SchemaField("2/uint8")
 	public short pid = 0;
 
 //	@SchemaField("3/string")
 //	public String owner = "";
 
-	public Sprite id;
+	public Sprite sprite;
 }
 
