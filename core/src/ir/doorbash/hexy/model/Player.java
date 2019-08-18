@@ -6,6 +6,7 @@ package ir.doorbash.hexy.model;//
 // 
 
 
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.g2d.GlyphLayout;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 
@@ -65,11 +66,17 @@ public class Player extends Schema {
 	@SchemaField("13/uint16")
 	public int numCells = 0;
 
+	@SchemaField("14/string")
+	public String fill = "";
+
+	@SchemaField("15/string")
+	public String stroke = "";
+
 //    @SchemaField("12/boolean")
 //    public boolean home = false;
 
-	public Sprite bc;
-	public Sprite c;
+	public Sprite _stroke;
+	public Sprite _fill;
 	public Sprite indic;
 	public Sprite bcGhost;
 	public Sprite progressBar;
@@ -84,6 +91,10 @@ public class Player extends Schema {
 	public boolean positionIsChanging;
 	public int position;
 	public boolean changeDir;
+	public Color fillColor;
+	public Color strokeColor;
+	public Color progressColor;
+	public Color pathCellColor;
 
 	@Override
 	public boolean equals(Object obj) {
