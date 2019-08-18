@@ -771,8 +771,24 @@ public class PlayScreen extends ScreenAdapter {
 
             Collections.sort(playerList, SORT_PLAYERS_BY_POSITION);
 
-//            System.out.println("---------------------------------");
-//            for (Player player : playerList) System.out.println(player._position);
+            if (!leaderboardDrawAgain) {
+                List<Integer> _positions = new ArrayList<>();
+                boolean allWrong = false;
+                for (Player player : playerList) {
+                    if (_positions.contains(player._position)) {
+                        allWrong = true;
+                        break;
+                    }
+                    _positions.add(player._position);
+                }
+                if (allWrong) {
+                    int x = 1;
+                    for (Player player : playerList) {
+                        player._position = x++;
+                    }
+                    leaderboardDrawAgain = true;
+                }
+            }
 
             if (leaderboardDrawAgain) {
                 for (Player player : playerList) {
