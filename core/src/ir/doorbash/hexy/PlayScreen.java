@@ -40,6 +40,7 @@ import ir.doorbash.hexy.model.MyState;
 import ir.doorbash.hexy.model.Player;
 import ir.doorbash.hexy.model.Point;
 import ir.doorbash.hexy.util.ColorUtil;
+import ir.doorbash.hexy.util.TextUtil;
 import ir.doorbash.hexy.util._Math;
 
 /**
@@ -597,12 +598,20 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void initCellGraphics(Cell cell) {
-        if (players[cell.pid] == null) return;
+        if (cell == null || players[cell.pid] == null) return;
         if (players[cell.pid].fillColor == null) {
             cell.sprite = fillAtlas.createSprite(players[cell.pid].fill);
-            cell.sprite.setSize(CELL_WIDTH, CELL_WIDTH);
-            Vector2 pos = getHexPosition(cell.x, cell.y);
-            cell.sprite.setCenter(pos.x, pos.y - (CELL_HEIGHT - CELL_WIDTH) / 2f);
+            if (cell.sprite == null) {
+                cell.sprite = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                cell.sprite.setColor(Color.BLACK);
+                cell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
+                Vector2 pos = getHexPosition(cell.x, cell.y);
+                cell.sprite.setCenter(pos.x, pos.y);
+            } else {
+                cell.sprite.setSize(CELL_WIDTH, CELL_WIDTH);
+                Vector2 pos = getHexPosition(cell.x, cell.y);
+                cell.sprite.setCenter(pos.x, pos.y - (CELL_HEIGHT - CELL_WIDTH) / 2f);
+            }
         } else {
             cell.sprite = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
             cell.sprite.setColor(players[cell.pid].strokeColor);
@@ -613,6 +622,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void initPathCellGraphics(Cell pathCell) {
+        if (pathCell == null) return;
         Player player = players[pathCell.pid];
         if (player == null) return;
         pathCell.sprite = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
@@ -1192,7 +1202,9 @@ public class PlayScreen extends ScreenAdapter {
                 prefs.flush();
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
                 options.put("name", "milad");
-                options.put("fill", "00014");
+                String fill = TextUtil.padLeftZeros((int)(Math.random() * 100) + "", 5);
+                System.out.println("fill >>> " + fill);
+                options.put("fill", fill);
                 options.put("stroke", "#F10101FF");
                 room = client.join(getRoomName(), options, MyState.class);
                 room.addListener(new Room.Listener() {
