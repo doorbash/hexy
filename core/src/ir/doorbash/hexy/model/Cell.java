@@ -24,8 +24,8 @@ public class Cell extends Schema {
 	@SchemaField("1/int16")	
 	public short y = 0;
 
-	@SchemaField("2/uint8")
-	public short pid = 0;
+	@SchemaField("2/uint32")
+	public long pid = 0;
 
 //	@SchemaField("3/string")
 //	public String owner = "";

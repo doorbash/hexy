@@ -24,8 +24,8 @@ public class Player extends Schema {
 	public static final boolean CHANGE_DIRECTION_DOWN = false;
 	public static final boolean CHANGE_DIRECTION_UP = true;
 
-	@SchemaField("0/uint8")	
-	public short pid = 0;
+	@SchemaField("0/uint32")
+	public long pid = 0;
 
 	@SchemaField("1/float32")
 	public float x = 0;
