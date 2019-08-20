@@ -34,7 +34,6 @@ import java.util.List;
 
 import io.colyseus.Client;
 import io.colyseus.Room;
-import io.colyseus.serializer.schema.DataChange;
 import io.colyseus.serializer.schema.Schema;
 import ir.doorbash.hexy.model.Cell;
 import ir.doorbash.hexy.model.MyState;
@@ -289,8 +288,6 @@ public class PlayScreen extends ScreenAdapter {
         initTiles();
 
         initInput();
-
-        connectToServer();
     }
 
     /* *************************************** OVERRIDE *****************************************/
@@ -598,10 +595,10 @@ public class PlayScreen extends ScreenAdapter {
         });
     }
 
-    private void initCellSprite(Cell cell) {
-        if (cell == null || players[cell.pid] == null) return;
-        if (players[cell.pid].fillColor == null) {
-            cell.sprite = fillAtlas.createSprite(players[cell.pid].fill);
+    private void initCellSprite(Player player, Cell cell) {
+        if (cell == null) return;
+        if (player.fillColor == null) {
+            cell.sprite = fillAtlas.createSprite(player.fill);
             cell.type = Cell.CELL_TYPE_TEXTURE;
             if (cell.sprite == null) {
                 cell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
@@ -613,7 +610,7 @@ public class PlayScreen extends ScreenAdapter {
             } else {
                 cell.sprite.setSize(CELL_WIDTH, CELL_WIDTH);
                 Vector2 pos = getHexPosition(cell.x, cell.y);
-                cell.sprite.setCenter(pos.x, pos.y - (CELL_HEIGHT - CELL_WIDTH) / 2f);
+                cell.sprite.setCenter(pos.x, pos.y/* - (CELL_HEIGHT - CELL_WIDTH) / 2f*/);
             }
         } else {
             cell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
@@ -625,9 +622,8 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
-    private void initPathCellGraphics(Cell pathCell) {
+    private void initPathCellSprite(Player player, Cell pathCell) {
         if (pathCell == null) return;
-        Player player = players[pathCell.pid];
         if (player == null) return;
         pathCell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
         pathCell.type = Cell.CELL_TYPE_COLOR;
@@ -1409,8 +1405,6 @@ public class PlayScreen extends ScreenAdapter {
                                 player.trailGraphic.setRopeWidth(ROPE_WIDTH);
                                 player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
 
-                                registerPlayerCallbacks(player);
-
                                 player._position = playerList.size() + 1;
                                 player._percentage = player.numCells / (float) TOTAL_CELLS;
                                 player.progressBar = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
@@ -1423,30 +1417,7 @@ public class PlayScreen extends ScreenAdapter {
                                     if (!playerList.contains(player)) playerList.add(player);
                                 }
 
-                                for (int x = leftXi; x <= leftXi + sizeX; x++) {
-                                    if (x < -MAP_SIZE || x > MAP_SIZE) continue;
-                                    for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
-                                        if (y < -MAP_SIZE || y > MAP_SIZE) continue;
-                                        Cell cell = cells[x + MAP_SIZE][y + MAP_SIZE];
-                                        if (cell != null && cell.pid == player.pid && cell.sprite == null) {
-                                            if (player.clientId.equals(client.getId()))
-                                                System.out.println("FUCKING BUG >> initializing cell...");
-                                            initCellSprite(cell);
-                                        }
-                                    }
-                                }
-
-                                for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
-                                    for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
-                                        Cell cell = cells[i][j];
-                                        if (cell != null && cell.pid == player.pid && cell.sprite == null) {
-                                            if (player.clientId.equals(client.getId()))
-                                                System.out.println("FUCKING BUG >> initializing cell...");
-                                            initCellSprite(cell);
-                                        }
-                                    }
-                                }
-
+                                registerPlayerCallbacks(player);
                             });
                         };
                         room.state.players.onRemove = (player, key) -> {
@@ -1456,20 +1427,20 @@ public class PlayScreen extends ScreenAdapter {
                             if (player.trailGraphic != null) {
                                 Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
                             }
-                            for (int x = leftXi; x <= leftXi + sizeX; x++) {
-                                if (x < -MAP_SIZE || x > MAP_SIZE) continue;
-                                for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
-                                    if (y < -MAP_SIZE || y > MAP_SIZE) continue;
-                                    Cell cell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
-                                    if (cell != null && cell.pid == player.pid) {
-                                        pathCells[x + MAP_SIZE][y + MAP_SIZE] = null;
-                                    }
-                                    cell = cells[x + MAP_SIZE][y + MAP_SIZE];
-                                    if (cell != null && cell.pid == player.pid) {
-                                        cells[x + MAP_SIZE][y + MAP_SIZE] = null;
-                                    }
-                                }
-                            }
+//                            for (int x = leftXi; x <= leftXi + sizeX; x++) {
+//                                if (x < -MAP_SIZE || x > MAP_SIZE) continue;
+//                                for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
+//                                    if (y < -MAP_SIZE || y > MAP_SIZE) continue;
+//                                    Cell cell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
+//                                    if (cell != null && cell.pid == player.pid) {
+//                                        pathCells[x + MAP_SIZE][y + MAP_SIZE] = null;
+//                                    }
+//                                    cell = cells[x + MAP_SIZE][y + MAP_SIZE];
+//                                    if (cell != null && cell.pid == player.pid) {
+//                                        cells[x + MAP_SIZE][y + MAP_SIZE] = null;
+//                                    }
+//                                }
+//                            }
                             for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
                                 for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
                                     Cell cell = pathCells[i][j];
@@ -1488,31 +1459,7 @@ public class PlayScreen extends ScreenAdapter {
                             }
                         };
 
-                        room.state.cells.onAdd = (cell, key) -> {
-                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            Gdx.app.postRunnable(() -> {
-                                if (players[cell.pid] == null)
-                                    System.out.println("FUCKING BUG >> cell is here and player is null...");
-                                initCellSprite(cell);
-                            });
-                            cell.onChange = changes -> {
-                                if (players[cell.pid] == null) return;
-                                if (players[cell.pid].fillColor != null && cell.type == Cell.CELL_TYPE_COLOR) {
-                                    // color -> color
-                                    Gdx.app.postRunnable(() -> cell.sprite.setColor(players[cell.pid].strokeColor));
-                                } else {
-                                    Gdx.app.postRunnable(() -> initCellSprite(cell));
-                                }
-                            };
-                            cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
-                        };
-//                        room.state.cells.onRemove = (cell, key) -> {
-//                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
-//                            cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = null;
-//                        };
-
                         room.state.players.triggerAll();
-                        room.state.cells.triggerAll();
                     }
 
                     void registerPlayerCallbacks(Player player) {
@@ -1536,10 +1483,25 @@ public class PlayScreen extends ScreenAdapter {
 
                         player.path_cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            Gdx.app.postRunnable(() -> initPathCellGraphics(cell));
+                            Gdx.app.postRunnable(() -> initPathCellSprite(player, cell));
                             pathCells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
                         };
 
+                        player.cells.onAdd = (cell, key) -> {
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                            Gdx.app.postRunnable(() -> initCellSprite(player, cell));
+                            cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
+                        };
+
+                        player.cells.onRemove = (cell, key) -> {
+                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+//                            System.out.println("cell remove key : " + key + " --> " + cell.x + ", " + cell.y);
+                            Cell c = cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE];
+                            if (c == null || c.pid != player.pid) return;
+                            cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = null;
+                        };
+
+                        player.cells.triggerAll();
                         player.path_cells.triggerAll();
                         player.path.triggerAll();
                     }

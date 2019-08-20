@@ -13,27 +13,23 @@ import io.colyseus.serializer.schema.annotations.SchemaField;
 @SchemaClass
 public class MyState extends Schema {
     @SchemaField("0/map/ref")
-    public MapSchema<Cell> cells = new MapSchema<>(Cell.class);
-
-    @SchemaField("1/map/ref")
     public MapSchema<Player> players = new MapSchema<>(Player.class);
 
-    @SchemaField("2/boolean")
+    @SchemaField("1/boolean")
     public boolean started = false;
 
-    @SchemaField("3/boolean")
+    @SchemaField("2/boolean")
     public boolean ended = false;
 
-    @SchemaField("4/int64")
+    @SchemaField("3/int64")
     public long startTime = 0;
 
-    @SchemaField("5/int64")
+    @SchemaField("4/int64")
     public long endTime = 0;
 
     @Override
     public MyState _clone() {
         MyState copy = new MyState();
-        copy.cells = (MapSchema<Cell>) cells._clone();
         copy.players = (MapSchema<Player>) players._clone();
         copy.started = started;
         copy.ended = ended;
