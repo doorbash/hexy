@@ -34,6 +34,7 @@ import java.util.List;
 
 import io.colyseus.Client;
 import io.colyseus.Room;
+import io.colyseus.serializer.schema.DataChange;
 import io.colyseus.serializer.schema.Schema;
 import ir.doorbash.hexy.model.Cell;
 import ir.doorbash.hexy.model.MyState;
@@ -144,7 +145,7 @@ public class PlayScreen extends ScreenAdapter {
     private OrthographicCamera fixedCamera;
     private OrthographicCamera guiCamera;
     private Texture trailTexture;
-    private TextureAtlas gameAtlas;
+    private TextureAtlas mainAtlas;
     private TextureAtlas fillAtlas;
     private TextureAtlas.AtlasRegion whiteHex;
     private FrameBuffer fbo;
@@ -244,21 +245,21 @@ public class PlayScreen extends ScreenAdapter {
         prefs = Gdx.app.getPreferences("settings");
 
         batch = new SpriteBatch();
-        gameAtlas = new TextureAtlas(PATH_PACK_ATLAS);
+        mainAtlas = new TextureAtlas(PATH_PACK_ATLAS);
         fillAtlas = new TextureAtlas(PATH_FILL_ATLAS);
-        whiteHex = gameAtlas.findRegion(TEXTURE_REGION_HEX_WHITE);
-        thumbstickBgSprite = gameAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_BG);
+        whiteHex = mainAtlas.findRegion(TEXTURE_REGION_HEX_WHITE);
+        thumbstickBgSprite = mainAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_BG);
         thumbstickBgSprite.setSize(152, 152);
-        thumbstickPadSprite = gameAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_PAD);
+        thumbstickPadSprite = mainAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_PAD);
         thumbstickPadSprite.setSize(70, 70);
-        timeBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-        killsBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-        youWillRspwnBg = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        timeBg = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        killsBg = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        youWillRspwnBg = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         youWillRspwnBg.setColor(COLOR_TIME_TEXT_BACKGROUND);
         timeBg.setColor(COLOR_TIME_TEXT_BACKGROUND);
         killsBg.setColor(COLOR_KILLS_TEXT_BACKGROUND);
-        playerProgressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-        playerProgressBarBest = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        playerProgressBar = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        playerProgressBarBest = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest.setColor(COLOR_YOUR_PROGRESS_BG);
         loadingAnimation = new LoadingAnimation(PATH_LOADING_SPRITESHEET);
         gameCamera = new OrthographicCamera();
@@ -432,7 +433,7 @@ public class PlayScreen extends ScreenAdapter {
         if (client != null) client.close();
         if (batch != null) batch.dispose();
         if (fbo != null) fbo.dispose();
-        if (gameAtlas != null) gameAtlas.dispose();
+        if (mainAtlas != null) mainAtlas.dispose();
         if (fillAtlas != null) fillAtlas.dispose();
         if (logFont != null) logFont.dispose();
         if (usernameFont != null) usernameFont.dispose();
@@ -597,12 +598,14 @@ public class PlayScreen extends ScreenAdapter {
         });
     }
 
-    private void initCellGraphics(Cell cell) {
+    private void initCellSprite(Cell cell) {
         if (cell == null || players[cell.pid] == null) return;
         if (players[cell.pid].fillColor == null) {
             cell.sprite = fillAtlas.createSprite(players[cell.pid].fill);
+            cell.type = Cell.CELL_TYPE_TEXTURE;
             if (cell.sprite == null) {
-                cell.sprite = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                cell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                cell.type = Cell.CELL_TYPE_COLOR;
                 cell.sprite.setColor(Color.BLACK);
                 cell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
                 Vector2 pos = getHexPosition(cell.x, cell.y);
@@ -613,7 +616,8 @@ public class PlayScreen extends ScreenAdapter {
                 cell.sprite.setCenter(pos.x, pos.y - (CELL_HEIGHT - CELL_WIDTH) / 2f);
             }
         } else {
-            cell.sprite = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+            cell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+            cell.type = Cell.CELL_TYPE_COLOR;
             cell.sprite.setColor(players[cell.pid].strokeColor);
             cell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
             Vector2 pos = getHexPosition(cell.x, cell.y);
@@ -625,7 +629,8 @@ public class PlayScreen extends ScreenAdapter {
         if (pathCell == null) return;
         Player player = players[pathCell.pid];
         if (player == null) return;
-        pathCell.sprite = gameAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+        pathCell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+        pathCell.type = Cell.CELL_TYPE_COLOR;
         pathCell.sprite.setColor(players[pathCell.pid].pathCellColor);
         pathCell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
         Vector2 pos = getHexPosition(pathCell.x, pathCell.y);
@@ -1202,7 +1207,7 @@ public class PlayScreen extends ScreenAdapter {
                 prefs.flush();
                 LinkedHashMap<String, Object> options = new LinkedHashMap<>();
                 options.put("name", "milad");
-                String fill = TextUtil.padLeftZeros((int)(Math.random() * 100) + "", 5);
+                String fill = TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
                 System.out.println("fill >>> " + fill);
                 options.put("fill", fill);
                 options.put("stroke", "#F10101FF");
@@ -1360,18 +1365,18 @@ public class PlayScreen extends ScreenAdapter {
 
                                 player.text = new GlyphLayout(usernameFont, player._name);
 
-                                player._stroke = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                player._stroke = mainAtlas.createSprite(TEXTURE_REGION_BC);
                                 player._stroke.setSize(STROKE_SIZE, STROKE_SIZE);
                                 player._stroke.setColor(player.strokeColor);
                                 player._stroke.setCenter(player.x, player.y);
 
                                 if (player.fillColor != null) {
-                                    player._fill = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                    player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
                                     player._fill.setColor(player.fillColor);
                                 } else {
                                     player._fill = fillAtlas.createSprite(player.fill);
                                     if (player._fill == null) {
-                                        player._fill = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                        player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
                                         player._fill.setColor(Color.BLACK);
                                     }
                                 }
@@ -1381,7 +1386,7 @@ public class PlayScreen extends ScreenAdapter {
 
                                 if (player.clientId.equals(client.getId())) {
                                     playerProgressBar.setColor(player.progressColor);
-                                    player.indic = gameAtlas.createSprite(TEXTURE_REGION_INDIC);
+                                    player.indic = mainAtlas.createSprite(TEXTURE_REGION_INDIC);
                                     player.indic.setSize(INDIC_SIZE, INDIC_SIZE);
                                     player.indic.setColor(player.strokeColor);
                                     player.indic.setCenter(player.x, player.y);
@@ -1389,7 +1394,7 @@ public class PlayScreen extends ScreenAdapter {
                                     player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
                                 }
 
-                                player.bcGhost = gameAtlas.createSprite(TEXTURE_REGION_BC);
+                                player.bcGhost = mainAtlas.createSprite(TEXTURE_REGION_BC);
                                 player.bcGhost.setColor(player.strokeColor.r, player.strokeColor.g, player.strokeColor.b, player.strokeColor.a / 2f);
                                 player.bcGhost.setCenter(player.x, player.y);
                                 player.bcGhost.setSize(STROKE_SIZE, STROKE_SIZE);
@@ -1408,7 +1413,7 @@ public class PlayScreen extends ScreenAdapter {
 
                                 player._position = playerList.size() + 1;
                                 player._percentage = player.numCells / (float) TOTAL_CELLS;
-                                player.progressBar = gameAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+                                player.progressBar = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
                                 player.progressBar.setColor(player.progressColor);
                                 player.progressBar.setX(Gdx.graphics.getWidth() / 2f - (player._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
                                 player.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(player._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
@@ -1418,28 +1423,29 @@ public class PlayScreen extends ScreenAdapter {
                                     if (!playerList.contains(player)) playerList.add(player);
                                 }
 
-
-                                Gdx.app.postRunnable(() -> {
-                                    for (int x = leftXi; x <= leftXi + sizeX; x++) {
-                                        if (x < -MAP_SIZE || x > MAP_SIZE) continue;
-                                        for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
-                                            if (y < -MAP_SIZE || y > MAP_SIZE) continue;
-                                            Cell cell = cells[x + MAP_SIZE][y + MAP_SIZE];
-                                            if (cell != null && cell.pid == player.pid && cell.sprite == null) {
-                                                initCellGraphics(cell);
-                                            }
+                                for (int x = leftXi; x <= leftXi + sizeX; x++) {
+                                    if (x < -MAP_SIZE || x > MAP_SIZE) continue;
+                                    for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
+                                        if (y < -MAP_SIZE || y > MAP_SIZE) continue;
+                                        Cell cell = cells[x + MAP_SIZE][y + MAP_SIZE];
+                                        if (cell != null && cell.pid == player.pid && cell.sprite == null) {
+                                            if (player.clientId.equals(client.getId()))
+                                                System.out.println("FUCKING BUG >> initializing cell...");
+                                            initCellSprite(cell);
                                         }
                                     }
+                                }
 
-                                    for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
-                                        for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
-                                            Cell cell = cells[i][j];
-                                            if (cell != null && cell.pid == player.pid && cell.sprite == null) {
-                                                initCellGraphics(cell);
-                                            }
+                                for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
+                                    for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
+                                        Cell cell = cells[i][j];
+                                        if (cell != null && cell.pid == player.pid && cell.sprite == null) {
+                                            if (player.clientId.equals(client.getId()))
+                                                System.out.println("FUCKING BUG >> initializing cell...");
+                                            initCellSprite(cell);
                                         }
                                     }
-                                });
+                                }
 
                             });
                         };
@@ -1484,13 +1490,18 @@ public class PlayScreen extends ScreenAdapter {
 
                         room.state.cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            Gdx.app.postRunnable(() -> initCellGraphics(cell));
+                            Gdx.app.postRunnable(() -> {
+                                if (players[cell.pid] == null)
+                                    System.out.println("FUCKING BUG >> cell is here and player is null...");
+                                initCellSprite(cell);
+                            });
                             cell.onChange = changes -> {
                                 if (players[cell.pid] == null) return;
-                                if (players[cell.pid].fillColor != null) {
+                                if (players[cell.pid].fillColor != null && cell.type == Cell.CELL_TYPE_COLOR) {
+                                    // color -> color
                                     Gdx.app.postRunnable(() -> cell.sprite.setColor(players[cell.pid].strokeColor));
                                 } else {
-                                    Gdx.app.postRunnable(() -> initCellGraphics(cell));
+                                    Gdx.app.postRunnable(() -> initCellSprite(cell));
                                 }
                             };
                             cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
