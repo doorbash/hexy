@@ -53,6 +53,7 @@ public class PlayScreen extends ScreenAdapter {
     /* *************************************** CONSTANTS *****************************************/
 
     private static final boolean DEBUG_SHOW_GHOST = false;
+    private static final boolean DEBUG_DRAW_PIDS = false;
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
 
@@ -107,8 +108,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TAG = "PlayScreen";
 
     //    private static final String ENDPOINT = "ws://192.168.1.134:3333";
-//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
-    public static final String ENDPOINT = "ws://127.0.0.1:3333";
+    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+//    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
@@ -702,12 +703,12 @@ public class PlayScreen extends ScreenAdapter {
                         // only draw cell
                         if (players.get(cell.pid) == null) continue;
                         cell.sprite.draw(batch);
-//                        usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
+                        if(DEBUG_DRAW_PIDS) usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
                     } else {
                         // only draw path cell
                         if (players.get(pathCell.pid) == null) continue;
                         pathCell.sprite.draw(batch);
-//                        usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
+                        if(DEBUG_DRAW_PIDS) usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
                     }
 //                    drawList[cell.pid] = true;
 //                    drawList[pathCell.pid] = true;
@@ -717,14 +718,14 @@ public class PlayScreen extends ScreenAdapter {
                     // draw cell
                     if (players.get(cell.pid) == null) continue;
                     cell.sprite.draw(batch);
-//                    usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
+                    if(DEBUG_DRAW_PIDS) usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
 //                    drawList[cell.pid] = true;
                     if (!drawList.contains(cell.pid)) drawList.add(cell.pid);
                 } else if (hasPathCell) {
                     // draw path cell
                     if (players.get(pathCell.pid) == null) continue;
                     pathCell.sprite.draw(batch);
-//                    usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
+                    if(DEBUG_DRAW_PIDS) usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
 //                    drawList[pathCell.pid] = true;
                     if (!drawList.contains(pathCell.pid)) drawList.add(pathCell.pid);
                 }
@@ -1531,10 +1532,7 @@ public class PlayScreen extends ScreenAdapter {
 
                         player.path_cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            if (player.pid != cell.pid) {
-                                System.out.println("WHAT THE ACTUAL FUCK?");
-                            }
-                            System.out.println("new path cell for player " + player.pid + " name= " + player.name + " cell.pid= " + cell.pid);
+//                            System.out.println("new path cell for player " + player.pid + " name= " + player.name + " cell.pid= " + cell.pid);
                             Gdx.app.postRunnable(() -> initPathCellSprite(player, cell));
                             pathCells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
                         };
