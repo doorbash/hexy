@@ -32,6 +32,8 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
+import gnu.trove.impl.sync.TSynchronizedLongObjectMap;
+import gnu.trove.map.hash.TLongObjectHashMap;
 import io.colyseus.Client;
 import io.colyseus.Room;
 import io.colyseus.serializer.schema.Schema;
@@ -220,9 +222,10 @@ public class PlayScreen extends ScreenAdapter {
     private int sizeY;
 
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
-    private final Player[] players = new Player[51];
-    private final List<Player> playerList = new ArrayList<>();
-    private final boolean[] drawList = new boolean[51];
+    private final List<Player> leaderboardList = new ArrayList<>();
+    private static final Object playersMutex = new Object();
+    private TSynchronizedLongObjectMap<Player> players = new TSynchronizedLongObjectMap<>(new TLongObjectHashMap<>(), playersMutex);
+    private List<Long> drawList = new ArrayList<>();
     private final Cell[][] cells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
     private final Cell[][] pathCells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
 
@@ -333,7 +336,8 @@ public class PlayScreen extends ScreenAdapter {
         sizeX = (int) (actualWidth / GRID_WIDTH) + 3;
         sizeY = (int) (actualHeight / GRID_HEIGHT) + 3;
 
-        for (int i = 0; i < drawList.length; i++) drawList[i] = false;
+//        for (int i = 0; i < drawList.length; i++) drawList[i] = false;
+        drawList.clear();
 
         drawTiles();
         if (room != null) {
@@ -597,7 +601,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private void initCellSprite(Player player, Cell cell) {
         if (cell == null) return;
-        if(players[cell.pid] == null) return;
+        if (players.get(cell.pid) == null) return;
         if (player.fillColor == null) {
             cell.sprite = fillAtlas.createSprite(player.fill);
             cell.type = Cell.CELL_TYPE_TEXTURE;
@@ -616,7 +620,7 @@ public class PlayScreen extends ScreenAdapter {
         } else {
             cell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
             cell.type = Cell.CELL_TYPE_COLOR;
-            cell.sprite.setColor(players[cell.pid].strokeColor);
+            cell.sprite.setColor(players.get(cell.pid).strokeColor);
             cell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
             Vector2 pos = getHexPosition(cell.x, cell.y);
             cell.sprite.setCenter(pos.x, pos.y);
@@ -626,10 +630,10 @@ public class PlayScreen extends ScreenAdapter {
     private void initPathCellSprite(Player player, Cell pathCell) {
         if (pathCell == null) return;
         if (player == null) return;
-        if(players[pathCell.pid] == null) return;
+        if (players.get(pathCell.pid) == null) return;
         pathCell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
         pathCell.type = Cell.CELL_TYPE_COLOR;
-        pathCell.sprite.setColor(players[pathCell.pid].pathCellColor);
+        pathCell.sprite.setColor(players.get(pathCell.pid).pathCellColor);
         pathCell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
         Vector2 pos = getHexPosition(pathCell.x, pathCell.y);
         pathCell.sprite.setCenter(pos.x, pos.y);
@@ -666,13 +670,22 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawTrails() {
-        for (Player player : players) {
+        for (long drawPid : drawList) {
+            Player player = players.get(drawPid);
             if (player == null) continue;
-            if (!drawList[player.pid]) continue;
             if (player.status == 0 && player.trailGraphic != null) {
                 player.trailGraphic.render(batch.getProjectionMatrix());
             }
         }
+//        synchronized (playersMutex) {
+//            for (Player player : players.valueCollection()) {
+//                if (player == null) continue;
+//                if (!drawList[player.pid]) continue;
+//                if (player.status == 0 && player.trailGraphic != null) {
+//                    player.trailGraphic.render(batch.getProjectionMatrix());
+//                }
+//            }
+//        }
     }
 
     private void drawCells() {
@@ -687,38 +700,42 @@ public class PlayScreen extends ScreenAdapter {
                 if (hasCell && hasPathCell) {
                     if (cell.pid == pathCell.pid) {
                         // only draw cell
-                        if (players[cell.pid] == null) continue;
+                        if (players.get(cell.pid) == null) continue;
                         cell.sprite.draw(batch);
-                        usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
+//                        usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
                     } else {
                         // only draw path cell
-                        if (players[pathCell.pid] == null) continue;
+                        if (players.get(pathCell.pid) == null) continue;
                         pathCell.sprite.draw(batch);
-                        usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
+//                        usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
                     }
-                    drawList[cell.pid] = true;
-                    drawList[pathCell.pid] = true;
+//                    drawList[cell.pid] = true;
+//                    drawList[pathCell.pid] = true;
+                    if (!drawList.contains(cell.pid)) drawList.add(cell.pid);
+                    if (!drawList.contains(pathCell.pid)) drawList.add(pathCell.pid);
                 } else if (hasCell) {
                     // draw cell
-                    if (players[cell.pid] == null) continue;
+                    if (players.get(cell.pid) == null) continue;
                     cell.sprite.draw(batch);
-                    usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
-                    drawList[cell.pid] = true;
+//                    usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
+//                    drawList[cell.pid] = true;
+                    if (!drawList.contains(cell.pid)) drawList.add(cell.pid);
                 } else if (hasPathCell) {
                     // draw path cell
-                    if (players[pathCell.pid] == null) continue;
+                    if (players.get(pathCell.pid) == null) continue;
                     pathCell.sprite.draw(batch);
-                    usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
-                    drawList[pathCell.pid] = true;
+//                    usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
+//                    drawList[pathCell.pid] = true;
+                    if (!drawList.contains(pathCell.pid)) drawList.add(pathCell.pid);
                 }
             }
         }
     }
 
     private void drawPlayers() {
-        for (Player player : players) {
+        for (long drawPid : drawList) {
+            Player player = players.get(drawPid);
             if (player == null) continue;
-            if (!drawList[player.pid]) continue;
             if (player.status == 0) {
                 if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
                 if (player._stroke != null) player._stroke.draw(batch);
@@ -732,6 +749,23 @@ public class PlayScreen extends ScreenAdapter {
                 if (player.indic != null) player.indic.draw(batch);
             }
         }
+
+//        for (Player player : players) {
+//            if (player == null) continue;
+//            if (!drawList[player.pid]) continue;
+//            if (player.status == 0) {
+//                if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
+//                if (player._stroke != null) player._stroke.draw(batch);
+//                if (player._fill != null) player._fill.draw(batch);
+//                if (player._stroke != null && player.text != null) {
+//                    float x = player._stroke.getX() + player._stroke.getWidth() / 2f - player.text.width / 2f;
+//                    float y = player._stroke.getY() + 70;
+//                    usernameFont.setColor(player.strokeColor);
+//                    usernameFont.draw(batch, player._name, x, y);
+//                }
+//                if (player.indic != null) player.indic.draw(batch);
+//            }
+//        }
     }
 
     private void drawProgressbar(Player player, float dt, boolean drawStatic) {
@@ -776,22 +810,22 @@ public class PlayScreen extends ScreenAdapter {
 
     private void drawLeaderboard(float dt) {
 
-        synchronized (playerList) {
+        synchronized (leaderboardList) {
 
             // sort players by numCells
-            Collections.sort(playerList, SORT_PLAYERS_BY_NUM_CELLS);
+            Collections.sort(leaderboardList, SORT_PLAYERS_BY_NUM_CELLS);
 
             short kk = 1;
-            for (Player cm : playerList) {
+            for (Player cm : leaderboardList) {
                 cm.position = kk++;
             }
 
-            Collections.sort(playerList, SORT_PLAYERS_BY_POSITION);
+            Collections.sort(leaderboardList, SORT_PLAYERS_BY_POSITION);
 
             if (!leaderboardDrawAgain) {
                 List<Integer> _positions = new ArrayList<>();
                 boolean allWrong = false;
-                for (Player player : playerList) {
+                for (Player player : leaderboardList) {
                     if (_positions.contains(player._position)) {
                         allWrong = true;
                         break;
@@ -800,7 +834,7 @@ public class PlayScreen extends ScreenAdapter {
                 }
                 if (allWrong) {
                     int x = 1;
-                    for (Player player : playerList) {
+                    for (Player player : leaderboardList) {
                         player._position = x++;
                     }
                     leaderboardDrawAgain = true;
@@ -808,7 +842,7 @@ public class PlayScreen extends ScreenAdapter {
             }
 
             if (leaderboardDrawAgain) {
-                for (Player player : playerList) {
+                for (Player player : leaderboardList) {
                     player.positionIsChanging = false;
                     if (player.progressBar != null) {
                         player.progressBar.setX(Gdx.graphics.getWidth() / 2f - (player._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
@@ -818,11 +852,11 @@ public class PlayScreen extends ScreenAdapter {
                 leaderboardDrawAgain = false;
             } else {
 
-                for (int i = 0; i < playerList.size() - 1; i++) {
-                    Player player = playerList.get(i);
+                for (int i = 0; i < leaderboardList.size() - 1; i++) {
+                    Player player = leaderboardList.get(i);
                     if (player.positionIsChanging) continue;
                     if (player.position > player._position) { // yani bayad bere paeen
-                        Player next = playerList.get(i + 1);
+                        Player next = leaderboardList.get(i + 1);
                         if (!next.positionIsChanging && next.position <= next._position) {
                             if (player._position <= LEADERBOARD_NUM) {
                                 if (next._position <= LEADERBOARD_NUM + 1) {
@@ -839,20 +873,20 @@ public class PlayScreen extends ScreenAdapter {
                     }
                 }
 
-                Collections.sort(playerList, SORT_PLAYERS_BY_POSITION);
+                Collections.sort(leaderboardList, SORT_PLAYERS_BY_POSITION);
             }
 
             boolean playerProgressPrinted = false;
 //            Player currentPlayer = room.state.players.get(client.getId());
-            int limit = Math.min(LEADERBOARD_NUM + 1, playerList.size());
+            int limit = Math.min(LEADERBOARD_NUM + 1, leaderboardList.size());
             for (int i = limit - 1; i >= 0; i--) {
-                Player player = playerList.get(i); // _position = i + 1
+                Player player = leaderboardList.get(i); // _position = i + 1
                 if (player == null || player.progressBar == null) continue;
                 if (i == LEADERBOARD_NUM) {
                     if (!player.positionIsChanging) continue;
                     if (player.changeDir == Player.CHANGE_DIRECTION_UP) continue;
                 }
-                if (players[player.pid] == null) {
+                if (players.get(player.pid) == null) {
                     player.positionIsChanging = false;
                     continue;
                 }
@@ -947,11 +981,13 @@ public class PlayScreen extends ScreenAdapter {
 
     private void updatePlayersPositions(float dt) {
 //        synchronized (players) {
-        for (int i = 0; i < players.length; i++) {
-            Player player = players[i];
-            if (player == null || player._stroke == null) continue;
+//        for (int i = 0; i < players.length; i++) {
+//            Player player = players[i];
+        synchronized (playersMutex) {
+            for (Player player : players.valueCollection()) {
+                if (player == null || player._stroke == null) continue;
 
-            if (player.status == 0) {
+                if (player.status == 0) {
 
 //                    if (ADD_FAKE_PATH_CELLS) {
 //                        synchronized (player.pathCells) {
@@ -978,52 +1014,53 @@ public class PlayScreen extends ScreenAdapter {
 //                        }
 //                    }
 
-                if (CORRECT_PLAYER_POSITION) {
-                    if (correctPlayerPositionTime < 0) {
-                        correctPlayerPosition(player);
-                        correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
-                    } else correctPlayerPositionTime -= dt * 1000;
-                }
+                    if (CORRECT_PLAYER_POSITION) {
+                        if (correctPlayerPositionTime < 0) {
+                            correctPlayerPosition(player);
+                            correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
+                        } else correctPlayerPositionTime -= dt * 1000;
+                    }
 
-                player._angle += _Math.angleDistance(player._angle, player.new_angle) * PLAYER_ROTATE_SPEED * dt;
+                    player._angle += _Math.angleDistance(player._angle, player.new_angle) * PLAYER_ROTATE_SPEED * dt;
 
-                float x = player._stroke.getX() + player._stroke.getWidth() / 2f;
-                float y = player._stroke.getY() + player._stroke.getHeight() / 2f;
+                    float x = player._stroke.getX() + player._stroke.getWidth() / 2f;
+                    float y = player._stroke.getY() + player._stroke.getHeight() / 2f;
 
-                float newX = x + MathUtils.cos(player.angle) * player.speed * dt;
-                float newY = y + MathUtils.sin(player.angle) * player.speed * dt;
+                    float newX = x + MathUtils.cos(player.angle) * player.speed * dt;
+                    float newY = y + MathUtils.sin(player.angle) * player.speed * dt;
 
-                if (newX <= MAP_SIZE_X_EXT_PIXEL && newX >= -MAP_SIZE_X_EXT_PIXEL) x = newX;
-                if (newY <= MAP_SIZE_Y_EXT_PIXEL && newY >= -MAP_SIZE_Y_EXT_PIXEL) y = newY;
+                    if (newX <= MAP_SIZE_X_EXT_PIXEL && newX >= -MAP_SIZE_X_EXT_PIXEL) x = newX;
+                    if (newY <= MAP_SIZE_Y_EXT_PIXEL && newY >= -MAP_SIZE_Y_EXT_PIXEL) y = newY;
 
-                player._stroke.setCenter(x, y);
+                    player._stroke.setCenter(x, y);
 
-                player._fill.setCenter(x, y);
+                    player._fill.setCenter(x, y);
 
-                if (player.indic != null) {
-                    player.indic.setCenter(x, y);
-                    player.indic.setRotation(player._angle * MathUtils.radiansToDegrees - 90);
-                }
+                    if (player.indic != null) {
+                        player.indic.setCenter(x, y);
+                        player.indic.setRotation(player._angle * MathUtils.radiansToDegrees - 90);
+                    }
 
-                player.bcGhost.setCenter(player.x, player.y);
+                    player.bcGhost.setCenter(player.x, player.y);
 
 //                    if (ADD_FAKE_PATH_CELLS) {
 //                        if (room.state.started && !room.state.ended)
 //                            processPlayerPosition(player, x, y);
 //                    }
-            } else {
-                float x = player.x;
-                float y = player.y;
+                } else {
+                    float x = player.x;
+                    float y = player.y;
 
-                player._stroke.setCenter(x, y);
-                player._fill.setCenter(x, y);
-                if (player.indic != null) {
-                    player.indic.setCenter(x, y);
-                    player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                    player._stroke.setCenter(x, y);
+                    player._fill.setCenter(x, y);
+                    if (player.indic != null) {
+                        player.indic.setCenter(x, y);
+                        player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                    }
+                    player.bcGhost.setCenter(player.x, player.y);
                 }
-                player.bcGhost.setCenter(player.x, player.y);
-            }
 
+            }
         }
 //        }
     }
@@ -1311,9 +1348,10 @@ public class PlayScreen extends ScreenAdapter {
                     protected void onJoin() {
                         System.out.println("joined " + getRoomName());
 
-                        for (int i = 0; i < players.length; i++) {
-                            players[i] = null;
-                        }
+//                        for (int i = 0; i < players.length; i++) {
+//                            players[i] = null;
+//                        }
+                        players.clear();
                         for (int i = 0; i < MAP_SIZE * 2 + 1; i++) {
                             for (int j = 0; j < MAP_SIZE * 2 + 1; j++) {
                                 cells[i][j] = null;
@@ -1344,6 +1382,10 @@ public class PlayScreen extends ScreenAdapter {
                         room.state.players.onAdd = (player, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
                             if (player.pid == 0) return;
+
+                            if (player.clientId.equals(client.getId())) {
+                                System.out.println("OOOOOOOOOOO YOU HAVE BEEN ADDED YOO HAHAHAHA");
+                            }
 
                             player._name = arFont.getText(player.name);
                             player._angle = player.angle;
@@ -1411,16 +1453,16 @@ public class PlayScreen extends ScreenAdapter {
                                 player.trailGraphic.setRopeWidth(ROPE_WIDTH);
                                 player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
 
-                                player._position = playerList.size() + 1;
+                                player._position = leaderboardList.size() + 1;
                                 player._percentage = player.numCells / (float) TOTAL_CELLS;
                                 player.progressBar = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
                                 player.progressBar.setColor(player.progressColor);
                                 player.progressBar.setX(Gdx.graphics.getWidth() / 2f - (player._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
                                 player.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(player._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
 
-                                players[player.pid] = player;
-                                synchronized (playerList) {
-                                    if (!playerList.contains(player)) playerList.add(player);
+                                players.put(player.pid, player);
+                                synchronized (leaderboardList) {
+                                    if (!leaderboardList.contains(player)) leaderboardList.add(player);
                                 }
 
                                 registerPlayerCallbacks(player);
@@ -1459,9 +1501,9 @@ public class PlayScreen extends ScreenAdapter {
                                     }
                                 }
                             }
-                            players[player.pid] = null;
-                            synchronized (playerList) {
-                                playerList.remove(player);
+                            players.remove(player.pid);
+                            synchronized (leaderboardList) {
+                                leaderboardList.remove(player);
                             }
                         };
 
@@ -1489,7 +1531,7 @@ public class PlayScreen extends ScreenAdapter {
 
                         player.path_cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            if(player.pid != cell.pid) {
+                            if (player.pid != cell.pid) {
                                 System.out.println("WHAT THE ACTUAL FUCK?");
                             }
                             System.out.println("new path cell for player " + player.pid + " name= " + player.name + " cell.pid= " + cell.pid);
