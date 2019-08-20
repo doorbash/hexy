@@ -597,6 +597,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private void initCellSprite(Player player, Cell cell) {
         if (cell == null) return;
+        if(players[cell.pid] == null) return;
         if (player.fillColor == null) {
             cell.sprite = fillAtlas.createSprite(player.fill);
             cell.type = Cell.CELL_TYPE_TEXTURE;
@@ -625,6 +626,7 @@ public class PlayScreen extends ScreenAdapter {
     private void initPathCellSprite(Player player, Cell pathCell) {
         if (pathCell == null) return;
         if (player == null) return;
+        if(players[pathCell.pid] == null) return;
         pathCell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
         pathCell.type = Cell.CELL_TYPE_COLOR;
         pathCell.sprite.setColor(players[pathCell.pid].pathCellColor);
@@ -685,24 +687,28 @@ public class PlayScreen extends ScreenAdapter {
                 if (hasCell && hasPathCell) {
                     if (cell.pid == pathCell.pid) {
                         // only draw cell
-                        if (cell.sprite == null) continue;
+                        if (players[cell.pid] == null) continue;
                         cell.sprite.draw(batch);
+                        usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
                     } else {
                         // only draw path cell
-                        if (pathCell.sprite == null) continue;
+                        if (players[pathCell.pid] == null) continue;
                         pathCell.sprite.draw(batch);
+                        usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
                     }
                     drawList[cell.pid] = true;
                     drawList[pathCell.pid] = true;
                 } else if (hasCell) {
                     // draw cell
-                    if (cell.sprite == null) continue;
+                    if (players[cell.pid] == null) continue;
                     cell.sprite.draw(batch);
+                    usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
                     drawList[cell.pid] = true;
                 } else if (hasPathCell) {
                     // draw path cell
-                    if (pathCell.sprite == null) continue;
+                    if (players[pathCell.pid] == null) continue;
                     pathCell.sprite.draw(batch);
+                    usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
                     drawList[pathCell.pid] = true;
                 }
             }
@@ -1246,16 +1252,16 @@ public class PlayScreen extends ScreenAdapter {
                                 Timer.schedule(new Timer.Task() {
                                     @Override
                                     public void run() {
-                                        for (int x = leftXi; x <= leftXi + sizeX; x++) {
-                                            if (x < -MAP_SIZE || x > MAP_SIZE) continue;
-                                            for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
-                                                if (y < -MAP_SIZE || y > MAP_SIZE) continue;
-                                                Cell cell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
-                                                if (cell != null && cell.pid == player.pid) {
-                                                    pathCells[x + MAP_SIZE][y + MAP_SIZE] = null;
-                                                }
-                                            }
-                                        }
+//                                        for (int x = leftXi; x <= leftXi + sizeX; x++) {
+//                                            if (x < -MAP_SIZE || x > MAP_SIZE) continue;
+//                                            for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
+//                                                if (y < -MAP_SIZE || y > MAP_SIZE) continue;
+//                                                Cell cell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
+//                                                if (cell != null && cell.pid == player.pid) {
+//                                                    pathCells[x + MAP_SIZE][y + MAP_SIZE] = null;
+//                                                }
+//                                            }
+//                                        }
 
                                         for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
                                             for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
@@ -1483,6 +1489,10 @@ public class PlayScreen extends ScreenAdapter {
 
                         player.path_cells.onAdd = (cell, key) -> {
                             if (connectionState != CONNECTION_STATE_CONNECTED) return;
+                            if(player.pid != cell.pid) {
+                                System.out.println("WHAT THE ACTUAL FUCK?");
+                            }
+                            System.out.println("new path cell for player " + player.pid + " name= " + player.name + " cell.pid= " + cell.pid);
                             Gdx.app.postRunnable(() -> initPathCellSprite(player, cell));
                             pathCells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
                         };
