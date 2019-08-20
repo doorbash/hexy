@@ -126,6 +126,7 @@ project(":core") {
         implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         implementation 'org.java-websocket:Java-WebSocket:1.4.0'
         implementation 'org.msgpack:jackson-dataformat-msgpack:0.8.17'
+        implementation 'net.sf.trove4j:trove4j:3.0.3'
     }
 }
 
