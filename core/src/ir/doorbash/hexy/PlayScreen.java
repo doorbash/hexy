@@ -35,6 +35,7 @@ import java.util.List;
 import gnu.trove.impl.sync.TSynchronizedLongObjectMap;
 import gnu.trove.map.hash.TLongObjectHashMap;
 import io.colyseus.Client;
+import io.colyseus.Client.MatchMakeException;
 import io.colyseus.Room;
 import io.colyseus.serializer.schema.Schema;
 import ir.doorbash.hexy.model.Cell;
@@ -107,8 +108,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-    //    private static final String ENDPOINT = "ws://192.168.1.134:3333";
-    public static final String ENDPOINT = "ws://46.21.147.7:3333";
+        private static final String ENDPOINT = "ws://192.168.1.136:3333";
+//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
@@ -222,6 +223,9 @@ public class PlayScreen extends ScreenAdapter {
     private int sizeX;
     private int sizeY;
 
+    private String sessionId;
+    private String roomId;
+
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final List<Player> leaderboardList = new ArrayList<>();
     private static final Object playersMutex = new Object();
@@ -236,7 +240,7 @@ public class PlayScreen extends ScreenAdapter {
     private Vector2 onScreenPadNorVector = new Vector2();
     private final Vector2 deathPosition = new Vector2();
 
-    private Client client;
+    //    private Client client;
     private Room<MyState> room;
     private final ArFont arFont = new ArFont();
     private Player currentPlayer;
@@ -307,7 +311,7 @@ public class PlayScreen extends ScreenAdapter {
         Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
         if (room != null) {
-            currentPlayer = room.state.players.get(client.getId());
+            currentPlayer = room.state.players.get(room.getSessionId());
             if (connectionState < CONNECTION_STATE_CLOSED) {
                 if (currentPlayer != null && currentPlayer._stroke != null) {
 //                camera.position.x = player.bc.getX() + player.bc.getWidth() / 2f;
@@ -432,7 +436,6 @@ public class PlayScreen extends ScreenAdapter {
     @Override
     public void dispose() {
         if (room != null) room.leave();
-        if (client != null) client.close();
         if (batch != null) batch.dispose();
         if (fbo != null) fbo.dispose();
         if (mainAtlas != null) mainAtlas.dispose();
@@ -703,12 +706,14 @@ public class PlayScreen extends ScreenAdapter {
                         // only draw cell
                         if (players.get(cell.pid) == null) continue;
                         cell.sprite.draw(batch);
-                        if(DEBUG_DRAW_PIDS) usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
+                        if (DEBUG_DRAW_PIDS)
+                            usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
                     } else {
                         // only draw path cell
                         if (players.get(pathCell.pid) == null) continue;
                         pathCell.sprite.draw(batch);
-                        if(DEBUG_DRAW_PIDS) usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
+                        if (DEBUG_DRAW_PIDS)
+                            usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
                     }
 //                    drawList[cell.pid] = true;
 //                    drawList[pathCell.pid] = true;
@@ -718,14 +723,16 @@ public class PlayScreen extends ScreenAdapter {
                     // draw cell
                     if (players.get(cell.pid) == null) continue;
                     cell.sprite.draw(batch);
-                    if(DEBUG_DRAW_PIDS) usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
+                    if (DEBUG_DRAW_PIDS)
+                        usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
 //                    drawList[cell.pid] = true;
                     if (!drawList.contains(cell.pid)) drawList.add(cell.pid);
                 } else if (hasPathCell) {
                     // draw path cell
                     if (players.get(pathCell.pid) == null) continue;
                     pathCell.sprite.draw(batch);
-                    if(DEBUG_DRAW_PIDS) usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
+                    if (DEBUG_DRAW_PIDS)
+                        usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
 //                    drawList[pathCell.pid] = true;
                     if (!drawList.contains(pathCell.pid)) drawList.add(pathCell.pid);
                 }
@@ -878,7 +885,7 @@ public class PlayScreen extends ScreenAdapter {
             }
 
             boolean playerProgressPrinted = false;
-//            Player currentPlayer = room.state.players.get(client.getId());
+//            Player currentPlayer = room.state.players.get(room.getSessionId());
             int limit = Math.min(LEADERBOARD_NUM + 1, leaderboardList.size());
             for (int i = limit - 1; i >= 0; i--) {
                 Player player = leaderboardList.get(i); // _position = i + 1
@@ -905,7 +912,7 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawPlayerProgress() {
-//        Player currentPlayer = room.state.players.get(client.getId());
+//        Player currentPlayer = room.state.players.get(room.getSessionId());
         if (currentPlayer == null || currentPlayer.strokeColor == null) return;
 
         DecimalFormat decimalFormat = new DecimalFormat("#0.0");
@@ -958,7 +965,7 @@ public class PlayScreen extends ScreenAdapter {
 //    }
 
     private void drawYouWillRespawnText() {
-//        Player player = room.state.players.get(client.getId());
+//        Player player = room.state.players.get(room.getSessionId());
         if (currentPlayer == null || currentPlayer.status != 1) return;
         int remainingTime = (int) (currentPlayer.rspwnTime - getServerTime());
         int seconds = remainingTime / 1000;
@@ -1119,7 +1126,7 @@ public class PlayScreen extends ScreenAdapter {
 //                    float d = dst > 75 ? dst : dst > 25 ? 5f : Math.min(dst, 1.25f);
 
         if (lerp > 0) {
-            if (player.clientId.equals(client.getId())) {
+            if (player.clientId.equals(room.getSessionId())) {
                 System.out.println("lerp is " + lerp);
             }
             player._stroke.setCenterX(MathUtils.lerp(player._stroke.getX() + player._stroke.getWidth() / 2f, player.x, lerp));
@@ -1146,7 +1153,7 @@ public class PlayScreen extends ScreenAdapter {
 //            } else if (dst > 60) {
 //                return 10 / dst;
 //            } else {
-//                if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
+//                if (player.clientId.equals(room.getSessionId())) System.out.println("NO LERPING");
 //                return 0;
 //            }
 //        } else {
@@ -1163,7 +1170,7 @@ public class PlayScreen extends ScreenAdapter {
         } else if (dst > 25) { // > 5
             return 10f / dst;
         } else {
-            if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
+            if (player.clientId.equals(room.getSessionId())) System.out.println("NO LERPING");
 //                return 0.3f;
             return 0;
         }
@@ -1171,7 +1178,7 @@ public class PlayScreen extends ScreenAdapter {
 //        float l = 1 + (dst - 5625) / 6222f;
 //        if (l > 1) return 1;
 //        if (l < 0.1f) {
-//            if (player.clientId.equals(client.getId())) System.out.println("NO LERPING");
+//            if (player.clientId.equals(room.getSessionId())) System.out.println("NO LERPING");
 //            return 0;
 //        }
 //        return l;
@@ -1240,56 +1247,89 @@ public class PlayScreen extends ScreenAdapter {
         System.out.println("ConnectToServer...");
         connectionState = CONNECTION_STATE_CONNECTING;
 
-        client = new Client(ENDPOINT, prefs.getString("clientId"), null, null, 10000, new Client.Listener() {
+        Client client = new Client(ENDPOINT);
+        LinkedHashMap<String, Object> options = new LinkedHashMap<>();
+        options.put("name", "milad");
+        String fill = TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
+        System.out.println("fill >>> " + fill);
+        options.put("fill", fill);
+        options.put("stroke", "#F10101FF");
+        if (sessionId == null) {
+            client.joinOrCreate(getRoomName(), MyState.class, options, this::updateRoom, e -> {
+                e.printStackTrace();
+                if (connectionState != CONNECTION_STATE_CLOSED)
+                    connectionState = CONNECTION_STATE_DISCONNECTED;
+            });
+        } else {
+            client.reconnect(roomId, sessionId, MyState.class, this::updateRoom, e -> {
+                if (e instanceof MatchMakeException) {
+                    this.roomId = null;
+                    this.sessionId = null;
+                }
+                e.printStackTrace();
+                if (connectionState != CONNECTION_STATE_CLOSED)
+                    connectionState = CONNECTION_STATE_DISCONNECTED;
+            });
+        }
+    }
+
+    private void updateRoom(Room<MyState> room) {
+        this.room = room;
+        this.sessionId = room.getSessionId();
+        this.roomId = room.getId();
+
+        System.out.println("joined " + getRoomName());
+
+        players.clear();
+        for (int i = 0; i < MAP_SIZE * 2 + 1; i++) {
+            for (int j = 0; j < MAP_SIZE * 2 + 1; j++) {
+                cells[i][j] = null;
+                pathCells[i][j] = null;
+            }
+        }
+
+        connectionState = CONNECTION_STATE_CONNECTED;
+        isUpdating = true;
+        registerCallbacks();
+
+        room.setListener(new Room.Listener() {
+
             @Override
-            public void onOpen(String id) {
-                prefs.putString("clientId", id);
-                prefs.flush();
-                LinkedHashMap<String, Object> options = new LinkedHashMap<>();
-                options.put("name", "milad");
-                String fill = TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
-                System.out.println("fill >>> " + fill);
-                options.put("fill", fill);
-                options.put("stroke", "#F10101FF");
-                room = client.join(getRoomName(), options, MyState.class);
-                room.addListener(new Room.Listener() {
+            protected void onLeave() {
+                System.out.println("left " + getRoomName());
+                if (connectionState != CONNECTION_STATE_CLOSED)
+                    connectionState = CONNECTION_STATE_DISCONNECTED;
+            }
 
-                    @Override
-                    protected void onLeave() {
-                        System.out.println("left " + getRoomName());
-                        if (connectionState != CONNECTION_STATE_CLOSED)
-                            connectionState = CONNECTION_STATE_DISCONNECTED;
-                    }
+            @Override
+            protected void onError(Exception e) {
+                if (connectionState != CONNECTION_STATE_CLOSED)
+                    connectionState = CONNECTION_STATE_DISCONNECTED;
+                System.out.println("onError()");
+                e.printStackTrace();
+            }
 
-                    @Override
-                    protected void onError(Exception e) {
-                        if (connectionState != CONNECTION_STATE_CLOSED)
-                            connectionState = CONNECTION_STATE_DISCONNECTED;
-                        System.out.println("onError()");
-                        e.printStackTrace();
-                    }
-
-                    @Override
-                    protected void onMessage(Object message) {
-                        System.out.println("onMessage()");
-                        System.out.println(message);
-                        LinkedHashMap<String, Object> data = (LinkedHashMap<String, Object>) message;
-                        if (data.get("op").equals("wlc")) {
-                            long time = (long) data.get("time");
-                            timeDiff = time - System.currentTimeMillis();
-                            System.out.println("time diff: " + timeDiff);
-                        } else if (data.get("op").equals("cp")) {
-                            if (connectionState == CONNECTION_STATE_CLOSED) return;
-                            String clientId = (String) data.get("player");
-                            int num = (int) data.get("num");
-                            Player player = room.state.players.get(clientId);
-                            if (player != null) {
-                                if (player.trailGraphic != null) {
-                                    Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
-                                }
-                                Timer.schedule(new Timer.Task() {
-                                    @Override
-                                    public void run() {
+            @Override
+            protected void onMessage(Object message) {
+                System.out.println("onMessage()");
+                System.out.println(message);
+                LinkedHashMap<String, Object> data = (LinkedHashMap<String, Object>) message;
+                if (data.get("op").equals("wlc")) {
+                    long time = (long) data.get("time");
+                    timeDiff = time - System.currentTimeMillis();
+                    System.out.println("time diff: " + timeDiff);
+                } else if (data.get("op").equals("cp")) {
+                    if (connectionState == CONNECTION_STATE_CLOSED) return;
+                    String clientId = (String) data.get("player");
+                    int num = (int) data.get("num");
+                    Player player = room.state.players.get(clientId);
+                    if (player != null) {
+                        if (player.trailGraphic != null) {
+                            Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
+                        }
+                        Timer.schedule(new Timer.Task() {
+                            @Override
+                            public void run() {
 //                                        for (int x = leftXi; x <= leftXi + sizeX; x++) {
 //                                            if (x < -MAP_SIZE || x > MAP_SIZE) continue;
 //                                            for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
@@ -1301,181 +1341,163 @@ public class PlayScreen extends ScreenAdapter {
 //                                            }
 //                                        }
 
-                                        for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
-                                            for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
-                                                Cell pathCell = pathCells[i][j];
-                                                if (pathCell != null && pathCell.pid == player.pid) {
-                                                    pathCells[i][j] = null;
-                                                }
-                                            }
+                                for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
+                                    for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
+                                        Cell pathCell = pathCells[i][j];
+                                        if (pathCell != null && pathCell.pid == player.pid) {
+                                            pathCells[i][j] = null;
                                         }
                                     }
-                                }, 0.3f);
+                                }
                             }
-                            if (clientId.equals(client.getId())) {
-                                if (num > 4)
-                                    Gdx.app.postRunnable(() -> captureSound.play());
-                                Gdx.app.log(TAG, "+" + num + " blocks");
-                            }
-                        } else if (data.get("op").equals("pg")) {
-                            long t = (long) data.get("t");
-                            long st = (long) data.get("st");
-                            long currentTimeMillis = System.currentTimeMillis();
-                            timeDiff = st - currentTimeMillis;
-                            // System.out.println("new timeDiff = " + timeDiff);
-                            if (t == lastPingSentTime) {
-                                lastPingReplyTime = currentTimeMillis;
-                                currentPing = (int) (lastPingReplyTime - t);
-                            } else currentPing = 0;
-                        } else if (data.get("op").equals("dt")) {
-                            // dead
-                            connectionState = CONNECTION_STATE_CLOSED;
-                            double x = Double.valueOf(data.get("x") + "");
-                            double y = Double.valueOf(data.get("y") + "");
-                            deathPosition.set((float) x, (float) y);
-                            Gdx.app.postRunnable(() -> {
-                                deathSound.play();
-                                gameCamera.zoom = 1;
-                            });
-                            System.out.println("YOU ARE DEAD!");
-                            // TODO: show death dialog
-                        } else if (data.get("op").equals("ht")) {
-                            // dead
-                            Gdx.app.postRunnable(() -> hitSound.play());
-                        }
+                        }, 0.3f);
                     }
-
-                    @Override
-                    protected void onJoin() {
-                        System.out.println("joined " + getRoomName());
-
-//                        for (int i = 0; i < players.length; i++) {
-//                            players[i] = null;
-//                        }
-                        players.clear();
-                        for (int i = 0; i < MAP_SIZE * 2 + 1; i++) {
-                            for (int j = 0; j < MAP_SIZE * 2 + 1; j++) {
-                                cells[i][j] = null;
-                                pathCells[i][j] = null;
-                            }
-                        }
-
-                        connectionState = CONNECTION_STATE_CONNECTED;
-                        isUpdating = true;
-                        registerCallbacks();
+                    if (clientId.equals(room.getSessionId())) {
+                        if (num > 4)
+                            Gdx.app.postRunnable(() -> captureSound.play());
+                        Gdx.app.log(TAG, "+" + num + " blocks");
                     }
+                } else if (data.get("op").equals("pg")) {
+                    long t = (long) data.get("t");
+                    long st = (long) data.get("st");
+                    long currentTimeMillis = System.currentTimeMillis();
+                    timeDiff = st - currentTimeMillis;
+                    // System.out.println("new timeDiff = " + timeDiff);
+                    if (t == lastPingSentTime) {
+                        lastPingReplyTime = currentTimeMillis;
+                        currentPing = (int) (lastPingReplyTime - t);
+                    } else currentPing = 0;
+                } else if (data.get("op").equals("dt")) {
+                    // dead
+                    connectionState = CONNECTION_STATE_CLOSED;
+                    double x = Double.valueOf(data.get("x") + "");
+                    double y = Double.valueOf(data.get("y") + "");
+                    deathPosition.set((float) x, (float) y);
+                    Gdx.app.postRunnable(() -> {
+                        deathSound.play();
+                        gameCamera.zoom = 1;
+                    });
+                    System.out.println("YOU ARE DEAD!");
+                    // TODO: show death dialog
+                } else if (data.get("op").equals("ht")) {
+                    // dead
+                    Gdx.app.postRunnable(() -> hitSound.play());
+                }
+            }
 
-                    @Override
-                    protected void onStateChange(Schema state, boolean isFirstState) {
-                        if (isFirstState) {
-                            Timer.schedule(new Timer.Task() {
-                                @Override
-                                public void run() {
-                                    message.put("op", "r");
-                                    room.send(message);
-                                    isUpdating = false;
-                                }
-                            }, 1f);
+            @Override
+            protected void onStateChange(Schema state, boolean isFirstState) {
+                if (isFirstState) {
+                    Timer.schedule(new Timer.Task() {
+                        @Override
+                        public void run() {
+                            message.put("op", "r");
+                            room.send(message);
+                            isUpdating = false;
                         }
+                    }, 1f);
+                }
+            }
+        });
+    }
+
+    void registerCallbacks() {
+        room.state.players.onAdd = (player, key) -> {
+            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+            if (player.pid == 0) return;
+
+            if (player.clientId.equals(room.getSessionId())) {
+                System.out.println("OOOOOOOOOOO YOU HAVE BEEN ADDED YOO HAHAHAHA");
+            }
+
+            player._name = arFont.getText(player.name);
+            player._angle = player.angle;
+
+            Gdx.app.postRunnable(() -> {
+
+                if (player.stroke.startsWith("#") && player.stroke.length() == 9) {
+                    player.strokeColor = Color.valueOf(player.stroke);
+                    player.progressColor = ColorUtil.getPlayerProgressColor(player.strokeColor);
+                    player.pathCellColor = ColorUtil.getPlayerPathCellColor(player.strokeColor);
+                } else {
+                    player.strokeColor = Color.BLACK;
+                    player.progressColor = Color.BLACK;
+                    player.pathCellColor = Color.BLACK;
+                }
+
+                if (player.fill.startsWith("#") && player.fill.length() == 9) {
+                    player.fillColor = Color.valueOf(player.fill);
+                    player.progressColor = player.fillColor;
+                }
+
+                player.text = new GlyphLayout(usernameFont, player._name);
+
+                player._stroke = mainAtlas.createSprite(TEXTURE_REGION_BC);
+                player._stroke.setSize(STROKE_SIZE, STROKE_SIZE);
+                player._stroke.setColor(player.strokeColor);
+                player._stroke.setCenter(player.x, player.y);
+
+                if (player.fillColor != null) {
+                    player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
+                    player._fill.setColor(player.fillColor);
+                } else {
+                    player._fill = fillAtlas.createSprite(player.fill);
+                    if (player._fill == null) {
+                        player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
+                        player._fill.setColor(Color.BLACK);
                     }
+                }
 
-                    void registerCallbacks() {
-                        room.state.players.onAdd = (player, key) -> {
-                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            if (player.pid == 0) return;
+                player._fill.setSize(FILL_SIZE, FILL_SIZE);
+                player._fill.setCenter(player.x, player.y);
 
-                            if (player.clientId.equals(client.getId())) {
-                                System.out.println("OOOOOOOOOOO YOU HAVE BEEN ADDED YOO HAHAHAHA");
-                            }
+                if (player.clientId.equals(room.getSessionId())) {
+                    playerProgressBar.setColor(player.progressColor);
+                    player.indic = mainAtlas.createSprite(TEXTURE_REGION_INDIC);
+                    player.indic.setSize(INDIC_SIZE, INDIC_SIZE);
+                    player.indic.setColor(player.strokeColor);
+                    player.indic.setCenter(player.x, player.y);
+                    player.indic.setOriginCenter();
+                    player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
+                }
 
-                            player._name = arFont.getText(player.name);
-                            player._angle = player.angle;
+                player.bcGhost = mainAtlas.createSprite(TEXTURE_REGION_BC);
+                player.bcGhost.setColor(player.strokeColor.r, player.strokeColor.g, player.strokeColor.b, player.strokeColor.a / 2f);
+                player.bcGhost.setCenter(player.x, player.y);
+                player.bcGhost.setSize(STROKE_SIZE, STROKE_SIZE);
 
-                            Gdx.app.postRunnable(() -> {
+                if (player.clientId.equals(room.getSessionId())) {
+                    gameCamera.position.x = player.x;
+                    gameCamera.position.y = player.y;
+                }
 
-                                if (player.stroke.startsWith("#") && player.stroke.length() == 9) {
-                                    player.strokeColor = Color.valueOf(player.stroke);
-                                    player.progressColor = ColorUtil.getPlayerProgressColor(player.strokeColor);
-                                    player.pathCellColor = ColorUtil.getPlayerPathCellColor(player.strokeColor);
-                                } else {
-                                    player.strokeColor = Color.BLACK;
-                                    player.progressColor = Color.BLACK;
-                                    player.pathCellColor = Color.BLACK;
-                                }
+                player.trailGraphic = new TrailGraphic(trailTexture);
+                player.trailGraphic.setTint(player.strokeColor);
+                player.trailGraphic.setRopeWidth(ROPE_WIDTH);
+                player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
 
-                                if (player.fill.startsWith("#") && player.fill.length() == 9) {
-                                    player.fillColor = Color.valueOf(player.fill);
-                                    player.progressColor = player.fillColor;
-                                }
+                player._position = leaderboardList.size() + 1;
+                player._percentage = player.numCells / (float) TOTAL_CELLS;
+                player.progressBar = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+                player.progressBar.setColor(player.progressColor);
+                player.progressBar.setX(Gdx.graphics.getWidth() / 2f - (player._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
+                player.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(player._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
 
-                                player.text = new GlyphLayout(usernameFont, player._name);
+                players.put(player.pid, player);
+                synchronized (leaderboardList) {
+                    if (!leaderboardList.contains(player)) leaderboardList.add(player);
+                }
 
-                                player._stroke = mainAtlas.createSprite(TEXTURE_REGION_BC);
-                                player._stroke.setSize(STROKE_SIZE, STROKE_SIZE);
-                                player._stroke.setColor(player.strokeColor);
-                                player._stroke.setCenter(player.x, player.y);
-
-                                if (player.fillColor != null) {
-                                    player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
-                                    player._fill.setColor(player.fillColor);
-                                } else {
-                                    player._fill = fillAtlas.createSprite(player.fill);
-                                    if (player._fill == null) {
-                                        player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
-                                        player._fill.setColor(Color.BLACK);
-                                    }
-                                }
-
-                                player._fill.setSize(FILL_SIZE, FILL_SIZE);
-                                player._fill.setCenter(player.x, player.y);
-
-                                if (player.clientId.equals(client.getId())) {
-                                    playerProgressBar.setColor(player.progressColor);
-                                    player.indic = mainAtlas.createSprite(TEXTURE_REGION_INDIC);
-                                    player.indic.setSize(INDIC_SIZE, INDIC_SIZE);
-                                    player.indic.setColor(player.strokeColor);
-                                    player.indic.setCenter(player.x, player.y);
-                                    player.indic.setOriginCenter();
-                                    player.indic.setRotation(player.angle * MathUtils.radiansToDegrees - 90);
-                                }
-
-                                player.bcGhost = mainAtlas.createSprite(TEXTURE_REGION_BC);
-                                player.bcGhost.setColor(player.strokeColor.r, player.strokeColor.g, player.strokeColor.b, player.strokeColor.a / 2f);
-                                player.bcGhost.setCenter(player.x, player.y);
-                                player.bcGhost.setSize(STROKE_SIZE, STROKE_SIZE);
-
-                                if (player.clientId.equals(client.getId())) {
-                                    gameCamera.position.x = player.x;
-                                    gameCamera.position.y = player.y;
-                                }
-
-                                player.trailGraphic = new TrailGraphic(trailTexture);
-                                player.trailGraphic.setTint(player.strokeColor);
-                                player.trailGraphic.setRopeWidth(ROPE_WIDTH);
-                                player.trailGraphic.setTextureULengthBetweenPoints(1 / 2f);
-
-                                player._position = leaderboardList.size() + 1;
-                                player._percentage = player.numCells / (float) TOTAL_CELLS;
-                                player.progressBar = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-                                player.progressBar.setColor(player.progressColor);
-                                player.progressBar.setX(Gdx.graphics.getWidth() / 2f - (player._percentage * (progressbarWidth - progressbarInitWidth) + progressbarInitWidth));
-                                player.progressBar.setY(Gdx.graphics.getHeight() / 2f - progressbarTopMargin - Math.min(player._position - 1, LEADERBOARD_NUM) * (progressbarHeight + progressbarGap) - progressbarHeight);
-
-                                players.put(player.pid, player);
-                                synchronized (leaderboardList) {
-                                    if (!leaderboardList.contains(player)) leaderboardList.add(player);
-                                }
-
-                                registerPlayerCallbacks(player);
-                            });
-                        };
-                        room.state.players.onRemove = (player, key) -> {
-                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            if (player.pid == 0) return;
-                            System.out.println("player removed, color: " + player.pid);
-                            if (player.trailGraphic != null) {
-                                Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
-                            }
+                registerPlayerCallbacks(player);
+            });
+        };
+        room.state.players.onRemove = (player, key) -> {
+            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+            if (player.pid == 0) return;
+            System.out.println("player removed, color: " + player.pid);
+            if (player.trailGraphic != null) {
+                Gdx.app.postRunnable(() -> player.trailGraphic.truncateAt(0));
+            }
 //                            for (int x = leftXi; x <= leftXi + sizeX; x++) {
 //                                if (x < -MAP_SIZE || x > MAP_SIZE) continue;
 //                                for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
@@ -1490,91 +1512,70 @@ public class PlayScreen extends ScreenAdapter {
 //                                    }
 //                                }
 //                            }
-                            for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
-                                for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
-                                    Cell cell = pathCells[i][j];
-                                    if (cell != null && cell.pid == player.pid) {
-                                        pathCells[i][j] = null;
-                                    }
-                                    cell = cells[i][j];
-                                    if (cell != null && cell.pid == player.pid) {
-                                        cells[i][j] = null;
-                                    }
-                                }
-                            }
-                            players.remove(player.pid);
-                            synchronized (leaderboardList) {
-                                leaderboardList.remove(player);
-                            }
-                        };
-
-                        room.state.players.triggerAll();
+            for (int i = 0; i < 2 * MAP_SIZE + 1; i++) {
+                for (int j = 0; j < 2 * MAP_SIZE + 1; j++) {
+                    Cell cell = pathCells[i][j];
+                    if (cell != null && cell.pid == player.pid) {
+                        pathCells[i][j] = null;
                     }
+                    cell = cells[i][j];
+                    if (cell != null && cell.pid == player.pid) {
+                        cells[i][j] = null;
+                    }
+                }
+            }
+            players.remove(player.pid);
+            synchronized (leaderboardList) {
+                leaderboardList.remove(player);
+            }
+        };
 
-                    void registerPlayerCallbacks(Player player) {
-                        player.path.onAdd = (point, key) -> {
-                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            if (player.trailGraphic == null) return;
-                            Gdx.app.postRunnable(() -> {
-                                Point lastPoint = player.path.get(key - 1);
-                                if (lastPoint != null) {
-                                    float dx = point.x - lastPoint.x;
-                                    float dy = point.y - lastPoint.y;
+        room.state.players.triggerAll();
+    }
+
+    void registerPlayerCallbacks(Player player) {
+        player.path.onAdd = (point, key) -> {
+            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+            if (player.trailGraphic == null) return;
+            Gdx.app.postRunnable(() -> {
+                Point lastPoint = player.path.get(key - 1);
+                if (lastPoint != null) {
+                    float dx = point.x - lastPoint.x;
+                    float dy = point.y - lastPoint.y;
 //                                        player.trailGraphic.setPoint(key2 * 4 - 1, lastPoint.x + 3 * dx / 4f, lastPoint.y + 3 * dy / 4f);
 //                                        player.trailGraphic.setPoint(key2 * 4 - 2, lastPoint.x + 2 * dx / 4f, lastPoint.y + 2 * dy / 4f);
 //                                        player.trailGraphic.setPoint(key2 * 4 - 3, lastPoint.x + 1 * dx / 4f, lastPoint.y + 1 * dy / 4f);
-                                    player.trailGraphic.setPoint((key - 1) * 2, lastPoint.x, lastPoint.y);
-                                    player.trailGraphic.setPoint(key * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
-                                    player.trailGraphic.setPoint(key * 2, point.x + dx / 2f, point.y + dy / 2f);
-                                }
-                            });
-                        };
+                    player.trailGraphic.setPoint((key - 1) * 2, lastPoint.x, lastPoint.y);
+                    player.trailGraphic.setPoint(key * 2 - 1, lastPoint.x + dx / 2f, lastPoint.y + dy / 2f);
+                    player.trailGraphic.setPoint(key * 2, point.x + dx / 2f, point.y + dy / 2f);
+                }
+            });
+        };
 
-                        player.path_cells.onAdd = (cell, key) -> {
-                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+        player.path_cells.onAdd = (cell, key) -> {
+            if (connectionState != CONNECTION_STATE_CONNECTED) return;
 //                            System.out.println("new path cell for player " + player.pid + " name= " + player.name + " cell.pid= " + cell.pid);
-                            Gdx.app.postRunnable(() -> initPathCellSprite(player, cell));
-                            pathCells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
-                        };
+            Gdx.app.postRunnable(() -> initPathCellSprite(player, cell));
+            pathCells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
+        };
 
-                        player.cells.onAdd = (cell, key) -> {
-                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
-                            Gdx.app.postRunnable(() -> initCellSprite(player, cell));
-                            cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
-                        };
+        player.cells.onAdd = (cell, key) -> {
+            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+            Gdx.app.postRunnable(() -> initCellSprite(player, cell));
+            cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = cell;
+        };
 
-                        player.cells.onRemove = (cell, key) -> {
-                            if (connectionState != CONNECTION_STATE_CONNECTED) return;
+        player.cells.onRemove = (cell, key) -> {
+            if (connectionState != CONNECTION_STATE_CONNECTED) return;
 //                            System.out.println("cell remove key : " + key + " --> " + cell.x + ", " + cell.y);
-                            Cell c = cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE];
-                            if (c == null || c.pid != player.pid) return;
-                            cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = null;
-                        };
+            Cell c = cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE];
+            if (c == null || c.pid != player.pid) return;
+            cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = null;
+        };
 
-                        player.cells.triggerAll();
-                        player.path_cells.triggerAll();
-                        player.path.triggerAll();
-                    }
-                });
-            }
-
-            @Override
-            public void onMessage(Object o) {
-
-            }
-
-            @Override
-            public void onClose(int i, String s, boolean b) {
-                if (connectionState != CONNECTION_STATE_CLOSED)
-                    connectionState = CONNECTION_STATE_DISCONNECTED;
-            }
-
-            @Override
-            public void onError(Exception e) {
-                if (connectionState != CONNECTION_STATE_CLOSED)
-                    connectionState = CONNECTION_STATE_DISCONNECTED;
-            }
-        });
+        player.cells.triggerAll();
+        player.path_cells.triggerAll();
+        player.path.triggerAll();
     }
 
     private void checkConnection() {
