@@ -1,18 +1,21 @@
 package ir.doorbash.hexy;
 
-import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.ImageView;
+
+import ir.doorbash.hexy.dialogs.HowToPlayDialog;
+import ir.doorbash.hexy.dialogs.SettingsDialog;
 
 /**
  * Created by Milad Doorbash on 8/25/2019.
  */
-public class MainMenuActivity extends Activity {
+public class MainMenuActivity extends AppCompatActivity {
 
     ImageView stroke;
 
@@ -39,5 +42,11 @@ public class MainMenuActivity extends Activity {
     public void openSettings(View view) {
         SettingsDialog dialog = new SettingsDialog(this);
         dialog.show();
+    }
+
+    public void openHowToPlay(View view) {
+       HowToPlayDialog.showDialog(this, () -> {
+           System.out.println("Did i fuckin ask?");
+       });
     }
 }
