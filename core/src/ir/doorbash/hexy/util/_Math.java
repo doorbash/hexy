@@ -1,5 +1,8 @@
 package ir.doorbash.hexy.util;
 
+import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.math.MathUtils;
+
 /**
  * Created by Milad Doorbash on 8/7/2019.
  */
@@ -13,5 +16,9 @@ public class _Math {
             d -= 2 * Math.PI;
         }
         return d;
+    }
+
+    public static float getCameraCurrentXYAngle(OrthographicCamera cam) {
+        return (float) Math.atan2(cam.up.x, cam.up.y) * MathUtils.radiansToDegrees;
     }
 }
