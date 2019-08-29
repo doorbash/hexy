@@ -57,6 +57,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final boolean DEBUG_DRAW_PIDS = false;
     private static final boolean CORRECT_PLAYER_POSITION = true;
     private static final boolean ADD_FAKE_PATH_CELLS = false;
+    private static final boolean ROTATE_CAMERA = false;
 
     private static final int MAP_SIZE = 50;
     private static final int EXTENDED_CELLS = 4;
@@ -100,6 +101,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final float FILL_SIZE = 36;
     private static final float INDIC_SIZE = 80;
     private static final float CELL_WIDTH = 40;
+    private static final float CELL_TEX_WIDTH = 34;
     private static final float CELL_HEIGHT = 46;
 
 //    private static final float BC_SIZE = 46 * 1.2f;
@@ -108,6 +110,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
+    //    private static final String ENDPOINT = "wss://ccb1afbb.ngrok.io";
     private static final String ENDPOINT = "ws://192.168.1.134:4444";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
@@ -187,7 +190,7 @@ public class PlayScreen extends ScreenAdapter {
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
     private int sendPingTime = SEND_PING_INTERVAL;
-    private int controllerType = CONTROLLER_TYPE_PAD;
+    private int controllerType = CONTROLLER_TYPE_MOUSE;
     private int screenWidth;
     private int screenHeight;
     private int currentPing;
@@ -318,6 +321,13 @@ public class PlayScreen extends ScreenAdapter {
 //                camera.position.y = player.bc.getY() + player.bc.getHeight() / 2f;
                     gameCamera.position.x = MathUtils.lerp(gameCamera.position.x, currentPlayer._stroke.getX() + currentPlayer._stroke.getWidth() / 2f, CAMERA_LERP);
                     gameCamera.position.y = MathUtils.lerp(gameCamera.position.y, currentPlayer._stroke.getY() + currentPlayer._stroke.getHeight() / 2f, CAMERA_LERP);
+                    if (ROTATE_CAMERA) {
+                        float camAngle = -_Math.getCameraCurrentXYAngle(gameCamera);
+                        float playerAngle = currentPlayer._angle * MathUtils.radiansToDegrees - 90;
+                        while (playerAngle < 0) playerAngle += 360;
+                        while (playerAngle >= 360) playerAngle -= 360;
+                        gameCamera.rotate(camAngle - playerAngle);
+                    }
                 }
             } else {
                 if (currentPlayer != null && currentPlayer._stroke != null) {
@@ -617,9 +627,15 @@ public class PlayScreen extends ScreenAdapter {
                 Vector2 pos = getHexPosition(cell.x, cell.y);
                 cell.sprite.setCenter(pos.x, pos.y);
             } else {
-                cell.sprite.setSize(CELL_WIDTH, CELL_WIDTH);
+                cell.sprite.setSize(CELL_TEX_WIDTH, CELL_TEX_WIDTH);
                 Vector2 pos = getHexPosition(cell.x, cell.y);
                 cell.sprite.setCenter(pos.x, pos.y/* - (CELL_HEIGHT - CELL_WIDTH) / 2f*/);
+
+                cell.sprite2 = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+                cell.sprite2.setColor(player.strokeColor);
+                cell.sprite2.setSize(CELL_WIDTH, CELL_HEIGHT);
+                pos = getHexPosition(cell.x, cell.y);
+                cell.sprite2.setCenter(pos.x, pos.y);
             }
         } else {
             cell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
@@ -705,6 +721,7 @@ public class PlayScreen extends ScreenAdapter {
                     if (cell.pid == pathCell.pid) {
                         // only draw cell
                         if (players.get(cell.pid) == null) continue;
+                        if(cell.sprite2 != null) cell.sprite2.draw(batch);
                         cell.sprite.draw(batch);
                         if (DEBUG_DRAW_PIDS)
                             usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
@@ -722,6 +739,7 @@ public class PlayScreen extends ScreenAdapter {
                 } else if (hasCell) {
                     // draw cell
                     if (players.get(cell.pid) == null) continue;
+                    if(cell.sprite2 != null) cell.sprite2.draw(batch);
                     cell.sprite.draw(batch);
                     if (DEBUG_DRAW_PIDS)
                         usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
@@ -1050,6 +1068,11 @@ public class PlayScreen extends ScreenAdapter {
                     }
 
                     player.bcGhost.setCenter(player.x, player.y);
+
+                    if (ROTATE_CAMERA) {
+                        player._fill.setOriginCenter();
+                        player._fill.setRotation(player._angle * MathUtils.radiansToDegrees - 90);
+                    }
 
 //                    if (ADD_FAKE_PATH_CELLS) {
 //                        if (room.state.started && !room.state.ended)
@@ -1431,6 +1454,8 @@ public class PlayScreen extends ScreenAdapter {
                 if (player.fill.startsWith("#") && player.fill.length() == 9) {
                     player.fillColor = Color.valueOf(player.fill);
                     player.progressColor = player.fillColor;
+                } else if(player.progressColor.equals(Color.BLACK)) {
+                    System.out.println(player.stroke + " " + player.fill);
                 }
 
                 player.text = new GlyphLayout(usernameFont, player._name);
