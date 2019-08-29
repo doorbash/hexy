@@ -3,4 +3,9 @@
 
     <string name="app_name">Hexy.ir</string>
 
+    <string-array name="languages">
+        <item>English</item>
+        <item>فارسی</item>
+    </string-array>
+
 </resources>
