@@ -1,11 +1,13 @@
-package ir.doorbash.hexy;
+package ir.doorbash.hexy.dialogs;
 
 import android.app.Dialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Spinner;
+
+import ir.doorbash.hexy.LanguageSpinnerAdapter;
+import ir.doorbash.hexy.R;
 
 /**
  * Created by Milad Doorbash on 8/28/2019.
