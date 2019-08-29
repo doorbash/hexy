@@ -31,6 +31,7 @@ public class Cell extends Schema {
 //	public String owner = "";
 
 	public Sprite sprite;
+	public Sprite sprite2;
 	public int type;
 }
 
