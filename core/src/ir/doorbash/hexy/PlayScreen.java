@@ -108,7 +108,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-        private static final String ENDPOINT = "ws://192.168.1.136:3333";
+    private static final String ENDPOINT = "ws://192.168.1.134:4444";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
@@ -1250,7 +1250,8 @@ public class PlayScreen extends ScreenAdapter {
         Client client = new Client(ENDPOINT);
         LinkedHashMap<String, Object> options = new LinkedHashMap<>();
         options.put("name", "milad");
-        String fill = TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
+        String fill = "e" + TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
+//        fill = "e00093";
         System.out.println("fill >>> " + fill);
         options.put("fill", fill);
         options.put("stroke", "#F10101FF");
@@ -1295,10 +1296,12 @@ public class PlayScreen extends ScreenAdapter {
         room.setListener(new Room.Listener() {
 
             @Override
-            protected void onLeave() {
-                System.out.println("left " + getRoomName());
-                if (connectionState != CONNECTION_STATE_CLOSED)
-                    connectionState = CONNECTION_STATE_DISCONNECTED;
+            protected void onLeave(int code) {
+                System.out.println("left " + getRoomName() + " code = " + code);
+                if (code > 1000) {
+                    if (connectionState != CONNECTION_STATE_CLOSED)
+                        connectionState = CONNECTION_STATE_DISCONNECTED;
+                }
             }
 
             @Override
