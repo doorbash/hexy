@@ -1,4 +1,4 @@
-package ir.doorbash.hexy;
+package ir.doorbash.hexy.adapter;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -8,13 +8,16 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
+import ir.doorbash.hexy.FontManager;
+import ir.doorbash.hexy.R;
+
 /**
  * Created by Milad Doorbash on 8/29/2019.
  */
 public class LanguageSpinnerAdapter extends BaseAdapter {
 
-    Context context;
-    private String[] array;
+    private Context context;
+    public String[] array;
 
     public LanguageSpinnerAdapter(Context context) {
         this.context = context;

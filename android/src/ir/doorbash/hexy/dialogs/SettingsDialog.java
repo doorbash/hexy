@@ -6,7 +6,7 @@ import android.os.Bundle;
 import android.view.Window;
 import android.widget.Spinner;
 
-import ir.doorbash.hexy.LanguageSpinnerAdapter;
+import ir.doorbash.hexy.adapter.LanguageSpinnerAdapter;
 import ir.doorbash.hexy.R;
 
 /**
