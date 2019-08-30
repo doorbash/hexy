@@ -1,6 +1,7 @@
 package ir.doorbash.hexy;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.ScreenAdapter;
@@ -43,7 +44,9 @@ import ir.doorbash.hexy.model.MyState;
 import ir.doorbash.hexy.model.Player;
 import ir.doorbash.hexy.model.Point;
 import ir.doorbash.hexy.util.ColorUtil;
+import ir.doorbash.hexy.util.Constants;
 import ir.doorbash.hexy.util.TextUtil;
+import ir.doorbash.hexy.util.I18N;
 import ir.doorbash.hexy.util._Math;
 
 /**
@@ -111,7 +114,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TAG = "PlayScreen";
 
     //    private static final String ENDPOINT = "wss://ccb1afbb.ngrok.io";
-    private static final String ENDPOINT = "ws://192.168.1.134:4444";
+    private static final String ENDPOINT = "ws://192.168.1.135:4444";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
@@ -196,6 +199,7 @@ public class PlayScreen extends ScreenAdapter {
     private int currentPing;
     private int gameMode = GAME_MODE_FFA;
     private int connectionState = CONNECTION_STATE_DISCONNECTED;
+    private int langCode;
 
     private long lastPingSentTime;
     private long lastPingReplyTime;
@@ -252,7 +256,8 @@ public class PlayScreen extends ScreenAdapter {
     /* ************************************** CONSTRUCTOR ****************************************/
 
     PlayScreen() {
-        prefs = Gdx.app.getPreferences("settings");
+        prefs = Gdx.app.getPreferences(Constants.PREFS_NAME);
+        langCode = I18N.getLangCode(prefs.getString(Constants.KEY_SETTINGS_LANGUAGE, Constants.DEFAULT_SETTINGS_LANGUAGE));
 
         batch = new SpriteBatch();
         mainAtlas = new TextureAtlas(PATH_PACK_ATLAS);
@@ -292,7 +297,7 @@ public class PlayScreen extends ScreenAdapter {
         initFonts();
 
         timeText = new GlyphLayout(timeFont, "99:99");
-        youWillRspwnText = new GlyphLayout(timeFont, "You will respawn in 9 seconds");
+        youWillRspwnText = new GlyphLayout(timeFont, I18N.texts[langCode][I18N.you_will_respawn_in_9_seconds]); // TODO: handle rtl :/
         yourProgressText = new GlyphLayout(leaderboardFont, "99.99%");
         yourProgressBestText = new GlyphLayout(leaderboardFont, "BEST 99.99%");
 
@@ -561,6 +566,11 @@ public class PlayScreen extends ScreenAdapter {
         Gdx.input.setInputProcessor(new InputProcessor() {
             @Override
             public boolean keyDown(int keycode) {
+                if (keycode == Input.Keys.BACK) {
+                    if (room != null) room.leave();
+                    Gdx.app.exit();
+                    return true;
+                }
                 return false;
             }
 
@@ -677,7 +687,8 @@ public class PlayScreen extends ScreenAdapter {
         loadingAnimation.render(dt, batch, x, y, size, size);
         float alpha = (MathUtils.sin(4 * time) + 1) / 2f;
         leaderboardFont.setColor(new Color(CONNECTING_TEXT_COLOR.r, CONNECTING_TEXT_COLOR.b, CONNECTING_TEXT_COLOR.g, alpha));
-        leaderboardFont.draw(batch, "Connecting...", x + size + gap, y + size / 2f + leaderboardFont.getLineHeight() / 2f - 4 * guiUnits);
+        // TODO: inja yebar lango en kardam null pointer dad
+        leaderboardFont.draw(batch, arFont.getText(I18N.texts[langCode][I18N.connecting]), x + size + gap, y + size / 2f + leaderboardFont.getLineHeight() / 2f - 4 * guiUnits);
     }
 
     private void drawTiles() {
@@ -720,17 +731,17 @@ public class PlayScreen extends ScreenAdapter {
                 if (hasCell && hasPathCell) {
                     if (cell.pid == pathCell.pid) {
                         // only draw cell
-                        if (players.get(cell.pid) == null) continue;
-                        if(cell.sprite2 != null) cell.sprite2.draw(batch);
+//                        if (players.get(cell.pid) == null) continue;
+//                        if (cell.sprite2 != null) cell.sprite2.draw(batch);
                         cell.sprite.draw(batch);
-                        if (DEBUG_DRAW_PIDS)
-                            usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
+//                        if (DEBUG_DRAW_PIDS)
+//                            usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
                     } else {
                         // only draw path cell
-                        if (players.get(pathCell.pid) == null) continue;
+//                        if (players.get(pathCell.pid) == null) continue;
                         pathCell.sprite.draw(batch);
-                        if (DEBUG_DRAW_PIDS)
-                            usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
+//                        if (DEBUG_DRAW_PIDS)
+//                            usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
                     }
 //                    drawList[cell.pid] = true;
 //                    drawList[pathCell.pid] = true;
@@ -738,19 +749,19 @@ public class PlayScreen extends ScreenAdapter {
                     if (!drawList.contains(pathCell.pid)) drawList.add(pathCell.pid);
                 } else if (hasCell) {
                     // draw cell
-                    if (players.get(cell.pid) == null) continue;
-                    if(cell.sprite2 != null) cell.sprite2.draw(batch);
+//                    if (players.get(cell.pid) == null) continue;
+//                    if (cell.sprite2 != null) cell.sprite2.draw(batch);
                     cell.sprite.draw(batch);
-                    if (DEBUG_DRAW_PIDS)
-                        usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
+//                    if (DEBUG_DRAW_PIDS)
+//                        usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
 //                    drawList[cell.pid] = true;
                     if (!drawList.contains(cell.pid)) drawList.add(cell.pid);
                 } else if (hasPathCell) {
                     // draw path cell
-                    if (players.get(pathCell.pid) == null) continue;
+//                    if (players.get(pathCell.pid) == null) continue;
                     pathCell.sprite.draw(batch);
-                    if (DEBUG_DRAW_PIDS)
-                        usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
+//                    if (DEBUG_DRAW_PIDS)
+//                        usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
 //                    drawList[pathCell.pid] = true;
                     if (!drawList.contains(pathCell.pid)) drawList.add(pathCell.pid);
                 }
@@ -1135,7 +1146,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private void updateZoom() {
         if (currentPlayer == null) return;
-        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + currentPlayer.numCells * 0.001f, 1.5f);
+        //gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + currentPlayer.numCells * 0.001f, 1.5f);
+        gameCamera.zoom = 1.5f;
     }
 
     private long getServerTime() {
@@ -1272,7 +1284,7 @@ public class PlayScreen extends ScreenAdapter {
 
         Client client = new Client(ENDPOINT);
         LinkedHashMap<String, Object> options = new LinkedHashMap<>();
-        options.put("name", "milad");
+        options.put("name", prefs.getString(Constants.KEY_PLAYER_NAME, ""));
         String fill = "e" + TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
 //        fill = "e00093";
         System.out.println("fill >>> " + fill);
@@ -1337,6 +1349,7 @@ public class PlayScreen extends ScreenAdapter {
 
             @Override
             protected void onMessage(Object message) {
+                if (connectionState != CONNECTION_STATE_CONNECTED) return;
                 System.out.println("onMessage()");
                 System.out.println(message);
                 LinkedHashMap<String, Object> data = (LinkedHashMap<String, Object>) message;
@@ -1454,7 +1467,7 @@ public class PlayScreen extends ScreenAdapter {
                 if (player.fill.startsWith("#") && player.fill.length() == 9) {
                     player.fillColor = Color.valueOf(player.fill);
                     player.progressColor = player.fillColor;
-                } else if(player.progressColor.equals(Color.BLACK)) {
+                } else if (player.progressColor.equals(Color.BLACK)) {
                     System.out.println(player.stroke + " " + player.fill);
                 }
 
