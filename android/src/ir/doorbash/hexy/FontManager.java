@@ -8,8 +8,8 @@ import android.graphics.Typeface;
  */
 public class FontManager {
 
-    Typeface noto;
-    Typeface arialbd;
+    public Typeface noto;
+    public Typeface arialbd;
 
     private static FontManager instance;
 
