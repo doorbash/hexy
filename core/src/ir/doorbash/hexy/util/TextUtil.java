@@ -16,4 +16,8 @@ public class TextUtil {
 
         return sb.toString();
     }
+
+    public static String validateName(String name) {
+        return name.replaceAll("\\s+","");
+    }
 }
