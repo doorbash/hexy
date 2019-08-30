@@ -6,11 +6,19 @@ import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
 import android.widget.ImageView;
 
 import ir.doorbash.hexy.dialogs.HowToPlayDialog;
-import ir.doorbash.hexy.dialogs.SettingsDialog;
+import ir.doorbash.hexy.dialogs.Settings2Dialog;
+import ir.doorbash.hexy.util.Constants;
+import ir.doorbash.hexy.util.Shared;
+import ir.doorbash.hexy.util.TextUtil;
+import ir.doorbash.hexy.util.I18N;
 
 /**
  * Created by Milad Doorbash on 8/25/2019.
@@ -18,16 +26,51 @@ import ir.doorbash.hexy.dialogs.SettingsDialog;
 public class MainMenuActivity extends AppCompatActivity {
 
     ImageView stroke;
+    EditText nameTxt;
+    Button playOnline;
+    Button playAgainstAi;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_menu);
         stroke = findViewById(R.id.stroke_img);
+        nameTxt = findViewById(R.id.name_txt);
+        playOnline = findViewById(R.id.play_online);
+        playAgainstAi = findViewById(R.id.play_against_ai);
 
         Drawable drawable = getResources().getDrawable(R.drawable.circle);
         drawable.setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
         stroke.setImageDrawable(drawable);
+
+        nameTxt.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String name = TextUtil.validateName(s.toString());
+                Shared.getInstance(MainMenuActivity.this).setString(Constants.KEY_PLAYER_NAME, name).commit();
+                nameTxt.removeTextChangedListener(this);
+                nameTxt.setText(name);
+                nameTxt.setSelection(nameTxt.getText().length());
+                nameTxt.addTextChangedListener(this);
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+
+            }
+        });
+
+        updateUI();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        updateUI();
     }
 
     private void startGame() {
@@ -40,13 +83,25 @@ public class MainMenuActivity extends AppCompatActivity {
     }
 
     public void openSettings(View view) {
-        SettingsDialog dialog = new SettingsDialog(this);
+//        SettingsDialog dialog = new SettingsDialog(this);
+        Settings2Dialog dialog = new Settings2Dialog(this);
         dialog.show();
+        dialog.setOnDismissListener(d -> updateUI());
     }
 
     public void openHowToPlay(View view) {
-       HowToPlayDialog.showDialog(this, () -> {
-           System.out.println("Did i fuckin ask?");
-       });
+        HowToPlayDialog.showDialog(this);
+    }
+
+    public void updateUI() {
+        System.out.println("updateUI");
+        String lang = Shared.getInstance(this).getString(Constants.KEY_SETTINGS_LANGUAGE, Constants.DEFAULT_SETTINGS_LANGUAGE);
+        int langCode = I18N.getLangCode(lang);
+
+        nameTxt.setHint(I18N.texts[langCode][I18N.main_menu_your_name]);
+        playOnline.setHint(I18N.texts[langCode][I18N.main_menu_play_online]);
+        playAgainstAi.setHint(I18N.texts[langCode][I18N.main_menu_play_against_ai]);
+
+        nameTxt.setText(Shared.getInstance(this).getString(Constants.KEY_PLAYER_NAME, ""));
     }
 }
