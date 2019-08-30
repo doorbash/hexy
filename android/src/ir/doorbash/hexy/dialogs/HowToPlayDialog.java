@@ -1,7 +1,6 @@
 package ir.doorbash.hexy.dialogs;
 
 import android.app.Dialog;
-import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -24,25 +23,21 @@ import ir.doorbash.hexy.R;
 import ir.doorbash.hexy.fragments.HowToPlayImageFragment;
 
 public class HowToPlayDialog extends DialogFragment {
-
-    Runnable listener;
-
     ViewPager viewPager;
     AppCompatImageView next;
     AppCompatImageView prev;
     AppCompatImageView close;
 
-    public static HowToPlayDialog newInstance(Runnable listener) {
+    public static HowToPlayDialog newInstance() {
         HowToPlayDialog fragment = new HowToPlayDialog();
         Bundle args = new Bundle();
         fragment.setArguments(args);
-        fragment.listener = listener;
         return fragment;
     }
 
-    public static void showDialog(AppCompatActivity activity, Runnable onDismissed) {
+    public static void showDialog(AppCompatActivity activity) {
         FragmentManager fm = activity.getSupportFragmentManager();
-        HowToPlayDialog myDialogFragment = HowToPlayDialog.newInstance(onDismissed);
+        HowToPlayDialog myDialogFragment = HowToPlayDialog.newInstance();
         myDialogFragment.show(fm, "dialog");
     }
 
@@ -116,12 +111,6 @@ public class HowToPlayDialog extends DialogFragment {
         });
 
         return contentView;
-    }
-
-    @Override
-    public void onDismiss(DialogInterface dialog) {
-        super.onDismiss(dialog);
-        if (listener != null) listener.run();
     }
 
     @Override
