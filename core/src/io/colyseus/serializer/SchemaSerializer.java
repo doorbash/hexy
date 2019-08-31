@@ -12,17 +12,17 @@ public class SchemaSerializer<T extends Schema> {
         this.state = type.getConstructor().newInstance();
     }
 
-    public void setState(byte[] data) throws NullPointerException, ArrayIndexOutOfBoundsException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    public void setState(byte[] data) throws Exception {
 //        System.out.println("\n----------setState----------\n");
         state.decode(data);
     }
 
-    public void patch(byte[] data) throws NullPointerException, ArrayIndexOutOfBoundsException, NoSuchMethodException, NoSuchFieldException, InstantiationException, IllegalAccessException, InvocationTargetException {
+    public void patch(byte[] data) throws Exception {
 //        System.out.println("\n----------patch----------\n");
         state.decode(data);
     }
 
-    public void handshake(byte[] bytes) throws NullPointerException, ArrayIndexOutOfBoundsException, InvocationTargetException, NoSuchMethodException, InstantiationException, IllegalAccessException, NoSuchFieldException {
+    public void handshake(byte[] bytes) throws Exception {
         Schema.SchemaReflection reflection = new Schema.SchemaReflection();
         reflection.decode(bytes);
     }
