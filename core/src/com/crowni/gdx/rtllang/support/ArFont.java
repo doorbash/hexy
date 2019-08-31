@@ -21,7 +21,6 @@ package com.crowni.gdx.rtllang.support;
 
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.CharArray;
 
 import java.awt.event.KeyEvent;
 
@@ -31,7 +30,7 @@ import static com.crowni.gdx.rtllang.support.ArUtils.getIndividualChar;
  * Created by Crowni on 10/5/2017.
  **/
 public class ArFont {
-    private Array<ArGlyph> glyphs = new Array<ArGlyph>();
+    private Array<ArGlyph> glyphs = new Array<>();
 
     public String typing(char c) {
         if (c == KeyEvent.VK_BACK_SPACE)
@@ -73,7 +72,7 @@ public class ArFont {
     }
 
     private String getText() {
-        String text = "";
+        StringBuilder text = new StringBuilder();
 
         boolean inserting = true;
         String subtext = "";
@@ -81,20 +80,20 @@ public class ArFont {
             if (glyphs.get(i).isRTL() || glyphs.get(i).isSpace()) {
                 if (!inserting) {
                     inserting = true;
-                    text += subtext;
+                    text.append(subtext);
                     subtext = "";
                 }
 
-                text += glyphs.get(i).getChar();
+                text.append(glyphs.get(i).getChar());
             } else {
                 inserting = false;
                 subtext = glyphs.get(i).getOriginalChar() + subtext;
             }
         }
 
-        text += subtext;
+        text.append(subtext);
 
-        return text;
+        return text.toString();
     }
 
     /**
