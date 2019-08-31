@@ -23,6 +23,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.utils.Array;
 
 import java.awt.event.KeyEvent;
+import java.util.LinkedList;
 
 import static com.crowni.gdx.rtllang.support.ArUtils.getIndividualChar;
 
@@ -30,7 +31,7 @@ import static com.crowni.gdx.rtllang.support.ArUtils.getIndividualChar;
  * Created by Crowni on 10/5/2017.
  **/
 public class ArFont {
-    private Array<ArGlyph> glyphs = new Array<>();
+    private LinkedList<ArGlyph> glyphs = new LinkedList<>();
 
     public String typing(char c) {
         if (c == KeyEvent.VK_BACK_SPACE)
@@ -59,13 +60,13 @@ public class ArFont {
     }
 
     private void popChar() {
-        if (glyphs.size > 0) {
-            ArGlyph aChar = glyphs.pop();
+        if (glyphs.size() > 0) {
+            ArGlyph aChar = glyphs.removeLast();
             if (aChar instanceof ArGlyphComplex) {
                 Array<ArGlyph> glyphComplex = ((ArGlyphComplex) aChar).getSimpleChars();
                 for (int i = glyphComplex.size - 1; i >= 0; i--)
                     glyphs.add(glyphComplex.get(i));
-                glyphs.pop();
+                glyphs.removeLast();
             }
             filterLastChars(1);
         }
@@ -75,19 +76,19 @@ public class ArFont {
         StringBuilder text = new StringBuilder();
 
         boolean inserting = true;
-        String subtext = "";
-        for (int i = glyphs.size - 1; i >= 0; i--) {
+        StringBuilder subtext = new StringBuilder();
+        for (int i = glyphs.size() - 1; i >= 0; i--) {
             if (glyphs.get(i).isRTL() || glyphs.get(i).isSpace()) {
                 if (!inserting) {
                     inserting = true;
                     text.append(subtext);
-                    subtext = "";
+                    subtext = new StringBuilder();
                 }
 
                 text.append(glyphs.get(i).getChar());
             } else {
                 inserting = false;
-                subtext = glyphs.get(i).getOriginalChar() + subtext;
+                subtext.insert(0, glyphs.get(i).getOriginalChar());
             }
         }
 
@@ -164,22 +165,22 @@ public class ArFont {
      * @return correct position of glyph.
      */
     private ArGlyph getPositionGlyph(ArGlyph arGlyph, int pos) {
-        int i = glyphs.lastIndexOf(arGlyph, false) + (pos = MathUtils.clamp(pos, -1, 1));
-        ArGlyph glyph = (pos > 0 ? i < glyphs.size : i > -1) ? glyphs.get(i) : null;
+        int i = glyphs.lastIndexOf(arGlyph) + (pos = MathUtils.clamp(pos, -1, 1));
+        ArGlyph glyph = (pos > 0 ? i < glyphs.size() : i > -1) ? glyphs.get(i) : null;
         return glyph != null ? ArUtils.isInvalidChar(glyph.getOriginalChar()) ? null : glyph : null;
     }
 
     private void addComplexChars(ArGlyph arGlyph) {
         ArGlyphComplex glyph = new ArGlyphComplex(ArUtils.getLAM_ALF(arGlyph.getOriginalChar()));
         glyph.setSimpleGlyphs(arGlyph, getPositionGlyph(arGlyph, -1));
-        for (int i = 0; i < glyph.getSimpleChars().size; i++) glyphs.pop();
+        for (int i = 0; i < glyph.getSimpleChars().size; i++) glyphs.removeLast();
         addChar(glyph);
     }
 
     private void filterLastChars(int i) {
         ArGlyph arGlyph = null;
-        if (glyphs.size - i > -1)
-            arGlyph = filter(glyphs.get(glyphs.size - i));
+        if (!glyphs.isEmpty() && glyphs.size() - i > -1)
+            arGlyph = filter(glyphs.get(glyphs.size() - i));
 
         /** CONSOLE **/
 //        if (arGlyph != null)
