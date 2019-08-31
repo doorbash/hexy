@@ -30,6 +30,7 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.ConcurrentModificationException;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -370,7 +371,7 @@ public class PlayScreen extends ScreenAdapter {
         batch.enableBlending();
         batch.flush();
 
-        if (room != null) {
+        if (room != null && ((connectionState == CONNECTION_STATE_CONNECTED && !isUpdating) || connectionState == CONNECTION_STATE_CLOSED)) {
             if (connectionState == CONNECTION_STATE_CONNECTED) {
                 updatePlayersPositions(dt);
                 updateZoom();
@@ -1476,7 +1477,7 @@ public class PlayScreen extends ScreenAdapter {
         });
     }
 
-    void registerCallbacks() {
+    private void registerCallbacks() {
         room.state.players.onAdd = (player, key) -> {
             if (connectionState != CONNECTION_STATE_CONNECTED) return;
             if (player.pid == 0) return;
@@ -1485,7 +1486,9 @@ public class PlayScreen extends ScreenAdapter {
                 System.out.println("OOOOOOOOOOO YOU HAVE BEEN ADDED YOO HAHAHAHA");
             }
 
-            player._name = arFont.getText(player.name);
+            synchronized (arFont) {
+                player._name = arFont.getText(player.name);
+            }
             player._angle = player.angle;
 
             Gdx.app.postRunnable(() -> {
@@ -1569,7 +1572,11 @@ public class PlayScreen extends ScreenAdapter {
                     if (!leaderboardList.contains(player)) leaderboardList.add(player);
                 }
 
-                registerPlayerCallbacks(player);
+                try {
+                    registerPlayerCallbacks(player);
+                }catch (ConcurrentModificationException e) {
+
+                }
             });
         };
         room.state.players.onRemove = (player, key) -> {
