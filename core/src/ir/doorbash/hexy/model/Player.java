@@ -98,6 +98,7 @@ public class Player extends Schema {
 	public Color strokeColor;
 	public Color progressColor;
 	public Color pathCellColor;
+	public boolean fillIsTexture;
 
 	@Override
 	public boolean equals(Object obj) {
