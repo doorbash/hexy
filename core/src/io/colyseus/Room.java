@@ -225,6 +225,7 @@ public class Room<T extends Schema> {
                 previousCode = 0;
             }
         } catch (Exception e) {
+            leave(false);
             if (listener != null) listener.onError(e);
         }
     }
