@@ -15,9 +15,6 @@ import io.colyseus.serializer.schema.annotations.SchemaField;
 @SchemaClass
 public class Cell extends Schema {
 
-	public static final int CELL_TYPE_COLOR = 0;
-	public static final int CELL_TYPE_TEXTURE = 1;
-
 	@SchemaField("0/int16")
 	public short x = 0;
 
@@ -30,8 +27,7 @@ public class Cell extends Schema {
 //	@SchemaField("3/string")
 //	public String owner = "";
 
-	public Sprite sprite;
-	public Sprite sprite2;
-	public int type;
+	public Sprite colorSprite;
+	public Sprite textureSprite;
 }
 
