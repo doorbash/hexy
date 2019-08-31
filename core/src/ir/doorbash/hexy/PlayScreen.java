@@ -45,8 +45,9 @@ import ir.doorbash.hexy.model.Player;
 import ir.doorbash.hexy.model.Point;
 import ir.doorbash.hexy.util.ColorUtil;
 import ir.doorbash.hexy.util.Constants;
-import ir.doorbash.hexy.util.TextUtil;
+import ir.doorbash.hexy.util.FontDrawItem;
 import ir.doorbash.hexy.util.I18N;
+import ir.doorbash.hexy.util.TextUtil;
 import ir.doorbash.hexy.util._Math;
 
 /**
@@ -70,6 +71,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final int CONTROLLER_TYPE_ON_SCREEN = 3;
     private static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
     private static final int SEND_DIRECTION_INTERVAL = 200;
+    private static final int CHECK_CONNECTION_INTERVAL = 4000;
     private static final int SEND_PING_INTERVAL = 5000;
     private static final int PAD_CONTROLLER_MAX_LENGTH = 42;
     private static final int LEADERBOARD_NUM = 4;
@@ -189,11 +191,13 @@ public class PlayScreen extends ScreenAdapter {
     private boolean leaderboardDrawAgain;
     private boolean mouseIsDown = false;
     private boolean isUpdating = false;
+    private boolean soundIsOn = true;
 
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
     private int sendPingTime = SEND_PING_INTERVAL;
-    private int controllerType = CONTROLLER_TYPE_MOUSE;
+    private int checkConnectionTime = -1;
+    private int controllerType = CONTROLLER_TYPE_PAD;
     private int screenWidth;
     private int screenHeight;
     private int currentPing;
@@ -238,6 +242,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final Object playersMutex = new Object();
     private TSynchronizedLongObjectMap<Player> players = new TSynchronizedLongObjectMap<>(new TLongObjectHashMap<>(), playersMutex);
     private List<Long> drawList = new ArrayList<>();
+    private List<FontDrawItem> leaderboardDrawList = new ArrayList<>();
     private final Cell[][] cells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
     private final Cell[][] pathCells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
 
@@ -258,8 +263,10 @@ public class PlayScreen extends ScreenAdapter {
     PlayScreen() {
         prefs = Gdx.app.getPreferences(Constants.PREFS_NAME);
         langCode = I18N.getLangCode(prefs.getString(Constants.KEY_SETTINGS_LANGUAGE, Constants.DEFAULT_SETTINGS_LANGUAGE));
+        soundIsOn = prefs.getBoolean(Constants.KEY_SETTINGS_SOUND, true);
 
         batch = new SpriteBatch();
+
         mainAtlas = new TextureAtlas(PATH_PACK_ATLAS);
         fillAtlas = new TextureAtlas(PATH_FILL_ATLAS);
         whiteHex = mainAtlas.findRegion(TEXTURE_REGION_HEX_WHITE);
@@ -282,11 +289,13 @@ public class PlayScreen extends ScreenAdapter {
         fixedCamera = new OrthographicCamera();
         guiCamera = new OrthographicCamera();
 
-        boostSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_BOOST));
-        clickSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CLICK));
-        deathSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_DEATH));
-        hitSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_HIT));
-        captureSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CAPTURE));
+        if (soundIsOn) {
+            boostSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_BOOST));
+            clickSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CLICK));
+            deathSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_DEATH));
+            hitSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_HIT));
+            captureSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CAPTURE));
+        }
 
         init(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
@@ -315,8 +324,8 @@ public class PlayScreen extends ScreenAdapter {
 
         Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-        Gdx.gl20.glEnable(GL20.GL_BLEND);
-        Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
+//        Gdx.gl20.glEnable(GL20.GL_BLEND);
+//        Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
         if (room != null) {
             currentPlayer = room.state.players.get(room.getSessionId());
@@ -343,10 +352,6 @@ public class PlayScreen extends ScreenAdapter {
         }
         gameCamera.update();
 
-        batch.setProjectionMatrix(gameCamera.combined);
-
-        batch.begin();
-
         actualWidth = gameCamera.zoom * gameCamera.viewportWidth;
         actualHeight = gameCamera.zoom * gameCamera.viewportHeight;
         leftX = gameCamera.position.x - actualWidth / 2f;
@@ -356,21 +361,28 @@ public class PlayScreen extends ScreenAdapter {
         sizeX = (int) (actualWidth / GRID_WIDTH) + 3;
         sizeY = (int) (actualHeight / GRID_HEIGHT) + 3;
 
-//        for (int i = 0; i < drawList.length; i++) drawList[i] = false;
         drawList.clear();
 
+        batch.setProjectionMatrix(gameCamera.combined);
+        batch.begin();
+        batch.disableBlending();
         drawTiles();
+        batch.enableBlending();
+        batch.flush();
+
         if (room != null) {
             if (connectionState == CONNECTION_STATE_CONNECTED) {
                 updatePlayersPositions(dt);
                 updateZoom();
             }
-
             drawCells();
+            drawTextureCells();
             batch.end();
             drawTrails();
             batch.begin();
             drawPlayers();
+            drawPlayerFillTextures();
+            drawPlayerNames();
         }
 
         batch.setProjectionMatrix(fixedCamera.combined);
@@ -389,17 +401,20 @@ public class PlayScreen extends ScreenAdapter {
             thumbstickPadSprite.draw(batch);
         }
 
-//        if(room != null) drawCurrentPlayerName(); // zoom o chikar konim nmishe
-
         batch.setProjectionMatrix(guiCamera.combined);
 
         if (connectionState == CONNECTION_STATE_CONNECTED && room != null && room.state.started) {
+            leaderboardDrawList.clear();
             drawLeaderboard(dt);
             if (gameMode == GAME_MODE_BATTLE && !room.state.ended) {
                 drawTime();
                 drawYouWillRespawnText();
             } else if (gameMode == GAME_MODE_FFA) {
                 drawPlayerProgress();
+            }
+            for (FontDrawItem fdi : leaderboardDrawList) {
+                leaderboardFont.setColor(fdi.color);
+                leaderboardFont.draw(batch, fdi.text, fdi.x, fdi.y);
             }
         }
 
@@ -423,7 +438,13 @@ public class PlayScreen extends ScreenAdapter {
             sendPingTime = SEND_PING_INTERVAL;
         } else sendPingTime -= dt * 1000;
 
-        checkConnection();
+        if (checkConnectionTime < 0) {
+            checkConnection();
+            checkConnectionTime = CHECK_CONNECTION_INTERVAL;
+        } else checkConnectionTime -= dt * 1000;
+
+
+//        System.out.println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
     }
 
     @Override
@@ -537,15 +558,13 @@ public class PlayScreen extends ScreenAdapter {
         Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1.0f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        Gdx.gl20.glEnable(GL20.GL_BLEND);
-        Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
-
         Matrix4 m = new Matrix4();
         m.setToOrtho2D(0, 0, fbo.getWidth(), fbo.getHeight());
 
         batch.setProjectionMatrix(m);
 
         batch.begin();
+//        mainBatch.disableBlending();
 
         for (int xi = -3; xi < 37; xi++) {
             for (int yi = -3; yi < 43; yi++) {
@@ -553,6 +572,7 @@ public class PlayScreen extends ScreenAdapter {
             }
         }
 
+//        mainBatch.enableBlending();
         batch.end();
 
         fbo.end();
@@ -627,46 +647,31 @@ public class PlayScreen extends ScreenAdapter {
         if (cell == null) return;
         if (players.get(cell.pid) == null) return;
         if (player.fillColor == null) {
-            cell.sprite = fillAtlas.createSprite(player.fill);
-            cell.type = Cell.CELL_TYPE_TEXTURE;
-            if (cell.sprite == null) {
-                cell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-                cell.type = Cell.CELL_TYPE_COLOR;
-                cell.sprite.setColor(Color.BLACK);
-                cell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
+            cell.textureSprite = fillAtlas.createSprite(player.fill);
+            if (cell.textureSprite != null) {
+                cell.textureSprite.setSize(CELL_TEX_WIDTH, CELL_TEX_WIDTH);
                 Vector2 pos = getHexPosition(cell.x, cell.y);
-                cell.sprite.setCenter(pos.x, pos.y);
-            } else {
-                cell.sprite.setSize(CELL_TEX_WIDTH, CELL_TEX_WIDTH);
-                Vector2 pos = getHexPosition(cell.x, cell.y);
-                cell.sprite.setCenter(pos.x, pos.y/* - (CELL_HEIGHT - CELL_WIDTH) / 2f*/);
-
-                cell.sprite2 = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-                cell.sprite2.setColor(player.strokeColor);
-                cell.sprite2.setSize(CELL_WIDTH, CELL_HEIGHT);
-                pos = getHexPosition(cell.x, cell.y);
-                cell.sprite2.setCenter(pos.x, pos.y);
+                cell.textureSprite.setCenter(pos.x, pos.y/* - (CELL_HEIGHT - CELL_WIDTH) / 2f*/);
             }
         } else {
-            cell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-            cell.type = Cell.CELL_TYPE_COLOR;
-            cell.sprite.setColor(players.get(cell.pid).strokeColor);
-            cell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
-            Vector2 pos = getHexPosition(cell.x, cell.y);
-            cell.sprite.setCenter(pos.x, pos.y);
+            cell.textureSprite = null;
         }
+        cell.colorSprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+        cell.colorSprite.setColor(players.get(cell.pid).strokeColor);
+        cell.colorSprite.setSize(CELL_WIDTH, CELL_HEIGHT);
+        Vector2 pos = getHexPosition(cell.x, cell.y);
+        cell.colorSprite.setCenter(pos.x, pos.y);
     }
 
     private void initPathCellSprite(Player player, Cell pathCell) {
         if (pathCell == null) return;
         if (player == null) return;
         if (players.get(pathCell.pid) == null) return;
-        pathCell.sprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
-        pathCell.type = Cell.CELL_TYPE_COLOR;
-        pathCell.sprite.setColor(players.get(pathCell.pid).pathCellColor);
-        pathCell.sprite.setSize(CELL_WIDTH, CELL_HEIGHT);
+        pathCell.colorSprite = mainAtlas.createSprite(TEXTURE_REGION_HEX_WHITE);
+        pathCell.colorSprite.setColor(players.get(pathCell.pid).pathCellColor);
+        pathCell.colorSprite.setSize(CELL_WIDTH, CELL_HEIGHT);
         Vector2 pos = getHexPosition(pathCell.x, pathCell.y);
-        pathCell.sprite.setCenter(pos.x, pos.y);
+        pathCell.colorSprite.setCenter(pos.x, pos.y);
     }
 
     /* ***************************************** DRAW *******************************************/
@@ -705,7 +710,7 @@ public class PlayScreen extends ScreenAdapter {
             Player player = players.get(drawPid);
             if (player == null) continue;
             if (player.status == 0 && player.trailGraphic != null) {
-                player.trailGraphic.render(batch.getProjectionMatrix());
+                player.trailGraphic.render(gameCamera.combined);
             }
         }
 //        synchronized (playersMutex) {
@@ -726,44 +731,59 @@ public class PlayScreen extends ScreenAdapter {
                 if (y < -MAP_SIZE || y > MAP_SIZE) continue;
                 Cell cell = cells[x + MAP_SIZE][y + MAP_SIZE];
                 Cell pathCell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
-                boolean hasCell = cell != null && cell.sprite != null;
-                boolean hasPathCell = pathCell != null && pathCell.sprite != null;
+                boolean hasCell = cell != null && cell.colorSprite != null;
+                boolean hasPathCell = pathCell != null && pathCell.colorSprite != null;
                 if (hasCell && hasPathCell) {
                     if (cell.pid == pathCell.pid) {
                         // only draw cell
-//                        if (players.get(cell.pid) == null) continue;
-//                        if (cell.sprite2 != null) cell.sprite2.draw(batch);
-                        cell.sprite.draw(batch);
+                        if (players.get(cell.pid) == null) continue;
+                        cell.colorSprite.draw(batch);
 //                        if (DEBUG_DRAW_PIDS)
 //                            usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
                     } else {
                         // only draw path cell
-//                        if (players.get(pathCell.pid) == null) continue;
-                        pathCell.sprite.draw(batch);
+                        if (players.get(pathCell.pid) == null) continue;
+                        pathCell.colorSprite.draw(batch);
 //                        if (DEBUG_DRAW_PIDS)
 //                            usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
                     }
-//                    drawList[cell.pid] = true;
-//                    drawList[pathCell.pid] = true;
                     if (!drawList.contains(cell.pid)) drawList.add(cell.pid);
                     if (!drawList.contains(pathCell.pid)) drawList.add(pathCell.pid);
                 } else if (hasCell) {
                     // draw cell
-//                    if (players.get(cell.pid) == null) continue;
-//                    if (cell.sprite2 != null) cell.sprite2.draw(batch);
-                    cell.sprite.draw(batch);
+                    if (players.get(cell.pid) == null) continue;
+                    cell.colorSprite.draw(batch);
 //                    if (DEBUG_DRAW_PIDS)
 //                        usernameFont.draw(batch, cell.pid + "", cell.sprite.getX() + cell.sprite.getWidth() / 2f, cell.sprite.getY() + cell.sprite.getHeight() / 2f);
-//                    drawList[cell.pid] = true;
                     if (!drawList.contains(cell.pid)) drawList.add(cell.pid);
                 } else if (hasPathCell) {
                     // draw path cell
-//                    if (players.get(pathCell.pid) == null) continue;
-                    pathCell.sprite.draw(batch);
+                    if (players.get(pathCell.pid) == null) continue;
+                    pathCell.colorSprite.draw(batch);
 //                    if (DEBUG_DRAW_PIDS)
 //                        usernameFont.draw(batch, pathCell.pid + "", pathCell.sprite.getX() + pathCell.sprite.getWidth() / 2f, pathCell.sprite.getY() + pathCell.sprite.getHeight() / 2f);
-//                    drawList[pathCell.pid] = true;
                     if (!drawList.contains(pathCell.pid)) drawList.add(pathCell.pid);
+                }
+            }
+        }
+    }
+
+    private void drawTextureCells() {
+        for (int x = leftXi; x <= leftXi + sizeX; x++) {
+            if (x < -MAP_SIZE || x > MAP_SIZE) continue;
+            for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
+                if (y < -MAP_SIZE || y > MAP_SIZE) continue;
+                Cell cell = cells[x + MAP_SIZE][y + MAP_SIZE];
+                if (cell == null || cell.colorSprite == null || players.get(cell.pid) == null)
+                    continue;
+                Cell pathCell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
+                boolean hasPathCell = pathCell != null && pathCell.colorSprite != null;
+                if (hasPathCell) {
+                    if (cell.pid == pathCell.pid) {
+                        if (cell.textureSprite != null) cell.textureSprite.draw(batch);
+                    }
+                } else {
+                    if (cell.textureSprite != null) cell.textureSprite.draw(batch);
                 }
             }
         }
@@ -776,33 +796,35 @@ public class PlayScreen extends ScreenAdapter {
             if (player.status == 0) {
                 if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
                 if (player._stroke != null) player._stroke.draw(batch);
-                if (player._fill != null) player._fill.draw(batch);
+                if (player._fill != null && !player.fillIsTexture) player._fill.draw(batch);
+                if (player.indic != null) player.indic.draw(batch);
+            }
+        }
+    }
+
+    private void drawPlayerFillTextures() {
+        for (long drawPid : drawList) {
+            Player player = players.get(drawPid);
+            if (player == null) continue;
+            if (player.status == 0) {
+                if (player._fill != null && player.fillIsTexture) player._fill.draw(batch);
+            }
+        }
+    }
+
+    private void drawPlayerNames() {
+        for (long drawPid : drawList) {
+            Player player = players.get(drawPid);
+            if (player == null) continue;
+            if (player.status == 0) {
                 if (player._stroke != null && player.text != null) {
                     float x = player._stroke.getX() + player._stroke.getWidth() / 2f - player.text.width / 2f;
                     float y = player._stroke.getY() + 70;
                     usernameFont.setColor(player.strokeColor);
                     usernameFont.draw(batch, player._name, x, y);
                 }
-                if (player.indic != null) player.indic.draw(batch);
             }
         }
-
-//        for (Player player : players) {
-//            if (player == null) continue;
-//            if (!drawList[player.pid]) continue;
-//            if (player.status == 0) {
-//                if (DEBUG_SHOW_GHOST && player.bcGhost != null) player.bcGhost.draw(batch);
-//                if (player._stroke != null) player._stroke.draw(batch);
-//                if (player._fill != null) player._fill.draw(batch);
-//                if (player._stroke != null && player.text != null) {
-//                    float x = player._stroke.getX() + player._stroke.getWidth() / 2f - player.text.width / 2f;
-//                    float y = player._stroke.getY() + 70;
-//                    usernameFont.setColor(player.strokeColor);
-//                    usernameFont.draw(batch, player._name, x, y);
-//                }
-//                if (player.indic != null) player.indic.draw(batch);
-//            }
-//        }
     }
 
     private void drawProgressbar(Player player, float dt, boolean drawStatic) {
@@ -841,8 +863,15 @@ public class PlayScreen extends ScreenAdapter {
             }
         }
         player.progressBar.draw(batch);
-        leaderboardFont.setColor(player.strokeColor);
-        leaderboardFont.draw(batch, player._position + "- " + decimalFormat.format(percentage * 100f) + "% " + player._name, player.progressBar.getX() + 6 * guiUnits, player.progressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 2 * guiUnits);
+
+        if (player.positionIsChanging && player.changeDir == Player.CHANGE_DIRECTION_DOWN) return;
+
+        FontDrawItem fdi = new FontDrawItem();
+        fdi.color = player.strokeColor;
+        fdi.text = player._position + "- " + decimalFormat.format(percentage * 100f) + "% " + player._name;
+        fdi.x = player.progressBar.getX() + 6 * guiUnits;
+        fdi.y = player.progressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 2 * guiUnits;
+        leaderboardDrawList.add(fdi);
     }
 
     private void drawLeaderboard(float dt) {
@@ -958,11 +987,19 @@ public class PlayScreen extends ScreenAdapter {
         playerProgressBarBest.draw(batch);
         playerProgressBar.draw(batch);
 
-        leaderboardFont.setColor(currentPlayer.strokeColor);
-        leaderboardFont.draw(batch, (currentPlayer._percentage < 0.1f ? " " : "") + decimalFormat.format(currentPlayer._percentage * 100f) + "%", playerProgressBar.getX() + playerProgressBar.getWidth() - yourProgressText.width + guiUnits * 8, playerProgressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 2 * guiUnits);
+        FontDrawItem fdi = new FontDrawItem();
+        fdi.color = currentPlayer.strokeColor;
+        fdi.text = (currentPlayer._percentage < 0.1f ? " " : "") + decimalFormat.format(currentPlayer._percentage * 100f) + "%";
+        fdi.x = playerProgressBar.getX() + playerProgressBar.getWidth() - yourProgressText.width + guiUnits * 8;
+        fdi.y = playerProgressBar.getY() + (progressbarHeight + leaderboardFont.getLineHeight()) / 2f - 2 * guiUnits;
+        leaderboardDrawList.add(fdi);
 
-        leaderboardFont.setColor(COLOR_YOUR_BEST_PROGRESS_TEXT);
-        leaderboardFont.draw(batch, "BEST " + decimalFormat.format(playerBestProgress * 100) + "%", playerProgressBarBest.getX() + playerProgressBarBest.getWidth() - yourProgressBestText.width + guiUnits * 8, playerProgressBarBest.getY() - 2 * guiUnits);
+        fdi = new FontDrawItem();
+        fdi.color = COLOR_YOUR_BEST_PROGRESS_TEXT;
+        fdi.text = "BEST " + decimalFormat.format(playerBestProgress * 100) + "%";
+        fdi.x = playerProgressBarBest.getX() + playerProgressBarBest.getWidth() - yourProgressBestText.width + guiUnits * 8;
+        fdi.y = playerProgressBarBest.getY() - 2 * guiUnits;
+        leaderboardDrawList.add(fdi);
     }
 
     private void drawTime() {
@@ -1146,8 +1183,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private void updateZoom() {
         if (currentPlayer == null) return;
-        //gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + currentPlayer.numCells * 0.001f, 1.5f);
-        gameCamera.zoom = 1.5f;
+        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + currentPlayer.numCells * 0.001f, 1.5f);
     }
 
     private long getServerTime() {
@@ -1205,7 +1241,7 @@ public class PlayScreen extends ScreenAdapter {
         } else if (dst > 25) { // > 5
             return 10f / dst;
         } else {
-            if (player.clientId.equals(room.getSessionId())) System.out.println("NO LERPING");
+            //if (player.clientId.equals(room.getSessionId())) System.out.println("NO LERPING");
 //                return 0.3f;
             return 0;
         }
@@ -1393,7 +1429,7 @@ public class PlayScreen extends ScreenAdapter {
                     }
                     if (clientId.equals(room.getSessionId())) {
                         if (num > 4)
-                            Gdx.app.postRunnable(() -> captureSound.play());
+                            if (soundIsOn) Gdx.app.postRunnable(() -> captureSound.play());
                         Gdx.app.log(TAG, "+" + num + " blocks");
                     }
                 } else if (data.get("op").equals("pg")) {
@@ -1413,14 +1449,14 @@ public class PlayScreen extends ScreenAdapter {
                     double y = Double.valueOf(data.get("y") + "");
                     deathPosition.set((float) x, (float) y);
                     Gdx.app.postRunnable(() -> {
-                        deathSound.play();
+                        if (soundIsOn) deathSound.play();
                         gameCamera.zoom = 1;
                     });
                     System.out.println("YOU ARE DEAD!");
                     // TODO: show death dialog
                 } else if (data.get("op").equals("ht")) {
                     // dead
-                    Gdx.app.postRunnable(() -> hitSound.play());
+                    if (soundIsOn) Gdx.app.postRunnable(() -> hitSound.play());
                 }
             }
 
@@ -1481,11 +1517,15 @@ public class PlayScreen extends ScreenAdapter {
                 if (player.fillColor != null) {
                     player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
                     player._fill.setColor(player.fillColor);
+                    player.fillIsTexture = false;
                 } else {
                     player._fill = fillAtlas.createSprite(player.fill);
                     if (player._fill == null) {
                         player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
                         player._fill.setColor(Color.BLACK);
+                        player.fillIsTexture = false;
+                    } else {
+                        player.fillIsTexture = true;
                     }
                 }
 
