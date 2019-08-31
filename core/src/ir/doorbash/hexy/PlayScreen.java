@@ -116,7 +116,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-    //    private static final String ENDPOINT = "wss://ccb1afbb.ngrok.io";
+//        private static final String ENDPOINT = "wss://cefd3aab.ngrok.io";
     private static final String ENDPOINT = "ws://192.168.1.135:4444";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
@@ -1571,12 +1571,7 @@ public class PlayScreen extends ScreenAdapter {
                 synchronized (leaderboardList) {
                     if (!leaderboardList.contains(player)) leaderboardList.add(player);
                 }
-
-                try {
-                    registerPlayerCallbacks(player);
-                }catch (ConcurrentModificationException e) {
-
-                }
+                registerPlayerCallbacks(player);
             });
         };
         room.state.players.onRemove = (player, key) -> {
