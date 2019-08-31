@@ -18,6 +18,8 @@ public class TextUtil {
     }
 
     public static String validateName(String name) {
-        return name.replaceAll("\\s+","");
+        String ret = name.replaceAll("\\s+", "");
+        if (ret.length() > 15) ret = ret.substring(0, 15);
+        return ret;
     }
 }
