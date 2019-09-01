@@ -20,11 +20,10 @@ public class DebugSpriteBatch extends SpriteBatch {
             if (lastTexture != null) {
                 System.out.println("****** switching from " + lastTexture + " to " + texture);
             }
-
-            super.switchTexture(texture);
         } catch (Exception e) {
             e.printStackTrace();
         }
+        super.switchTexture(texture);
     }
 
     @Override
