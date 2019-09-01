@@ -1,75 +1,93 @@
 <?xml version="1.0" encoding="utf-8"?>
 <android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:layout_width="300dp"
-    android:layout_height="280dp"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
     android:background="#FFF"
     android:paddingLeft="25dp"
     android:paddingTop="20dp"
     android:paddingRight="25dp"
-    android:paddingBottom="20dp">
+    android:paddingBottom="10dp">
 
     <TextView
         android:id="@+id/title_txt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Settings"
-        android:textSize="20sp"
+        android:textSize="24sp"
         app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-
-    <TextView
+    <Button
         android:id="@+id/sound_txt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Sound"
-        app:layout_constraintBottom_toTopOf="@id/language_txt"
-        app:layout_constraintStart_toStartOf="@+id/title_txt"
-        app:layout_constraintTop_toBottomOf="@id/title_txt" />
+        android:layout_marginTop="32dp"
+        android:background="@drawable/settings_button_background"
+        android:textColor="#FFF"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toTopOf="@id/graphics_mode"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/title_txt"
+        app:layout_constraintVertical_chainStyle="spread" />
 
-    <TextView
+    <Button
+        android:id="@+id/graphics_mode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/settings_button_background"
+        android:textColor="#FFF"
+        android:textSize="14sp"
+        app:layout_constraintBottom_toTopOf="@id/language_txt"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/sound_txt" />
+
+    <Button
         android:id="@+id/language_txt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Language"
+        android:background="@drawable/settings_button_background"
+        android:textColor="#FFF"
+        android:textSize="14sp"
         app:layout_constraintBottom_toTopOf="@id/input_txt"
-        app:layout_constraintLeft_toLeftOf="@id/sound_txt"
-        app:layout_constraintTop_toBottomOf="@id/sound_txt" />
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/graphics_mode" />
 
-    <TextView
+    <!--    <Spinner-->
+    <!--        android:id="@+id/language_spinner"-->
+    <!--        android:layout_width="wrap_content"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:background="@null"-->
+    <!--        app:layout_constraintBottom_toTopOf="@id/input_txt"-->
+    <!--        app:layout_constraintLeft_toLeftOf="parent"-->
+    <!--        app:layout_constraintRight_toRightOf="parent"-->
+    <!--        app:layout_constraintTop_toBottomOf="@id/graphics_mode" />-->
+
+    <Button
         android:id="@+id/input_txt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Controls"
+        android:background="@drawable/settings_button_background"
+        android:textColor="#FFF"
+        android:textSize="14sp"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintLeft_toLeftOf="@id/sound_txt"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toBottomOf="@id/language_txt" />
 
-    <Switch
-        android:id="@+id/sound_switch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text=""
-        app:layout_constraintBottom_toBottomOf="@id/sound_txt"
-        app:layout_constraintRight_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="@id/sound_txt" />
-
-    <Spinner
-        android:id="@+id/language_spinner"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        app:layout_constraintBottom_toBottomOf="@+id/language_txt"
-        app:layout_constraintEnd_toEndOf="@+id/sound_switch"
-        app:layout_constraintTop_toTopOf="@id/language_txt" />
-
-    <android.support.v7.widget.AppCompatImageView
-        android:layout_width="100dp"
-        android:layout_height="50dp"
-        app:layout_constraintBottom_toBottomOf="@id/input_txt"
-        app:layout_constraintEnd_toEndOf="@+id/sound_switch"
-        app:layout_constraintTop_toTopOf="@id/input_txt"
-        app:srcCompat="@drawable/ui_s_control_1" />
+    <!--    <TextView-->
+    <!--        android:id="@+id/graphics_mode_txt"-->
+    <!--        android:layout_width="wrap_content"-->
+    <!--        android:layout_height="wrap_content"-->
+    <!--        android:layout_marginBottom="2dp"-->
+    <!--        android:text="(Set to only colors if fps is below 60)"-->
+    <!--        android:textColor="#FFF"-->
+    <!--        android:textSize="8sp"-->
+    <!--        app:layout_constraintBottom_toBottomOf="@id/graphics_mode"-->
+    <!--        app:layout_constraintLeft_toLeftOf="@id/graphics_mode"-->
+    <!--        app:layout_constraintRight_toRightOf="@id/graphics_mode" />-->
 
 </android.support.constraint.ConstraintLayout>

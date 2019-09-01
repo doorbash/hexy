@@ -29,6 +29,28 @@ public class LanguageSpinnerAdapter extends BaseAdapter {
         View v = convertView;
         if (v == null) {
             LayoutInflater inflater = (LayoutInflater) context.getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            v = inflater.inflate(R.layout.row_dialog_settings, null);
+            ViewHolder vh = new ViewHolder();
+            vh.text = v.findViewById(R.id.text);
+            v.setTag(vh);
+        }
+        ViewHolder vh = (ViewHolder) v.getTag();
+
+//        String text = "Language";
+        String text = array[position];
+
+        vh.text.setText(text);
+//        vh.text.setTypeface(FontManager.getInstance(context).noto);
+//        vh.text.setTextColor(Color.BLACK);
+
+        return v;
+    }
+
+    @Override
+    public View getDropDownView(int position, View convertView, ViewGroup parent) {
+        View v = convertView;
+        if (v == null) {
+            LayoutInflater inflater = (LayoutInflater) context.getApplicationContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             v = inflater.inflate(R.layout.row_spinner_language, null);
             ViewHolder vh = new ViewHolder();
             vh.text = v.findViewById(R.id.text);
@@ -43,11 +65,6 @@ public class LanguageSpinnerAdapter extends BaseAdapter {
         vh.text.setTextColor(Color.BLACK);
 
         return v;
-    }
-
-    @Override
-    public View getDropDownView(int position, View convertView, ViewGroup parent) {
-        return getView(position, convertView, parent);
     }
 
     @Override
