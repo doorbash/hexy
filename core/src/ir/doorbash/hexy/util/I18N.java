@@ -5,7 +5,7 @@ package ir.doorbash.hexy.util;
  */
 public class I18N {
     private static final int NUM_LANGUAGES = 2;
-    private static final int NUM_TEXTS = 10;
+    private static final int NUM_TEXTS = 16;
 
     public static final int settings_title = 0;
     public static final int settings_sound_on = 1;
@@ -16,19 +16,25 @@ public class I18N {
     public static final int main_menu_play_against_ai = 6;
     public static final int you_will_respawn_in_9_seconds = 7;
     public static final int connecting = 8;
+    public static final int settings_graphics_high = 9;
+    public static final int settings_graphics_low = 10;
+    public static final int coming_soon = 11;
+    public static final int touch_mode = 12;
+    public static final int floating_joystick = 13;
+    public static final int fixed_joystick_left_right = 14;
+    public static final int gyroscope = 15;
 
-    private static final int not_supported = -1;
     private static final int english = 0;
     private static final int persian = 1;
 
     public static int getLangCode(String lang) {
         switch (lang.toLowerCase()) {
-            case "english":
+            case "English":
                 return english;
             case "فارسی":
                 return persian;
         }
-        return -1;
+        return english;
     }
 
     public static final String[][] texts = new String[NUM_LANGUAGES][NUM_TEXTS];
@@ -46,6 +52,12 @@ public class I18N {
         texts[english][settings_controls] = "Controls";
         texts[persian][settings_controls] = "کنترل بازی";
 
+        texts[english][settings_graphics_high] = "Graphics: Emoji + Colors";
+        texts[persian][settings_graphics_high] = "گرافیک: اموجی + رنگ";
+
+        texts[english][settings_graphics_low] = "Graphics: Only colors";
+        texts[persian][settings_graphics_low] = "گرافیک: فقط رنگ";
+
         texts[english][main_menu_your_name] = "Your name";
         texts[persian][main_menu_your_name] = "نام شما";
 
@@ -60,6 +72,21 @@ public class I18N {
 
         texts[english][connecting] = "Connecting...";
         texts[persian][connecting] = "در حال اتصال...";
+
+        texts[english][coming_soon] = "Coming soon";
+        texts[persian][coming_soon] = "به زودی";
+
+        texts[english][touch_mode] = "Touch Mode";
+        texts[persian][touch_mode] = "حالت لمسی";
+
+        texts[english][floating_joystick] = "Floating Joystick";
+        texts[persian][floating_joystick] = "فرمان شناور";
+
+        texts[english][fixed_joystick_left_right] = "(Left) Fixed Joystick (Right)";
+        texts[persian][fixed_joystick_left_right] = "(راست) فرمان ثابت (چپ)";
+
+        texts[english][gyroscope] = "Gyroscope";
+        texts[persian][gyroscope] = "ژیروسکوپ";
     }
 
 }
