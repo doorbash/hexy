@@ -30,7 +30,6 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.ConcurrentModificationException;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -67,9 +66,6 @@ public class PlayScreen extends ScreenAdapter {
     private static final int MAP_SIZE = 50;
     private static final int EXTENDED_CELLS = 4;
     private static final int TOTAL_CELLS = (2 * MAP_SIZE + 1) * (2 * MAP_SIZE + 1);
-    private static final int CONTROLLER_TYPE_MOUSE = 1;
-    private static final int CONTROLLER_TYPE_PAD = 2;
-    private static final int CONTROLLER_TYPE_ON_SCREEN = 3;
     private static final int CORRECT_PLAYER_POSITION_INTERVAL = 100;
     private static final int SEND_DIRECTION_INTERVAL = 200;
     private static final int CHECK_CONNECTION_INTERVAL = 4000;
@@ -98,7 +94,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final float MAP_SIZE_X_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_WIDTH;
     //    private static final float MAP_SIZE_Y_PIXEL = (MAP_SIZE * GRID_HEIGHT);
     private static final float MAP_SIZE_Y_EXT_PIXEL = (MAP_SIZE + EXTENDED_CELLS) * GRID_HEIGHT;
-    private static final float LEADERBORAD_CHANGE_SPEED = 100;
+    private static final float LEADERBORAD_CHANGE_SPEED = 90;
     private static final float PLAYER_ROTATE_SPEED = 2;
     //    private static final float HIGH_LERP_TIME = 2; // seconds
     private static final float ROPE_WIDTH = 20;
@@ -116,7 +112,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-//        private static final String ENDPOINT = "wss://cefd3aab.ngrok.io";
+    //        private static final String ENDPOINT = "wss://cefd3aab.ngrok.io";
     private static final String ENDPOINT = "ws://192.168.1.135:4444";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
@@ -192,19 +188,24 @@ public class PlayScreen extends ScreenAdapter {
     private boolean leaderboardDrawAgain;
     private boolean mouseIsDown = false;
     private boolean isUpdating = false;
-    private boolean soundIsOn = true;
+    private boolean soundIsOn;
+    private boolean graphicsHigh;
 
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
     private int sendPingTime = SEND_PING_INTERVAL;
     private int checkConnectionTime = -1;
-    private int controllerType = CONTROLLER_TYPE_PAD;
+    private int controllerType = Constants.CONTROL_FLOATING;
     private int screenWidth;
     private int screenHeight;
     private int currentPing;
     private int gameMode = GAME_MODE_FFA;
     private int connectionState = CONNECTION_STATE_DISCONNECTED;
     private int langCode;
+    private int bottomYi;
+    private int leftXi;
+    private int sizeX;
+    private int sizeY;
 
     private long lastPingSentTime;
     private long lastPingReplyTime;
@@ -230,10 +231,7 @@ public class PlayScreen extends ScreenAdapter {
     private float actualHeight;
     private float leftX;
     private float bottomY;
-    private int bottomYi;
-    private int leftXi;
-    private int sizeX;
-    private int sizeY;
+    private float leaderboardChangeSpeed;
 
     private String sessionId;
     private String roomId;
@@ -265,11 +263,13 @@ public class PlayScreen extends ScreenAdapter {
         prefs = Gdx.app.getPreferences(Constants.PREFS_NAME);
         langCode = I18N.getLangCode(prefs.getString(Constants.KEY_SETTINGS_LANGUAGE, Constants.DEFAULT_SETTINGS_LANGUAGE));
         soundIsOn = prefs.getBoolean(Constants.KEY_SETTINGS_SOUND, true);
+        graphicsHigh = prefs.getString(Constants.KEY_SETTINGS_GRAPHICS, Constants.DEFAULT_SETTINGS_GRAPHICS).equals("high");
+        controllerType = prefs.getInteger(Constants.KEY_SETTINGS_CONTROL, Constants.DEFAULT_SETTINGS_CONTROL);
 
         batch = new SpriteBatch();
 
         mainAtlas = new TextureAtlas(PATH_PACK_ATLAS);
-        fillAtlas = new TextureAtlas(PATH_FILL_ATLAS);
+        if (graphicsHigh) fillAtlas = new TextureAtlas(PATH_FILL_ATLAS);
         whiteHex = mainAtlas.findRegion(TEXTURE_REGION_HEX_WHITE);
         thumbstickBgSprite = mainAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_BG);
         thumbstickBgSprite.setSize(152, 152);
@@ -321,6 +321,7 @@ public class PlayScreen extends ScreenAdapter {
 
     @Override
     public void render(float dt) {
+        System.out.println("dt: " + dt);
         time += dt;
 
         Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
@@ -377,7 +378,7 @@ public class PlayScreen extends ScreenAdapter {
                 updateZoom();
             }
             drawCells();
-            drawTextureCells();
+            if (graphicsHigh) drawTextureCells();
             batch.end();
             drawTrails();
             batch.begin();
@@ -388,7 +389,7 @@ public class PlayScreen extends ScreenAdapter {
 
         batch.setProjectionMatrix(fixedCamera.combined);
 
-        if (controllerType == CONTROLLER_TYPE_ON_SCREEN && !mouseIsDown && !MathUtils.isEqual(onScreenPadCurrentLen, 0)) {
+        if ((controllerType == Constants.CONTROL_FIXED_LEFT || controllerType == Constants.CONTROL_FIXED_RIGHT) && !mouseIsDown && !MathUtils.isEqual(onScreenPadCurrentLen, 0)) {
 //            System.out.println("bouncing....");
             onScreenPadReleaseTimer += dt;
             onScreenPadCurrentLen = (1 - ON_SCREEN_PAD_RELEASE_ELASTIC_OUT.apply(Math.min(1, onScreenPadReleaseTimer / ON_SCREEN_PAD_RELEASE_TOTAL_TIME))) * onScreenPadInitLen;
@@ -397,7 +398,7 @@ public class PlayScreen extends ScreenAdapter {
             thumbstickPadSprite.setCenter(onScreenPadPosition.x + padVector.x, onScreenPadPosition.y + padVector.y);
         }
 
-        if ((controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) || controllerType == CONTROLLER_TYPE_ON_SCREEN) {
+        if ((controllerType == Constants.CONTROL_FLOATING && mouseIsDown) || (controllerType == Constants.CONTROL_FIXED_LEFT || controllerType == Constants.CONTROL_FIXED_RIGHT)) {
             thumbstickBgSprite.draw(batch);
             thumbstickPadSprite.draw(batch);
         }
@@ -497,8 +498,13 @@ public class PlayScreen extends ScreenAdapter {
     private void init(int width, int height) {
         screenWidth = height > width ? SCREEN_WIDTH_PORTRAIT : SCREEN_WIDTH_LANDSCAPE;
         screenHeight = screenWidth * height / width;
-        onScreenPadPosition.set(screenWidth / 2f - 120, -screenHeight / 2f + 120);
-        if (controllerType == CONTROLLER_TYPE_ON_SCREEN) {
+        leaderboardChangeSpeed = LEADERBORAD_CHANGE_SPEED * height / screenHeight;
+        if (controllerType == Constants.CONTROL_FIXED_RIGHT) {
+            onScreenPadPosition.set(screenWidth / 2f - 120, -screenHeight / 2f + 120);
+        } else {
+            onScreenPadPosition.set(-screenWidth / 2f + 120, -screenHeight / 2f + 120);
+        }
+        if (controllerType == Constants.CONTROL_FIXED_LEFT || controllerType == Constants.CONTROL_FIXED_RIGHT) {
             thumbstickBgSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
             thumbstickPadSprite.setCenter(onScreenPadPosition.x, onScreenPadPosition.y);
         }
@@ -648,7 +654,7 @@ public class PlayScreen extends ScreenAdapter {
         if (cell == null) return;
         if (players.get(cell.pid) == null) return;
         if (player.fillColor == null) {
-            cell.textureSprite = fillAtlas.createSprite(player.fill);
+            if (graphicsHigh) cell.textureSprite = fillAtlas.createSprite(player.fill);
             if (cell.textureSprite != null) {
                 cell.textureSprite.setSize(CELL_TEX_WIDTH, CELL_TEX_WIDTH);
                 Vector2 pos = getHexPosition(cell.x, cell.y);
@@ -775,16 +781,14 @@ public class PlayScreen extends ScreenAdapter {
             for (int y = bottomYi; y <= bottomYi + sizeY; y++) {
                 if (y < -MAP_SIZE || y > MAP_SIZE) continue;
                 Cell cell = cells[x + MAP_SIZE][y + MAP_SIZE];
-                if (cell == null || cell.colorSprite == null || players.get(cell.pid) == null)
+                if (cell == null || cell.colorSprite == null || cell.textureSprite == null || players.get(cell.pid) == null)
                     continue;
                 Cell pathCell = pathCells[x + MAP_SIZE][y + MAP_SIZE];
                 boolean hasPathCell = pathCell != null && pathCell.colorSprite != null;
                 if (hasPathCell) {
-                    if (cell.pid == pathCell.pid) {
-                        if (cell.textureSprite != null) cell.textureSprite.draw(batch);
-                    }
+                    if (cell.pid == pathCell.pid) cell.textureSprite.draw(batch);
                 } else {
-                    if (cell.textureSprite != null) cell.textureSprite.draw(batch);
+                    cell.textureSprite.draw(batch);
                 }
             }
         }
@@ -850,13 +854,13 @@ public class PlayScreen extends ScreenAdapter {
             player.progressBar.setY(y);
         } else {
             if (player.progressBar.getY() < y) {
-                player.progressBar.translateY(dt * LEADERBORAD_CHANGE_SPEED);
+                player.progressBar.translateY(dt * leaderboardChangeSpeed);
                 if (player.progressBar.getY() > y) {
                     player.progressBar.setY(y);
                     player.positionIsChanging = false;
                 }
             } else {
-                player.progressBar.translateY(-dt * LEADERBORAD_CHANGE_SPEED);
+                player.progressBar.translateY(-dt * leaderboardChangeSpeed);
                 if (player.progressBar.getY() < y) {
                     player.progressBar.setY(y);
                     player.positionIsChanging = false;
@@ -1264,9 +1268,9 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void handleTouchDownDrag(int screenX, int screenY) {
-        if (controllerType == CONTROLLER_TYPE_MOUSE) {
+        if (controllerType == Constants.CONTROL_TOUCH) {
             direction = (int) Math.toDegrees(Math.atan2(screenY, (float) screenX));
-        } else if (controllerType == CONTROLLER_TYPE_PAD && mouseIsDown) {
+        } else if (controllerType == Constants.CONTROL_FLOATING && mouseIsDown) {
             thumbstickBgSprite.setCenter(padAnchorPoint.x, padAnchorPoint.y);
             padVector.set(screenX - padAnchorPoint.x, screenY - padAnchorPoint.y);
             if (padVector.len2() > PAD_CONTROLLER_MAX_LENGTH * PAD_CONTROLLER_MAX_LENGTH) {
@@ -1274,7 +1278,7 @@ public class PlayScreen extends ScreenAdapter {
             }
             thumbstickPadSprite.setCenter(padAnchorPoint.x + padVector.x, padAnchorPoint.y + padVector.y);
             direction = (int) Math.toDegrees(Math.atan2(padVector.y, padVector.x));
-        } else if (controllerType == CONTROLLER_TYPE_ON_SCREEN) {
+        } else if (controllerType == Constants.CONTROL_FIXED_LEFT || controllerType == Constants.CONTROL_FIXED_RIGHT) {
             padVector.set(screenX - onScreenPadPosition.x, screenY - onScreenPadPosition.y);
             onScreenPadInitLen = padVector.len();
             onScreenPadNorVector = padVector.nor().cpy();
@@ -1522,10 +1526,10 @@ public class PlayScreen extends ScreenAdapter {
                     player._fill.setColor(player.fillColor);
                     player.fillIsTexture = false;
                 } else {
-                    player._fill = fillAtlas.createSprite(player.fill);
+                    if (graphicsHigh) player._fill = fillAtlas.createSprite(player.fill);
                     if (player._fill == null) {
                         player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
-                        player._fill.setColor(Color.BLACK);
+                        player._fill.setColor(player.progressColor);
                         player.fillIsTexture = false;
                     } else {
                         player.fillIsTexture = true;
