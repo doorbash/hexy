@@ -14,11 +14,11 @@ import android.widget.EditText;
 import android.widget.ImageView;
 
 import ir.doorbash.hexy.dialogs.HowToPlayDialog;
-import ir.doorbash.hexy.dialogs.Settings2Dialog;
+import ir.doorbash.hexy.dialogs.SettingsDialog;
 import ir.doorbash.hexy.util.Constants;
+import ir.doorbash.hexy.util.I18N;
 import ir.doorbash.hexy.util.Shared;
 import ir.doorbash.hexy.util.TextUtil;
-import ir.doorbash.hexy.util.I18N;
 
 /**
  * Created by Milad Doorbash on 8/25/2019.
@@ -83,10 +83,7 @@ public class MainMenuActivity extends AppCompatActivity {
     }
 
     public void openSettings(View view) {
-//        SettingsDialog dialog = new SettingsDialog(this);
-        Settings2Dialog dialog = new Settings2Dialog(this);
-        dialog.show();
-        dialog.setOnDismissListener(d -> updateUI());
+        SettingsDialog.showDialog(this);
     }
 
     public void openHowToPlay(View view) {
