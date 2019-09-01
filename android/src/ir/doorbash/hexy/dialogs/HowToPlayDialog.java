@@ -23,6 +23,9 @@ import ir.doorbash.hexy.R;
 import ir.doorbash.hexy.fragments.HowToPlayImageFragment;
 
 public class HowToPlayDialog extends DialogFragment {
+
+    private static final String TAG = "HowToPlayDialog";
+
     ViewPager viewPager;
     AppCompatImageView next;
     AppCompatImageView prev;
@@ -38,13 +41,13 @@ public class HowToPlayDialog extends DialogFragment {
     public static void showDialog(AppCompatActivity activity) {
         FragmentManager fm = activity.getSupportFragmentManager();
         HowToPlayDialog myDialogFragment = HowToPlayDialog.newInstance();
-        myDialogFragment.show(fm, "dialog");
+        myDialogFragment.show(fm, TAG);
     }
 
     @Override
     public void onResume() {
         WindowManager.LayoutParams lp = getDialog().getWindow().getAttributes();
-        lp.width = WindowManager.LayoutParams.MATCH_PARENT;
+        lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
         lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
         getDialog().getWindow().setAttributes(lp);
         super.onResume();
@@ -86,10 +89,9 @@ public class HowToPlayDialog extends DialogFragment {
         viewPager.post(() -> {
             DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
             int screenWidth = displayMetrics.widthPixels;
-            int screenHeight = displayMetrics.heightPixels;
             ConstraintLayout.LayoutParams layoutParams = (ConstraintLayout.LayoutParams) viewPager.getLayoutParams();
-            layoutParams.width = (int) (screenWidth * 0.8f);
-            layoutParams.height = (int) (screenHeight * 0.8f);
+            layoutParams.width = (int) (screenWidth * 0.9f);
+            layoutParams.height = (int) (layoutParams.width * 0.56f);
             viewPager.setLayoutParams(layoutParams);
             prev.setVisibility(View.INVISIBLE);
         });

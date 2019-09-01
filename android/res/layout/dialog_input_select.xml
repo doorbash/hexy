@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#FFF">
+
+    <ImageView
+        android:id="@+id/touch"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginRight="4dp"
+        android:layout_marginBottom="24dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/ui_s_control_1"
+        app:layout_constraintBottom_toTopOf="@id/fixed"
+        app:layout_constraintHorizontal_chainStyle="spread_inside"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/floating_joystick"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_chainStyle="spread_inside" />
+
+    <ImageView
+        android:id="@+id/floating_joystick"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="24dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/ui_s_control_2"
+        app:layout_constraintBottom_toTopOf="@id/gyro"
+        app:layout_constraintLeft_toRightOf="@id/touch"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <LinearLayout
+        android:id="@+id/fixed"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginRight="4dp"
+        android:layout_marginBottom="28dp"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toLeftOf="@id/gyro"
+        app:layout_constraintTop_toBottomOf="@id/touch">
+
+        <ImageView
+            android:id="@+id/fixed_left"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:scaleType="fitXY"
+            android:src="@drawable/ui_s_control_3" />
+
+        <ImageView
+            android:id="@+id/fixed_right"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:scaleType="fitXY"
+            android:src="@drawable/ui_s_control_4" />
+
+    </LinearLayout>
+
+    <ImageView
+        android:id="@+id/gyro"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:layout_marginLeft="4dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginRight="8dp"
+        android:layout_marginBottom="28dp"
+        android:scaleType="fitXY"
+        android:src="@drawable/ui_s_control_5"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toRightOf="@id/fixed"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/floating_joystick" />
+
+    <TextView
+        android:id="@+id/touch_txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#000"
+        android:textSize="14sp"
+        app:layout_constraintLeft_toLeftOf="@id/touch"
+        app:layout_constraintRight_toRightOf="@id/touch"
+        app:layout_constraintTop_toBottomOf="@id/touch" />
+
+    <TextView
+        android:id="@+id/floating_joystick_txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#000"
+        android:textSize="14sp"
+        app:layout_constraintLeft_toLeftOf="@id/floating_joystick"
+        app:layout_constraintRight_toRightOf="@id/floating_joystick"
+        app:layout_constraintTop_toBottomOf="@id/floating_joystick" />
+
+    <TextView
+        android:id="@+id/fixed_txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#000"
+        android:textSize="14sp"
+        app:layout_constraintLeft_toLeftOf="@id/fixed"
+        app:layout_constraintRight_toRightOf="@id/fixed"
+        app:layout_constraintTop_toBottomOf="@id/fixed" />
+
+    <TextView
+        android:id="@+id/gyro_txt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="#000"
+        android:textSize="14sp"
+        app:layout_constraintLeft_toLeftOf="@id/gyro"
+        app:layout_constraintRight_toRightOf="@id/gyro"
+        app:layout_constraintTop_toBottomOf="@id/gyro" />
+
+</android.support.constraint.ConstraintLayout>
