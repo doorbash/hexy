@@ -12,7 +12,9 @@
         android:isGame="true"
         android:label="@string/app_name"
         android:theme="@style/GdxTheme">
-        <activity android:name="ir.doorbash.hexy.MainMenuActivity">
+        <activity
+            android:name="ir.doorbash.hexy.MainMenuActivity"
+            android:screenOrientation="fullSensor">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <action android:name="android.intent.action.MAIN" />
@@ -23,7 +25,8 @@
         <activity
             android:name="ir.doorbash.hexy.AndroidLauncher"
             android:configChanges="keyboard|keyboardHidden|navigation|orientation|screenSize|screenLayout"
-            android:label="@string/app_name" />
+            android:label="@string/app_name"
+            android:screenOrientation="fullSensor" />
     </application>
 
 </manifest>
