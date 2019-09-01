@@ -8,15 +8,14 @@ import android.support.annotation.Nullable;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v7.app.AppCompatActivity;
-import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.TextView;
 
+import ir.doorbash.hexy.MainMenuActivity;
 import ir.doorbash.hexy.R;
 import ir.doorbash.hexy.util.Constants;
 import ir.doorbash.hexy.util.I18N;
@@ -41,11 +40,10 @@ public class SettingsDialog extends DialogFragment {
         return fragment;
     }
 
-    public static void showDialog(AppCompatActivity activity, DialogInterface dialogInterface) {
+    public static void showDialog(AppCompatActivity activity) {
         FragmentManager fm = activity.getSupportFragmentManager();
         SettingsDialog myDialogFragment = SettingsDialog.newInstance();
         myDialogFragment.show(fm, TAG);
-//        myDialogFragment.onDismiss(dialogInterface);
     }
 
     @Override
@@ -152,5 +150,12 @@ public class SettingsDialog extends DialogFragment {
         // request a window without the title
         dialog.getWindow().requestFeature(Window.FEATURE_NO_TITLE);
         return dialog;
+    }
+
+    @Override
+    public void onDismiss(DialogInterface dialog) {
+        MainMenuActivity activity = ((MainMenuActivity) getActivity());
+        if (activity != null) activity.updateUI();
+        super.onDismiss(dialog);
     }
 }
