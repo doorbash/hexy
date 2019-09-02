@@ -8,10 +8,13 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.DisplayMetrics;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import ir.doorbash.hexy.dialogs.HowToPlayDialog;
 import ir.doorbash.hexy.dialogs.SettingsDialog;
@@ -29,6 +32,7 @@ public class MainMenuActivity extends AppCompatActivity {
     EditText nameTxt;
     Button playOnline;
     Button playAgainstAi;
+    TextView log;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -38,10 +42,19 @@ public class MainMenuActivity extends AppCompatActivity {
         nameTxt = findViewById(R.id.name_txt);
         playOnline = findViewById(R.id.play_online);
         playAgainstAi = findViewById(R.id.play_against_ai);
+        log = findViewById(R.id.log);
+
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        float width = displayMetrics.widthPixels / displayMetrics.density;
+        float height = displayMetrics.heightPixels / displayMetrics.density;
+        float dpWidth = width / displayMetrics.density;
+        float dpHeight = height / displayMetrics.density;
+        log.setText(new StringBuilder().append("screen size (px): ").append(width).append("x").append(height).append("\n").append("screen size (dp): ").append(dpWidth).append("x").append(dpHeight).append("\n").append("density: ").append(displayMetrics.density).append("\n").append("dpi: ").append(displayMetrics.density * 160).toString());
 
         Drawable drawable = getResources().getDrawable(R.drawable.circle);
         drawable.setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
         stroke.setImageDrawable(drawable);
+
 
         nameTxt.addTextChangedListener(new TextWatcher() {
             @Override
@@ -100,5 +113,9 @@ public class MainMenuActivity extends AppCompatActivity {
         playAgainstAi.setHint(I18N.texts[langCode][I18N.main_menu_play_against_ai]);
 
         nameTxt.setText(Shared.getInstance(this).getString(Constants.KEY_PLAYER_NAME, ""));
+    }
+
+    public void openCustomize(View view) {
+        Toast.makeText(this, "open customize dialog", Toast.LENGTH_SHORT).show();
     }
 }
