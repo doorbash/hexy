@@ -11,6 +11,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
+        android:onClick="openCustomize"
         app:layout_constraintBottom_toBottomOf="@id/name_txt"
         app:layout_constraintHorizontal_chainStyle="packed"
         app:layout_constraintLeft_toLeftOf="parent"
@@ -25,8 +26,8 @@
 
         <ImageView
             android:id="@+id/fill_img"
-            android:layout_width="36dp"
-            android:layout_height="36dp"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
             android:layout_centerInParent="true"
             android:src="@drawable/e00000" />
 
@@ -79,6 +80,7 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <ImageView
+        android:id="@+id/how_btn"
         android:layout_width="36dp"
         android:layout_height="36dp"
         android:layout_marginTop="8dp"
@@ -86,6 +88,27 @@
         android:onClick="openHowToPlay"
         android:src="@drawable/ui_m_how"
         app:layout_constraintRight_toLeftOf="@id/settings_btn"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <ImageView
+        android:id="@+id/customize_btn"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginTop="8dp"
+        android:layout_marginRight="8dp"
+        android:onClick="openCustomize"
+        android:src="@drawable/ui_m_customize"
+        app:layout_constraintRight_toLeftOf="@id/how_btn"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <TextView
+        android:id="@+id/log"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginLeft="8dp"
+        android:layout_marginTop="8dp"
+        android:text="log"
+        app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
 
