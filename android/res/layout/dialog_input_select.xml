@@ -32,7 +32,7 @@
         android:layout_marginBottom="24dp"
         android:scaleType="fitXY"
         android:src="@drawable/ui_s_control_2"
-        app:layout_constraintBottom_toTopOf="@id/gyro"
+        app:layout_constraintBottom_toTopOf="@id/rotation"
         app:layout_constraintLeft_toRightOf="@id/touch"
         app:layout_constraintRight_toRightOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -49,7 +49,7 @@
         android:orientation="horizontal"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
-        app:layout_constraintRight_toLeftOf="@id/gyro"
+        app:layout_constraintRight_toLeftOf="@id/rotation"
         app:layout_constraintTop_toBottomOf="@id/touch">
 
         <ImageView
@@ -71,7 +71,7 @@
     </LinearLayout>
 
     <ImageView
-        android:id="@+id/gyro"
+        android:id="@+id/rotation"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginLeft="4dp"
@@ -119,14 +119,14 @@
         app:layout_constraintTop_toBottomOf="@id/fixed" />
 
     <TextView
-        android:id="@+id/gyro_txt"
+        android:id="@+id/rotation_txt"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
         android:textColor="#000"
         android:textSize="14sp"
-        app:layout_constraintLeft_toLeftOf="@id/gyro"
-        app:layout_constraintRight_toRightOf="@id/gyro"
-        app:layout_constraintTop_toBottomOf="@id/gyro" />
+        app:layout_constraintLeft_toLeftOf="@id/rotation"
+        app:layout_constraintRight_toRightOf="@id/rotation"
+        app:layout_constraintTop_toBottomOf="@id/rotation" />
 
 </android.support.constraint.ConstraintLayout>
