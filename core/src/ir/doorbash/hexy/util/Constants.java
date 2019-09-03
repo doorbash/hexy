@@ -8,7 +8,7 @@ public class Constants {
     public static final int CONTROL_FLOATING = 2;
     public static final int CONTROL_FIXED_LEFT = 3;
     public static final int CONTROL_FIXED_RIGHT = 4;
-    public static final int CONTROL_GYRO = 5;
+    public static final int CONTROL_DEVICE_ROTATION = 5;
 
     public static final String PREFS_NAME = "settings";
 
