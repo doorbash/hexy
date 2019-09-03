@@ -4,28 +4,21 @@ import android.app.Dialog;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.constraint.ConstraintLayout;
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v4.view.ViewPager;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.AppCompatImageView;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
-import android.view.WindowManager;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import ir.doorbash.hexy.R;
-import ir.doorbash.hexy.fragments.HowToPlayImageFragment;
 import ir.doorbash.hexy.util.Constants;
+import ir.doorbash.hexy.util.SensorUtil;
 import ir.doorbash.hexy.util.I18N;
 import ir.doorbash.hexy.util.Shared;
 
@@ -37,13 +30,14 @@ public class SelectInputDialog extends DialogFragment {
     ImageView floating;
     ImageView fixedLeft;
     ImageView fixedRight;
-    ImageView gyro;
+    ImageView rotation;
     TextView touchTxt;
     TextView floatingTxt;
     TextView fixedTxt;
-    TextView gyroTxt;
+    TextView rotationTxt;
 
     int langCode;
+    int isDeviceRotationAvailable = -1;
 
     public static SelectInputDialog newInstance() {
         SelectInputDialog fragment = new SelectInputDialog();
@@ -60,11 +54,13 @@ public class SelectInputDialog extends DialogFragment {
 
     @Override
     public void onResume() {
-        WindowManager.LayoutParams lp = getDialog().getWindow().getAttributes();
-        lp.width = WindowManager.LayoutParams.WRAP_CONTENT;
-        lp.height = WindowManager.LayoutParams.WRAP_CONTENT;
-        getDialog().getWindow().setAttributes(lp);
         super.onResume();
+        DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
+        int screenWidth = displayMetrics.widthPixels;
+        int screenHeight = displayMetrics.heightPixels;
+        int width = (int) (screenWidth * 0.95f);
+        int height = (int) (width * 0.52f);
+        getDialog().getWindow().setLayout(width, height);
     }
 
     @Nullable
@@ -75,11 +71,11 @@ public class SelectInputDialog extends DialogFragment {
         floating = contentView.findViewById(R.id.floating_joystick);
         fixedLeft = contentView.findViewById(R.id.fixed_left);
         fixedRight = contentView.findViewById(R.id.fixed_right);
-        gyro = contentView.findViewById(R.id.gyro);
+        rotation = contentView.findViewById(R.id.rotation);
         touchTxt = contentView.findViewById(R.id.touch_txt);
         floatingTxt = contentView.findViewById(R.id.floating_joystick_txt);
         fixedTxt = contentView.findViewById(R.id.fixed_txt);
-        gyroTxt = contentView.findViewById(R.id.gyro_txt);
+        rotationTxt = contentView.findViewById(R.id.rotation_txt);
 
         langCode = I18N.getLangCode(Shared.getInstance(getContext()).getString(Constants.KEY_SETTINGS_LANGUAGE, Constants.DEFAULT_SETTINGS_LANGUAGE));
 
@@ -103,20 +99,13 @@ public class SelectInputDialog extends DialogFragment {
             dismiss();
         });
 
-        gyro.setOnClickListener(view -> {
-            Toast.makeText(getContext(), I18N.texts[langCode][I18N.coming_soon], Toast.LENGTH_SHORT).show();
-//            Shared.getInstance(getContext()).setInt(Constants.KEY_SETTINGS_CONTROL, Constants.CONTROL_GYRO).commit();
-            //dismiss();
-        });
-
-        contentView.post(() -> {
-            DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-            int screenWidth = displayMetrics.widthPixels;
-            ViewGroup.LayoutParams layoutParams = contentView.getLayoutParams();
-            layoutParams.width = (int) (screenWidth * 0.95f);
-            layoutParams.height = (int) (layoutParams.width * 0.52f);
-            System.out.println("width: " + layoutParams.width + ", height: " + layoutParams.height);
-            contentView.setLayoutParams(layoutParams);
+        rotation.setOnClickListener(view -> {
+            if (isDeviceRotationAvailable == 1) {
+                Shared.getInstance(getContext()).setInt(Constants.KEY_SETTINGS_CONTROL, Constants.CONTROL_DEVICE_ROTATION).commit();
+                dismiss();
+            } else if (isDeviceRotationAvailable == 0) {
+                Toast.makeText(getContext(), I18N.texts[langCode][I18N.not_supported], Toast.LENGTH_SHORT).show();
+            }
         });
 
 //        fixedLeft.post(() -> {
@@ -134,7 +123,18 @@ public class SelectInputDialog extends DialogFragment {
         touchTxt.setText(I18N.texts[langCode][I18N.touch_mode]);
         floatingTxt.setText(I18N.texts[langCode][I18N.floating_joystick]);
         fixedTxt.setText(I18N.texts[langCode][I18N.fixed_joystick_left_right]);
-        gyroTxt.setText(I18N.texts[langCode][I18N.gyroscope]);
+        rotationTxt.setText(I18N.texts[langCode][I18N.device_rotation]);
+
+        if (isDeviceRotationAvailable == -1)
+            isDeviceRotationAvailable = SensorUtil.isDeviceRotationAvailable(getContext()) ? 1 : 0;
+
+        if (isDeviceRotationAvailable == 0) {
+            rotation.setAlpha(0.5f);
+            rotationTxt.setAlpha(0.5f);
+        } else {
+            rotation.setAlpha(1.0f);
+            rotationTxt.setAlpha(1.0f);
+        }
 
         return contentView;
     }
