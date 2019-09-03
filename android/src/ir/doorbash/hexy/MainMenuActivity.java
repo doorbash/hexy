@@ -45,8 +45,8 @@ public class MainMenuActivity extends AppCompatActivity {
         log = findViewById(R.id.log);
 
         DisplayMetrics displayMetrics = getResources().getDisplayMetrics();
-        float width = displayMetrics.widthPixels / displayMetrics.density;
-        float height = displayMetrics.heightPixels / displayMetrics.density;
+        float width = displayMetrics.widthPixels;
+        float height = displayMetrics.heightPixels;
         float dpWidth = width / displayMetrics.density;
         float dpHeight = height / displayMetrics.density;
         log.setText(new StringBuilder().append("screen size (px): ").append(width).append("x").append(height).append("\n").append("screen size (dp): ").append(dpWidth).append("x").append(dpHeight).append("\n").append("density: ").append(displayMetrics.density).append("\n").append("dpi: ").append(displayMetrics.density * 160).toString());
