@@ -27,7 +27,6 @@ allprojects {
         appName = "Hexy.ir"
         gdxVersion = '1.9.11-SNAPSHOT'
         roboVMVersion = '2.3.7'
-        box2DLightsVersion = '1.4'
         ashleyVersion = '1.7.0'
         aiVersion = '1.8.0'
     }
@@ -50,8 +49,9 @@ project(":desktop") {
         implementation project(":core")
         implementation "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-desktop"
-        implementation "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
         implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-desktop"
+        implementation "com.badlogicgames.gdx:gdx-controllers-desktop:$gdxVersion"
+        implementation "com.badlogicgames.gdx:gdx-controllers-platform:$gdxVersion:natives-desktop"
     }
 }
 
@@ -68,13 +68,6 @@ project(":android") {
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
         natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
-        implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
-        natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-armeabi"
-        natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-armeabi-v7a"
-        natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-arm64-v8a"
-        natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86"
-        natives "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-x86_64"
-        implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi"
         natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi-v7a"
         natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-arm64-v8a"
@@ -83,6 +76,7 @@ project(":android") {
         implementation 'com.android.support.constraint:constraint-layout:1.1.3'
         implementation 'com.android.support:appcompat-v7:28.0.0'
         implementation 'com.android.support:multidex:1.0.3'
+        implementation "com.badlogicgames.gdx:gdx-controllers-android:$gdxVersion"
     }
 }
 
@@ -97,7 +91,6 @@ project(":ios") {
         implementation "com.mobidevelop.robovm:robovm-cocoatouch:$roboVMVersion"
         implementation "com.badlogicgames.gdx:gdx-backend-robovm:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-ios"
-        implementation "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-ios"
         implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-ios"
     }
 }
@@ -112,8 +105,6 @@ project(":html") {
         implementation "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
         implementation "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
-        implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion:sources"
-        implementation "com.badlogicgames.gdx:gdx-box2d-gwt:$gdxVersion:sources"
         
     }
 }
@@ -124,8 +115,8 @@ project(":core") {
 
     dependencies {
         implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
-        implementation "com.badlogicgames.gdx:gdx-box2d:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
+        implementation "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
         implementation 'org.java-websocket:Java-WebSocket:1.4.0'
         implementation 'org.msgpack:jackson-dataformat-msgpack:0.8.17'
         implementation 'net.sf.trove4j:trove4j:3.0.3'
