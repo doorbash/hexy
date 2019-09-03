@@ -6,6 +6,10 @@ import com.badlogic.gdx.InputProcessor;
 import com.badlogic.gdx.Preferences;
 import com.badlogic.gdx.ScreenAdapter;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.controllers.Controller;
+import com.badlogic.gdx.controllers.ControllerListener;
+import com.badlogic.gdx.controllers.Controllers;
+import com.badlogic.gdx.controllers.PovDirection;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
@@ -23,6 +27,7 @@ import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
 import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Timer;
 import com.crowni.gdx.rtllang.support.ArFont;
 import com.crowni.gdx.rtllang.support.ArUtils;
@@ -192,6 +197,7 @@ public class PlayScreen extends ScreenAdapter {
     private boolean soundIsOn;
     private boolean graphicsHigh;
     private boolean deviceRotationAvailable;
+    private boolean controllerConnected;
 
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
@@ -213,8 +219,8 @@ public class PlayScreen extends ScreenAdapter {
     private long lastPingReplyTime;
     private long timeDiff;
 
-    private float lastDirection;
-    private float direction;
+    private float lastDirection = -1000;
+    private float direction = -1000;
     private float onScreenPadCurrentLen = 0;
     private float onScreenPadReleaseTimer = 0;
     private float onScreenPadInitLen = 0;
@@ -238,6 +244,7 @@ public class PlayScreen extends ScreenAdapter {
     private String sessionId;
     private String roomId;
 
+    private float[] controllerAxis = new float[2];
     private float[] rotationMatrix = new float[4 * 4];
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final List<Player> leaderboardList = new ArrayList<>();
@@ -333,6 +340,8 @@ public class PlayScreen extends ScreenAdapter {
         initTiles();
 
         initInput();
+
+        initControllers();
     }
 
     /* *************************************** OVERRIDE *****************************************/
@@ -471,6 +480,10 @@ public class PlayScreen extends ScreenAdapter {
 //            System.out.println("pitch = " + q.getPitch());
 //            System.out.println("yaw = " + -q.getYaw());
 //            System.out.println(";;;;;;;;;;;;;;;;");
+        }
+
+        if (controllerConnected && (Math.abs(controllerAxis[0]) > 0.1f || Math.abs(controllerAxis[1]) > 0.1f)) {
+            direction = (int) Math.toDegrees(Math.atan2(-controllerAxis[0], controllerAxis[1]));
         }
 
 //        System.out.println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
@@ -677,6 +690,87 @@ public class PlayScreen extends ScreenAdapter {
 
             @Override
             public boolean scrolled(int amount) {
+                return false;
+            }
+        });
+    }
+
+    private void initControllers() {
+        System.out.println("Controllers: " + Controllers.getControllers().size);
+        int i = 0;
+        for (Controller controller : Controllers.getControllers()) {
+            System.out.println("#" + i++ + ": " + controller.getName());
+        }
+        if (Controllers.getControllers().size == 0) System.out.println("No controllers attached");
+        else controllerConnected = true;
+
+        // setup the listener that prints events to the console
+        Controllers.addListener(new ControllerListener() {
+            public int indexOf(Controller controller) {
+                return Controllers.getControllers().indexOf(controller, true);
+            }
+
+            @Override
+            public void connected(Controller controller) {
+                System.out.println("connected " + controller.getName());
+                int i = 0;
+                for (Controller c : Controllers.getControllers()) {
+                    System.out.println("#" + i++ + ": " + c.getName());
+                }
+            }
+
+            @Override
+            public void disconnected(Controller controller) {
+                System.out.println("disconnected " + controller.getName());
+                int i = 0;
+                for (Controller c : Controllers.getControllers()) {
+                    System.out.println("#" + i++ + ": " + c.getName());
+                }
+                if (Controllers.getControllers().size == 0)
+                    System.out.println("No controllers attached");
+            }
+
+            @Override
+            public boolean buttonDown(Controller controller, int buttonIndex) {
+                System.out.println("#" + indexOf(controller) + ", button " + buttonIndex + " down");
+                return false;
+            }
+
+            @Override
+            public boolean buttonUp(Controller controller, int buttonIndex) {
+                System.out.println("#" + indexOf(controller) + ", button " + buttonIndex + " up");
+                return false;
+            }
+
+            @Override
+            public boolean axisMoved(Controller controller, int axisIndex, float value) {
+                System.out.println("#" + indexOf(controller) + ", axis " + axisIndex + ": " + value);
+                if (axisIndex == 0) controllerAxis[0] = value;
+                else if (axisIndex == 1) controllerAxis[1] = value;
+                return false;
+            }
+
+            @Override
+            public boolean povMoved(Controller controller, int povIndex, PovDirection value) {
+                System.out.println("#" + indexOf(controller) + ", pov " + povIndex + ": " + value);
+                return false;
+            }
+
+            @Override
+            public boolean xSliderMoved(Controller controller, int sliderIndex, boolean value) {
+                System.out.println("#" + indexOf(controller) + ", x slider " + sliderIndex + ": " + value);
+                return false;
+            }
+
+            @Override
+            public boolean ySliderMoved(Controller controller, int sliderIndex, boolean value) {
+                System.out.println("#" + indexOf(controller) + ", y slider " + sliderIndex + ": " + value);
+                return false;
+            }
+
+            @Override
+            public boolean accelerometerMoved(Controller controller, int accelerometerIndex, Vector3 value) {
+                // not printing this as we get to many values
                 return false;
             }
         });
@@ -1710,7 +1804,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private void sendDirection() {
         if (room == null || !room.hasJoined()) return;
-        if (lastDirection != direction) {
+        if (direction != -1000 && lastDirection != direction) {
             message.put("op", "d");
             message.put("v", direction);
             room.send(message);
