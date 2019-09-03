@@ -21,6 +21,7 @@ import com.badlogic.gdx.graphics.glutils.FrameBuffer;
 import com.badlogic.gdx.math.Interpolation;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Matrix4;
+import com.badlogic.gdx.math.Quaternion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Timer;
 import com.crowni.gdx.rtllang.support.ArFont;
@@ -190,6 +191,7 @@ public class PlayScreen extends ScreenAdapter {
     private boolean isUpdating = false;
     private boolean soundIsOn;
     private boolean graphicsHigh;
+    private boolean deviceRotationAvailable;
 
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
@@ -236,6 +238,7 @@ public class PlayScreen extends ScreenAdapter {
     private String sessionId;
     private String roomId;
 
+    private float[] rotationMatrix = new float[4 * 4];
     private final LinkedHashMap<String, Object> message = new LinkedHashMap<>();
     private final List<Player> leaderboardList = new ArrayList<>();
     private static final Object playersMutex = new Object();
@@ -265,6 +268,13 @@ public class PlayScreen extends ScreenAdapter {
         soundIsOn = prefs.getBoolean(Constants.KEY_SETTINGS_SOUND, true);
         graphicsHigh = prefs.getString(Constants.KEY_SETTINGS_GRAPHICS, Constants.DEFAULT_SETTINGS_GRAPHICS).equals("high");
         controllerType = prefs.getInteger(Constants.KEY_SETTINGS_CONTROL, Constants.DEFAULT_SETTINGS_CONTROL);
+        boolean isRotationVectorAvailable = Gdx.input.isPeripheralAvailable(Input.Peripheral.RotationVector);
+        boolean isAccelerometerAvailable = Gdx.input.isPeripheralAvailable(Input.Peripheral.Accelerometer);
+        boolean isCompassAvailable = Gdx.input.isPeripheralAvailable(Input.Peripheral.Compass);
+        deviceRotationAvailable = isRotationVectorAvailable || (isAccelerometerAvailable && isCompassAvailable);
+        if (controllerType == Constants.CONTROL_DEVICE_ROTATION && !deviceRotationAvailable) {
+            controllerType = Constants.CONTROL_TOUCH;
+        }
 
         batch = new SpriteBatch();
 
@@ -299,8 +309,17 @@ public class PlayScreen extends ScreenAdapter {
         }
 
         init(Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-
+        gameCamera.viewportWidth = screenWidth;
+        gameCamera.viewportHeight = screenHeight;
+        gameCamera.update();
+        fixedCamera.viewportWidth = screenWidth;
+        fixedCamera.viewportHeight = screenHeight;
+        fixedCamera.update();
+        guiCamera.viewportWidth = Gdx.graphics.getWidth();
+        guiCamera.viewportHeight = Gdx.graphics.getHeight();
+        guiCamera.update();
         updateGuiValues();
+
         trailTexture = new Texture(Gdx.files.internal(PATH_TRAIL_TEXTURE), true);
         trailTexture.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
         trailTexture.setWrap(Texture.TextureWrap.Repeat, Texture.TextureWrap.Repeat);
@@ -321,11 +340,10 @@ public class PlayScreen extends ScreenAdapter {
 
     @Override
     public void render(float dt) {
-        System.out.println("dt: " + dt);
         time += dt;
 
-        Gdx.gl.glClearColor(0.92f, 0.92f, 0.92f, 1);
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+        //Gdx.gl.glClearColor(0f, 0f, 0f, 1);
+        //Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 //        Gdx.gl20.glEnable(GL20.GL_BLEND);
 //        Gdx.gl20.glBlendFunc(GL20.GL_SRC_ALPHA, GL20.GL_ONE_MINUS_SRC_ALPHA);
 
@@ -445,12 +463,26 @@ public class PlayScreen extends ScreenAdapter {
             checkConnectionTime = CHECK_CONNECTION_INTERVAL;
         } else checkConnectionTime -= dt * 1000;
 
+        if (controllerType == Constants.CONTROL_DEVICE_ROTATION && deviceRotationAvailable) {
+            Gdx.input.getRotationMatrix(rotationMatrix);
+            Matrix4 m = new Matrix4(rotationMatrix);
+            Quaternion q = m.getRotation(new Quaternion());
+            direction = (int) Math.toDegrees(Math.atan2(q.getPitch(), -q.getYaw()));
+//            System.out.println("pitch = " + q.getPitch());
+//            System.out.println("yaw = " + -q.getYaw());
+//            System.out.println(";;;;;;;;;;;;;;;;");
+        }
 
 //        System.out.println(";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;");
     }
 
     @Override
     public void resize(int width, int height) {
+        if (controllerType == Constants.CONTROL_DEVICE_ROTATION) {
+            //super.resize(width, height);
+            return;
+        }
+
         System.out.println("resize(" + width + ", " + height + ")");
         init(width, height);
 
