@@ -2,9 +2,9 @@ package ir.doorbash.hexy.util;
 
 import android.content.Context;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-
-import com.badlogic.gdx.backends.android.AndroidInput;
 
 import java.util.List;
 
@@ -14,6 +14,23 @@ import java.util.List;
 public class SensorUtil {
 
     private static final int SENSOR_DELAY = SensorManager.SENSOR_DELAY_UI;
+
+    static class SensorListener implements SensorEventListener {
+
+        public SensorListener() {
+
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor arg0, int arg1) {
+
+        }
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+
+        }
+    }
 
     public static boolean isDeviceRotationAvailable(Context context) {
         if (isRotationVectorAvailable(context)) return true;
