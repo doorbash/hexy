@@ -7,7 +7,7 @@ public class HexyGame extends Game {
 
     private static final boolean SHOW_SPLASH = false;
 
-//    private SplashScreen splashScreen;
+    //    private SplashScreen splashScreen;
     private PlayScreen playScreen;
 
     @Override
@@ -16,8 +16,8 @@ public class HexyGame extends Game {
         Bar.init();
 
 //        splashScreen = new SplashScreen();
-        playScreen = new PlayScreen();
-        if (SHOW_SPLASH) {
+        if (playScreen == null) playScreen = new PlayScreen();
+//        if (SHOW_SPLASH) {
 //            new Thread(() -> {
 //                Gdx.app.postRunnable(() -> setScreen(splashScreen));
 //                try {
@@ -28,9 +28,9 @@ public class HexyGame extends Game {
 //                    Gdx.app.postRunnable(() -> setScreen(playScreen));
 //                }
 //            }).start();
-        } else {
-            setScreen(playScreen);
-        }
+//        } else {
+        setScreen(playScreen);
+//        }
     }
 
 }
