@@ -197,7 +197,7 @@ public class PlayScreen extends ScreenAdapter {
     private boolean soundIsOn;
     private boolean graphicsHigh;
     private boolean deviceRotationAvailable;
-    private boolean controllerConnected;
+//    private boolean controllerConnected;
 
     private int correctPlayerPositionTime = CORRECT_PLAYER_POSITION_INTERVAL;
     private int sendDirectionTime = SEND_DIRECTION_INTERVAL;
@@ -482,7 +482,7 @@ public class PlayScreen extends ScreenAdapter {
 //            System.out.println(";;;;;;;;;;;;;;;;");
         }
 
-        if (controllerConnected && (Math.abs(controllerAxis[0]) > 0.1f || Math.abs(controllerAxis[1]) > 0.1f)) {
+        if (/*controllerConnected && */(Math.abs(controllerAxis[0]) > 0.1f || Math.abs(controllerAxis[1]) > 0.1f)) {
             direction = (int) Math.toDegrees(Math.atan2(-controllerAxis[0], controllerAxis[1]));
         }
 
@@ -636,11 +636,50 @@ public class PlayScreen extends ScreenAdapter {
 
     private void initInput() {
         Gdx.input.setInputProcessor(new InputProcessor() {
+
+            boolean leftIsDown = false;
+            boolean rightIsDown = false;
+            boolean upIsDown = false;
+            boolean downIsDown = false;
+
+            private void updateAxis() {
+                if (rightIsDown) {
+                    controllerAxis[1] = 1;
+                } else if (leftIsDown) {
+                    controllerAxis[1] = -1;
+                } else {
+                    controllerAxis[1] = 0;
+                }
+                if (upIsDown) {
+                    controllerAxis[0] = -1;
+                } else if (downIsDown) {
+                    controllerAxis[0] = 1;
+                } else {
+                    controllerAxis[0] = 0;
+                }
+            }
+
             @Override
             public boolean keyDown(int keycode) {
                 if (keycode == Input.Keys.BACK) {
                     if (room != null) room.leave();
                     Gdx.app.exit();
+                    return true;
+                } else if (keycode == Input.Keys.RIGHT) {
+                    rightIsDown = true;
+                    updateAxis();
+                    return true;
+                } else if (keycode == Input.Keys.LEFT) {
+                    leftIsDown = true;
+                    updateAxis();
+                    return true;
+                } else if (keycode == Input.Keys.UP) {
+                    upIsDown = true;
+                    updateAxis();
+                    return true;
+                } else if (keycode == Input.Keys.DOWN) {
+                    downIsDown = true;
+                    updateAxis();
                     return true;
                 }
                 return false;
@@ -648,6 +687,23 @@ public class PlayScreen extends ScreenAdapter {
 
             @Override
             public boolean keyUp(int keycode) {
+                if (keycode == Input.Keys.RIGHT) {
+                    rightIsDown = false;
+                    updateAxis();
+                    return true;
+                } else if (keycode == Input.Keys.LEFT) {
+                    leftIsDown = false;
+                    updateAxis();
+                    return true;
+                } else if (keycode == Input.Keys.UP) {
+                    upIsDown = false;
+                    updateAxis();
+                    return true;
+                } else if (keycode == Input.Keys.DOWN) {
+                    downIsDown = false;
+                    updateAxis();
+                    return true;
+                }
                 return false;
             }
 
@@ -702,7 +758,7 @@ public class PlayScreen extends ScreenAdapter {
             System.out.println("#" + i++ + ": " + controller.getName());
         }
         if (Controllers.getControllers().size == 0) System.out.println("No controllers attached");
-        else controllerConnected = true;
+//        else controllerConnected = true;
 
         // setup the listener that prints events to the console
         Controllers.addListener(new ControllerListener() {
@@ -1314,7 +1370,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private void updateZoom() {
         if (currentPlayer == null) return;
-        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + currentPlayer.numCells * 0.001f, 1.5f);
+        gameCamera.zoom = Math.min(CAMERA_INIT_ZOOM + currentPlayer.numCells * 0.0008f, 1.5f);
     }
 
     private long getServerTime() {
