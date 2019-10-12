@@ -5,7 +5,7 @@ package ir.doorbash.hexy.util;
  */
 public class I18N {
     private static final int NUM_LANGUAGES = 2;
-    private static final int NUM_TEXTS = 17;
+    private static final int NUM_TEXTS = 18;
 
     public static final int settings_title = 0;
     public static final int settings_sound_on = 1;
@@ -24,6 +24,7 @@ public class I18N {
     public static final int fixed_joystick_left_right = 14;
     public static final int device_rotation = 15;
     public static final int not_supported = 16;
+    public static final int customize = 17;
 
     private static final int english = 0;
     private static final int persian = 1;
@@ -91,6 +92,9 @@ public class I18N {
 
         texts[english][not_supported] = "Your device does not support this control";
         texts[persian][not_supported] = "دستگاه شما این کنترل را پشتیبانی نمی کند";
+
+        texts[english][customize] = "Customize";
+        texts[persian][customize] = "شخصی\u200Cسازی";
     }
 
 }
