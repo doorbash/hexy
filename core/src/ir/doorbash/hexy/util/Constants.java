@@ -21,4 +21,7 @@ public class Constants {
     public static final String KEY_SETTINGS_LANGUAGE = "settings_language";
     public static final String KEY_SETTINGS_CONTROL = "settings_control";
     public static final String KEY_PLAYER_NAME = "player_name";
+    public static final String KEY_ID = "id";
+    public static final String KEY_SELECTED_COLOR = "selected_color";
+    public static final String KEY_SELECTED_FILL = "selected_fill";
 }
