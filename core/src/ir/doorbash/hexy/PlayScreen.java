@@ -119,7 +119,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TAG = "PlayScreen";
 
     //        private static final String ENDPOINT = "wss://cefd3aab.ngrok.io";
-    private static final String ENDPOINT = "ws://192.168.1.135:4444";
+    private static final String ENDPOINT = "ws://192.168.1.160:2222";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
@@ -482,6 +482,7 @@ public class PlayScreen extends ScreenAdapter {
 //            System.out.println(";;;;;;;;;;;;;;;;");
         }
 
+        // game controller
         if (/*controllerConnected && */(Math.abs(controllerAxis[0]) > 0.1f || Math.abs(controllerAxis[1]) > 0.1f)) {
             direction = (int) Math.toDegrees(Math.atan2(-controllerAxis[0], controllerAxis[1]));
         }
@@ -1508,13 +1509,35 @@ public class PlayScreen extends ScreenAdapter {
         Client client = new Client(ENDPOINT);
         LinkedHashMap<String, Object> options = new LinkedHashMap<>();
         options.put("name", prefs.getString(Constants.KEY_PLAYER_NAME, ""));
-        String fill = "e" + TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
+        //String fill = "e" + TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
+        int selectedFill = prefs.getInteger(Constants.KEY_SELECTED_FILL, 0);
+        if (selectedFill > 0) {
+            String fill = "e" + TextUtil.padLeftZeros("" + (selectedFill - 1), 5);
+            options.put("fill", fill);
+            System.out.println("fill is " + fill);
+        } else {
+            int sc = ColorUtil.FILL_COLORS[prefs.getInteger(Constants.KEY_SELECTED_COLOR, 0)] & 0xFFFFFF;
+            sc = sc << 8;
+            sc = sc | 0xFF;
+            options.put("fill", "#" + new Color(sc));
+        }
+
 //        fill = "e00093";
-        System.out.println("fill >>> " + fill);
-        options.put("fill", fill);
-        options.put("stroke", "#F10101FF");
+        // System.out.println("fill >>> " + fill);
+        int sc = ColorUtil.STROKE_COLORS[prefs.getInteger(Constants.KEY_SELECTED_COLOR, 0)] & 0xFFFFFF;
+        sc = sc << 8;
+        sc = sc | 0xFF;
+        options.put("stroke", "#" + new Color(sc));
+        String id = prefs.getString(Constants.KEY_ID, null); // TODO: id on pref? really nigga?
+        if (id != null) options.put("id", id);
         if (sessionId == null) {
             client.joinOrCreate(getRoomName(), MyState.class, options, this::updateRoom, e -> {
+                if (e.getMessage().equals("Not Found")) {
+                    // id not found
+                    System.out.println(" - id not found - ");
+                    prefs.remove(Constants.KEY_ID);
+                    prefs.flush();
+                }
                 e.printStackTrace();
                 if (connectionState != CONNECTION_STATE_CLOSED)
                     connectionState = CONNECTION_STATE_DISCONNECTED;
@@ -1524,6 +1547,11 @@ public class PlayScreen extends ScreenAdapter {
                 if (e instanceof MatchMakeException) {
                     this.roomId = null;
                     this.sessionId = null;
+                } else if (e.getMessage().equals("Not Found")) {
+                    // id not found
+                    System.out.println(" - id not found - ");
+                    prefs.remove(Constants.KEY_ID);
+                    prefs.flush();
                 }
                 e.printStackTrace();
                 if (connectionState != CONNECTION_STATE_CLOSED)
@@ -1580,6 +1608,9 @@ public class PlayScreen extends ScreenAdapter {
                     long time = (long) data.get("time");
                     timeDiff = time - System.currentTimeMillis();
                     System.out.println("time diff: " + timeDiff);
+                    String id = (String) data.get("id");
+                    System.out.println("id = " + id);
+                    prefs.putString(Constants.KEY_ID, id).flush();
                 } else if (data.get("op").equals("cp")) {
                     if (connectionState == CONNECTION_STATE_CLOSED) return;
                     String clientId = (String) data.get("player");
