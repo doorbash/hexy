@@ -5,7 +5,6 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.DisplayMetrics;
@@ -16,8 +15,14 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.bumptech.glide.Glide;
+
+import ir.doorbash.hexy.dialogs.CustomizeDialog;
 import ir.doorbash.hexy.dialogs.HowToPlayDialog;
 import ir.doorbash.hexy.dialogs.SettingsDialog;
+import ir.doorbash.hexy.util.ColorUtil;
 import ir.doorbash.hexy.util.Constants;
 import ir.doorbash.hexy.util.I18N;
 import ir.doorbash.hexy.util.Shared;
@@ -29,6 +34,7 @@ import ir.doorbash.hexy.util.TextUtil;
 public class MainMenuActivity extends AppCompatActivity {
 
     ImageView stroke;
+    ImageView fill;
     EditText nameTxt;
     Button playOnline;
     Button playAgainstAi;
@@ -39,6 +45,7 @@ public class MainMenuActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main_menu);
         stroke = findViewById(R.id.stroke_img);
+        fill = findViewById(R.id.fill_img);
         nameTxt = findViewById(R.id.name_txt);
         playOnline = findViewById(R.id.play_online);
         playAgainstAi = findViewById(R.id.play_against_ai);
@@ -50,11 +57,6 @@ public class MainMenuActivity extends AppCompatActivity {
         float dpWidth = width / displayMetrics.density;
         float dpHeight = height / displayMetrics.density;
         log.setText(new StringBuilder().append("screen size (px): ").append(width).append("x").append(height).append("\n").append("screen size (dp): ").append(dpWidth).append("x").append(dpHeight).append("\n").append("density: ").append(displayMetrics.density).append("\n").append("dpi: ").append(displayMetrics.density * 160).toString());
-
-        Drawable drawable = getResources().getDrawable(R.drawable.circle);
-        drawable.setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
-        stroke.setImageDrawable(drawable);
-
 
         nameTxt.addTextChangedListener(new TextWatcher() {
             @Override
@@ -113,9 +115,29 @@ public class MainMenuActivity extends AppCompatActivity {
         playAgainstAi.setHint(I18N.texts[langCode][I18N.main_menu_play_against_ai]);
 
         nameTxt.setText(Shared.getInstance(this).getString(Constants.KEY_PLAYER_NAME, ""));
+
+        int selectedColor = Shared.getInstance(this).getInt(Constants.KEY_SELECTED_COLOR, 0);
+        Drawable drawable = getResources().getDrawable(R.drawable.circle);
+        drawable.setColorFilter(ColorUtil.STROKE_COLORS[selectedColor], PorterDuff.Mode.MULTIPLY);
+        stroke.setImageDrawable(drawable);
+
+        int selectedFill = Shared.getInstance(this).getInt(Constants.KEY_SELECTED_FILL, 0);
+
+        if (selectedFill == 0) {
+            fill.setImageResource(R.drawable.circle);
+            fill.setColorFilter(ColorUtil.FILL_COLORS[selectedColor]);
+        } else {
+            Glide.with(this).load(CustomizeDialog.FILL_IMAGES[selectedFill]).into(fill);
+            fill.setColorFilter(0);
+        }
     }
 
     public void openCustomize(View view) {
-        Toast.makeText(this, "open customize dialog", Toast.LENGTH_SHORT).show();
+        // Toast.makeText(this, "open customize dialog", Toast.LENGTH_SHORT).show();
+        CustomizeDialog.showDialog(this);
+    }
+
+    public void openFreeCoinDialog(View view) {
+        Toast.makeText(this, "open free coin dialog", Toast.LENGTH_SHORT).show();
     }
 }
