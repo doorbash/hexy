@@ -1,0 +1,21 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="46dp"
+    android:layout_height="46dp"
+    android:padding="4dp">
+
+    <ImageView
+        android:id="@+id/stroke_img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:src="@drawable/circle"
+        android:tint="@color/colorAccent" />
+
+    <ImageView
+        android:id="@+id/img"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_margin="4dp"
+        android:scaleType="centerCrop"
+        android:src="@drawable/e00000" />
+
+</RelativeLayout>
