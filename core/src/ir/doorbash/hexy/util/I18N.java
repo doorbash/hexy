@@ -5,7 +5,7 @@ package ir.doorbash.hexy.util;
  */
 public class I18N {
     private static final int NUM_LANGUAGES = 2;
-    private static final int NUM_TEXTS = 18;
+    private static final int NUM_TEXTS = 19;
 
     public static final int settings_title = 0;
     public static final int settings_sound_on = 1;
@@ -25,6 +25,7 @@ public class I18N {
     public static final int device_rotation = 15;
     public static final int not_supported = 16;
     public static final int customize = 17;
+    public static final int ok = 18;
 
     private static final int english = 0;
     private static final int persian = 1;
@@ -95,6 +96,9 @@ public class I18N {
 
         texts[english][customize] = "Customize";
         texts[persian][customize] = "شخصی\u200Cسازی";
+
+        texts[english][ok] = "OK";
+        texts[persian][ok] = "خُب";
     }
 
 }

@@ -9,6 +9,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.widget.Button;
 import android.widget.GridView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -516,6 +517,7 @@ public class CustomizeDialog extends DialogFragment {
     AppCompatImageView stroke;
     AppCompatImageView fill;
     TextView title;
+    Button okButton;
 
     int selectedFill;
 
@@ -549,10 +551,12 @@ public class CustomizeDialog extends DialogFragment {
         stroke = contentView.findViewById(R.id.stroke);
         fill = contentView.findViewById(R.id.fill);
         title = contentView.findViewById(R.id.title_txt);
+        okButton = contentView.findViewById(R.id.ok_btn);
 
         String lang = Shared.getInstance(getContext()).getString(Constants.KEY_SETTINGS_LANGUAGE, Constants.DEFAULT_SETTINGS_LANGUAGE);
         int langCode = I18N.getLangCode(lang);
         title.setText(I18N.texts[langCode][I18N.customize]);
+        okButton.setText(I18N.texts[langCode][I18N.ok]);
 
         int orientation = getActivity().getResources().getConfiguration().orientation;
 
@@ -605,6 +609,9 @@ public class CustomizeDialog extends DialogFragment {
                 fill.setColorFilter(0);
             }
         });
+
+
+        okButton.setOnClickListener(v -> dismiss());
 
         return contentView;
     }
