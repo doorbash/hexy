@@ -46,6 +46,7 @@ import io.colyseus.Client.MatchMakeException;
 import io.colyseus.Room;
 import io.colyseus.serializer.schema.Schema;
 import ir.doorbash.hexy.model.Cell;
+import ir.doorbash.hexy.model.Item;
 import ir.doorbash.hexy.model.MyState;
 import ir.doorbash.hexy.model.Player;
 import ir.doorbash.hexy.model.Point;
@@ -144,6 +145,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TEXTURE_REGION_BC = "bc";
     private static final String TEXTURE_REGION_INDIC = "indic";
     private static final String TEXTURE_REGION_PROGRESSBAR = "progressbar";
+    private static final String TEXTURE_REGION_COIN = "coin";
 
     private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3, 2, 3, 0.5f);
     private static final Color COLOR_TIME_TEXT_BACKGROUND = new Color(0x707070cc);
@@ -171,6 +173,7 @@ public class PlayScreen extends ScreenAdapter {
     private Sprite youWillRspwnBg;
     private Sprite playerProgressBar;
     private Sprite playerProgressBarBest;
+    private Sprite coin;
     private FreeTypeFontGenerator freetypeGeneratorNoto;
     private FreeTypeFontGenerator freetypeGeneratorArial;
     private BitmapFont logFont;
@@ -214,6 +217,7 @@ public class PlayScreen extends ScreenAdapter {
     private int leftXi;
     private int sizeX;
     private int sizeY;
+    private int coinValue;
 
     private long lastPingSentTime;
     private long lastPingReplyTime;
@@ -275,6 +279,7 @@ public class PlayScreen extends ScreenAdapter {
         soundIsOn = prefs.getBoolean(Constants.KEY_SETTINGS_SOUND, true);
         graphicsHigh = prefs.getString(Constants.KEY_SETTINGS_GRAPHICS, Constants.DEFAULT_SETTINGS_GRAPHICS).equals("high");
         controllerType = prefs.getInteger(Constants.KEY_SETTINGS_CONTROL, Constants.DEFAULT_SETTINGS_CONTROL);
+        coinValue = prefs.getInteger(Constants.KEY_COINS, 0);
         boolean isRotationVectorAvailable = Gdx.input.isPeripheralAvailable(Input.Peripheral.RotationVector);
         boolean isAccelerometerAvailable = Gdx.input.isPeripheralAvailable(Input.Peripheral.Accelerometer);
         boolean isCompassAvailable = Gdx.input.isPeripheralAvailable(Input.Peripheral.Compass);
@@ -302,6 +307,7 @@ public class PlayScreen extends ScreenAdapter {
         playerProgressBarBest = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest.setColor(COLOR_YOUR_PROGRESS_BG);
         loadingAnimation = new LoadingAnimation(PATH_LOADING_SPRITESHEET);
+        coin = mainAtlas.createSprite(TEXTURE_REGION_COIN);
         gameCamera = new OrthographicCamera();
         gameCamera.zoom = CAMERA_INIT_ZOOM;
         fixedCamera = new OrthographicCamera();
@@ -335,7 +341,7 @@ public class PlayScreen extends ScreenAdapter {
         timeText = new GlyphLayout(timeFont, "99:99");
         youWillRspwnText = new GlyphLayout(timeFont, I18N.texts[langCode][I18N.you_will_respawn_in_9_seconds]); // TODO: handle rtl :/
         yourProgressText = new GlyphLayout(leaderboardFont, "99.99%");
-        yourProgressBestText = new GlyphLayout(leaderboardFont, "BEST 99.99%");
+        yourProgressBestText = new GlyphLayout(leaderboardFont, "99.99%");
 
         initTiles();
 
@@ -409,6 +415,7 @@ public class PlayScreen extends ScreenAdapter {
             batch.end();
             drawTrails();
             batch.begin();
+            drawItems();
             drawPlayers();
             drawPlayerFillTextures();
             drawPlayerNames();
@@ -439,7 +446,9 @@ public class PlayScreen extends ScreenAdapter {
                 drawTime();
                 drawYouWillRespawnText();
             } else if (gameMode == GAME_MODE_FFA) {
+//                drawCoin();
                 drawPlayerProgress();
+//                drawCoinText();
             }
             for (FontDrawItem fdi : leaderboardDrawList) {
                 leaderboardFont.setColor(fdi.color);
@@ -1015,6 +1024,19 @@ public class PlayScreen extends ScreenAdapter {
         }
     }
 
+    private void drawItems() {
+        synchronized (room.state.items.items) {
+            for (Item item : room.state.items.items.values()) {
+                if (item.sprite == null) continue;
+                // TODO: only draw items that are in screen
+                item.sprite.draw(batch);
+                float x = MathUtils.lerp(item.sprite.getX() + item.sprite.getWidth() / 2f, item.x, 0.4f);
+                float y = MathUtils.lerp(item.sprite.getY() + item.sprite.getHeight() / 2f, item.y, 0.4f);
+                item.sprite.setCenter(x, y);
+            }
+        }
+    }
+
     private void drawProgressbar(Player player, float dt, boolean drawStatic) {
         DecimalFormat decimalFormat = new DecimalFormat("#0.0");
         float totalWidth = progressbarWidth - progressbarInitWidth;
@@ -1184,10 +1206,22 @@ public class PlayScreen extends ScreenAdapter {
 
         fdi = new FontDrawItem();
         fdi.color = COLOR_YOUR_BEST_PROGRESS_TEXT;
-        fdi.text = "BEST " + decimalFormat.format(playerBestProgress * 100) + "%";
+        fdi.text = decimalFormat.format(playerBestProgress * 100) + "%";
         fdi.x = playerProgressBarBest.getX() + playerProgressBarBest.getWidth() - yourProgressBestText.width + guiUnits * 8;
         fdi.y = playerProgressBarBest.getY() - 2 * guiUnits;
         leaderboardDrawList.add(fdi);
+    }
+
+    private void drawCoin() {
+        coin.setSize(progressbarHeight * 0.8f, progressbarHeight * 0.8f);
+        coin.setX(-Gdx.graphics.getWidth() / 2f + 8 * guiUnits);
+        coin.setY(guiCamera.viewportHeight / 2f - 70 * guiUnits);
+        coin.draw(batch);
+    }
+
+    private void drawCoinText() {
+        leaderboardFont.setColor(COLOR_YOUR_BEST_PROGRESS_TEXT);
+        leaderboardFont.draw(batch, coinValue + "", -Gdx.graphics.getWidth() / 2f + coin.getWidth() + 15 * guiUnits, guiCamera.viewportHeight / 2f - 73 * guiUnits + leaderboardFont.getLineHeight());
     }
 
     private void drawTime() {
@@ -1675,6 +1709,11 @@ public class PlayScreen extends ScreenAdapter {
                 } else if (data.get("op").equals("ht")) {
                     // dead
                     if (soundIsOn) Gdx.app.postRunnable(() -> hitSound.play());
+                } else if (data.get("op").equals("et")) {
+                    System.out.println("just ate item with type " + data.get("type"));
+                    if (soundIsOn) Gdx.app.postRunnable(() -> boostSound.play());
+                    coinValue = (int) data.get("coins");
+                    prefs.putInteger(Constants.KEY_COINS, coinValue).flush();
                 }
             }
 
@@ -1830,7 +1869,15 @@ public class PlayScreen extends ScreenAdapter {
             }
         };
 
+        room.state.items.onAdd = (item, key) -> Gdx.app.postRunnable(() -> {
+            if (item.type == Item.TYPE_COIN) {
+                item.sprite = mainAtlas.createSprite(TEXTURE_REGION_COIN);
+                item.sprite.setCenter(item.x, item.y);
+            }
+        });
+
         room.state.players.triggerAll();
+        room.state.items.triggerAll();
     }
 
     void registerPlayerCallbacks(Player player) {
