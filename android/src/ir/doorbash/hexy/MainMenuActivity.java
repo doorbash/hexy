@@ -39,6 +39,7 @@ public class MainMenuActivity extends AppCompatActivity {
     Button playOnline;
     Button playAgainstAi;
     TextView log;
+    TextView coinTxt;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -47,6 +48,7 @@ public class MainMenuActivity extends AppCompatActivity {
         stroke = findViewById(R.id.stroke_img);
         fill = findViewById(R.id.fill_img);
         nameTxt = findViewById(R.id.name_txt);
+        coinTxt = findViewById(R.id.coin_txt);
         playOnline = findViewById(R.id.play_online);
         playAgainstAi = findViewById(R.id.play_against_ai);
         log = findViewById(R.id.log);
@@ -130,6 +132,8 @@ public class MainMenuActivity extends AppCompatActivity {
             Glide.with(this).load(CustomizeDialog.FILL_IMAGES[selectedFill]).into(fill);
             fill.setColorFilter(0);
         }
+
+        coinTxt.setText(Shared.getInstance(this).getInt(Constants.KEY_COINS, 0) + "");
     }
 
     public void openCustomize(View view) {
