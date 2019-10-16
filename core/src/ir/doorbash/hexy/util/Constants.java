@@ -24,4 +24,5 @@ public class Constants {
     public static final String KEY_ID = "id";
     public static final String KEY_SELECTED_COLOR = "selected_color";
     public static final String KEY_SELECTED_FILL = "selected_fill";
+    public static final String KEY_COINS = "coins";
 }
