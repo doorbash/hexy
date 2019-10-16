@@ -258,6 +258,7 @@ public class PlayScreen extends ScreenAdapter {
     private List<FontDrawItem> leaderboardDrawList = new ArrayList<>();
     private final Cell[][] cells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
     private final Cell[][] pathCells = new Cell[2 * MAP_SIZE + 1][2 * MAP_SIZE + 1];
+    private final List<TextFadeOutAnimation> textFadeOutAnimations = new ArrayList<>();
 
     private final Vector2 padAnchorPoint = new Vector2();
     private final Vector2 padVector = new Vector2();
@@ -419,6 +420,7 @@ public class PlayScreen extends ScreenAdapter {
             drawPlayers();
             drawPlayerFillTextures();
             drawPlayerNames();
+            drawTextFadeOutAnimations(dt);
         }
 
         batch.setProjectionMatrix(fixedCamera.combined);
@@ -1033,6 +1035,19 @@ public class PlayScreen extends ScreenAdapter {
                 float x = MathUtils.lerp(item.sprite.getX() + item.sprite.getWidth() / 2f, item.x, 0.4f);
                 float y = MathUtils.lerp(item.sprite.getY() + item.sprite.getHeight() / 2f, item.y, 0.4f);
                 item.sprite.setCenter(x, y);
+            }
+        }
+    }
+
+    private void drawTextFadeOutAnimations(float dt) {
+        synchronized (textFadeOutAnimations) {
+            List<TextFadeOutAnimation> removeList = new ArrayList<>();
+            for (TextFadeOutAnimation tfo : textFadeOutAnimations) {
+                if (tfo.stop) removeList.add(tfo);
+                else tfo.draw(batch, dt, usernameFont);
+            }
+            for (TextFadeOutAnimation tfo : removeList) {
+                textFadeOutAnimations.remove(tfo);
             }
         }
     }
@@ -1680,8 +1695,13 @@ public class PlayScreen extends ScreenAdapter {
                         }, 0.3f);
                     }
                     if (clientId.equals(room.getSessionId())) {
-                        if (num > 4)
+                        if (num > 4) {
                             if (soundIsOn) Gdx.app.postRunnable(() -> captureSound.play());
+                            synchronized (textFadeOutAnimations) {
+                                Sprite playerSprite = room.state.players.get(clientId)._stroke;
+                                textFadeOutAnimations.add(new TextFadeOutAnimation("+" + num + " blocks", Color.BLACK, playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
+                            }
+                        }
                         Gdx.app.log(TAG, "+" + num + " blocks");
                     }
                 } else if (data.get("op").equals("pg")) {
@@ -1714,6 +1734,11 @@ public class PlayScreen extends ScreenAdapter {
                     if (soundIsOn) Gdx.app.postRunnable(() -> boostSound.play());
                     coinValue = (int) data.get("coins");
                     prefs.putInteger(Constants.KEY_COINS, coinValue).flush();
+                    int add = (int) data.get("add");
+                    synchronized (textFadeOutAnimations) {
+                        Sprite playerSprite = room.state.players.get(room.getSessionId())._stroke;
+                        textFadeOutAnimations.add(new TextFadeOutAnimation("+" + add + " coins", new Color(0x8F6F31ff/*0xa67c00ff*/), playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
+                    }
                 }
             }
 
