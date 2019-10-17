@@ -120,7 +120,7 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TAG = "PlayScreen";
 
     //        private static final String ENDPOINT = "wss://cefd3aab.ngrok.io";
-    private static final String ENDPOINT = "ws://192.168.1.160:2222";
+    private static final String ENDPOINT = "ws://192.168.1.134:2222";
 //    public static final String ENDPOINT = "ws://46.21.147.7:3333";
 //    public static final String ENDPOINT = "ws://127.0.0.1:3333";
 
@@ -153,6 +153,8 @@ public class PlayScreen extends ScreenAdapter {
     private static final Color COLOR_YOUR_BEST_PROGRESS_TEXT = new Color(0x707070cc);
     private static final Color COLOR_YOUR_PROGRESS_BG = new Color(0x70707088);
     private static final Color CONNECTING_TEXT_COLOR = Color.valueOf("#212121ff");
+    private static final Color COLOR_BLOCKS_TEXT_FADE_OUT = Color.valueOf("#212121ff");
+    private static final Color COLOR_COINS_TEXT_FADE_OUT = new Color(0x8F6F31ff/*0xa67c00ff*/);
     private static final Comparator<Player> SORT_PLAYERS_BY_NUM_CELLS = (o1, o2) -> Integer.compare(o2.numCells, o1.numCells);
     private static final Comparator<Player> SORT_PLAYERS_BY_POSITION = (o1, o2) -> Integer.compare(o1._position, o2._position);
 
@@ -1699,7 +1701,7 @@ public class PlayScreen extends ScreenAdapter {
                             if (soundIsOn) Gdx.app.postRunnable(() -> captureSound.play());
                             synchronized (textFadeOutAnimations) {
                                 Sprite playerSprite = room.state.players.get(clientId)._stroke;
-                                textFadeOutAnimations.add(new TextFadeOutAnimation("+" + num + " blocks", Color.BLACK, playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
+                                textFadeOutAnimations.add(new TextFadeOutAnimation("+" + num + " blocks", COLOR_BLOCKS_TEXT_FADE_OUT, playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
                             }
                         }
                         Gdx.app.log(TAG, "+" + num + " blocks");
@@ -1737,7 +1739,7 @@ public class PlayScreen extends ScreenAdapter {
                     int add = (int) data.get("add");
                     synchronized (textFadeOutAnimations) {
                         Sprite playerSprite = room.state.players.get(room.getSessionId())._stroke;
-                        textFadeOutAnimations.add(new TextFadeOutAnimation("+" + add + " coins", new Color(0x8F6F31ff/*0xa67c00ff*/), playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
+                        textFadeOutAnimations.add(new TextFadeOutAnimation("+" + add + " coins", COLOR_COINS_TEXT_FADE_OUT, playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
                     }
                 }
             }
