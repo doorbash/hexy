@@ -93,7 +93,7 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final float CAMERA_LERP = 0.8f;
     private static final float CAMERA_DEATH_LERP = 0.4f;
-    private static final float CAMERA_INIT_ZOOM = 0.9f;
+    private static final float CAMERA_INIT_ZOOM = 0.7f;
     private static final float ON_SCREEN_PAD_RELEASE_TOTAL_TIME = 0.3f;
     private static final float GRID_WIDTH = 44;
     private static final float GRID_HEIGHT = 38;
@@ -147,16 +147,18 @@ public class PlayScreen extends ScreenAdapter {
     private static final String TEXTURE_REGION_INDIC = "indic";
     private static final String TEXTURE_REGION_PROGRESSBAR = "progressbar";
     private static final String TEXTURE_REGION_COIN = "coin";
+    private static final String TEXTURE_REGION_BOOST = "boost";
 
     private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3, 2, 3, 0.5f);
     private static final Color COLOR_TIME_TEXT_BACKGROUND = new Color(0x707070cc);
-//    private static final Color COLOR_KILLS_TEXT_BACKGROUND = new Color(0x707070aa);
+    //    private static final Color COLOR_KILLS_TEXT_BACKGROUND = new Color(0x707070aa);
     private static final Color COLOR_KILLS_TEXT_BACKGROUND = new Color(0x606060aa);
     private static final Color COLOR_YOUR_BEST_PROGRESS_TEXT = new Color(0x707070cc);
     private static final Color COLOR_YOUR_PROGRESS_BG = new Color(0x70707088);
     private static final Color CONNECTING_TEXT_COLOR = Color.valueOf("#212121ff");
     private static final Color COLOR_BLOCKS_TEXT_FADE_OUT = Color.valueOf("#212121ff");
     private static final Color COLOR_COINS_TEXT_FADE_OUT = new Color(0x8F6F31ff/*0xa67c00ff*/);
+    //    private static final Color COLOR_COINS_TEXT_FADE_OUT = Color.valueOf("#212121ff");
     private static final Comparator<Player> SORT_PLAYERS_BY_NUM_CELLS = (o1, o2) -> Integer.compare(o2.numCells, o1.numCells);
     private static final Comparator<Player> SORT_PLAYERS_BY_POSITION = (o1, o2) -> Integer.compare(o1._position, o2._position);
 
@@ -1039,8 +1041,10 @@ public class PlayScreen extends ScreenAdapter {
         synchronized (room.state.items.items) {
             for (Item item : room.state.items.items.values()) {
                 if (item.sprite == null) continue;
-                // TODO: only draw items that are in screen
-                item.sprite.draw(batch);
+
+                if (item.x >= leftX && item.x <= leftX + actualWidth && item.y >= bottomY && item.y <= bottomY + actualHeight) {
+                    item.sprite.draw(batch);
+                }
                 float x = MathUtils.lerp(item.sprite.getX() + item.sprite.getWidth() / 2f, item.x, 0.4f);
                 float y = MathUtils.lerp(item.sprite.getY() + item.sprite.getHeight() / 2f, item.y, 0.4f);
                 item.sprite.setCenter(x, y);
@@ -1772,14 +1776,18 @@ public class PlayScreen extends ScreenAdapter {
                     // dead
                     if (soundIsOn) Gdx.app.postRunnable(() -> hitSound.play());
                 } else if (data.get("op").equals("et")) {
-                    System.out.println("just ate item with type " + data.get("type"));
-                    if (soundIsOn) Gdx.app.postRunnable(() -> coinSound.play());
-                    coinValue = (int) data.get("coins");
-                    prefs.putInteger(Constants.KEY_COINS, coinValue).flush();
-                    int add = (int) data.get("add");
-                    synchronized (textFadeOutAnimations) {
-                        Sprite playerSprite = room.state.players.get(room.getSessionId())._stroke;
-                        textFadeOutAnimations.add(new TextFadeOutAnimation("+" + add + " coins", COLOR_COINS_TEXT_FADE_OUT, playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
+                    int itemType = (int) data.get("type");
+                    if(itemType == Item.TYPE_COIN) {
+                        if (soundIsOn) Gdx.app.postRunnable(() -> coinSound.play());
+                        coinValue = (int) data.get("coins");
+                        prefs.putInteger(Constants.KEY_COINS, coinValue).flush();
+                        int add = (int) data.get("add");
+                        synchronized (textFadeOutAnimations) {
+                            Sprite playerSprite = room.state.players.get(room.getSessionId())._stroke;
+                            textFadeOutAnimations.add(new TextFadeOutAnimation("+" + add + " coins", COLOR_COINS_TEXT_FADE_OUT, playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
+                        }
+                    } else if(itemType == Item.TYPE_BOOST) {
+                        if (soundIsOn) Gdx.app.postRunnable(() -> boostSound.play());
                     }
                 }
             }
@@ -1937,10 +1945,13 @@ public class PlayScreen extends ScreenAdapter {
         };
 
         room.state.items.onAdd = (item, key) -> Gdx.app.postRunnable(() -> {
+            if (connectionState != CONNECTION_STATE_CONNECTED) return;
             if (item.type == Item.TYPE_COIN) {
                 item.sprite = mainAtlas.createSprite(TEXTURE_REGION_COIN);
-                item.sprite.setCenter(item.x, item.y);
+            } else if (item.type == Item.TYPE_BOOST) {
+                item.sprite = mainAtlas.createSprite(TEXTURE_REGION_BOOST);
             }
+            item.sprite.setCenter(item.x, item.y);
         });
 
         room.state.players.triggerAll();
