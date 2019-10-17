@@ -136,6 +136,7 @@ public class PlayScreen extends ScreenAdapter {
     //    private static final String PATH_SOUND_CAPTURE = "sfx/capture2.mp3";
     private static final String PATH_SOUND_CLICK = "sfx/click2.wav";
     private static final String PATH_SOUND_BOOST = "sfx/boost1.wav";
+    private static final String PATH_SOUND_COIN = "sfx/coin1.wav";
     private static final String PATH_SOUND_HIT = "sfx/hit1.wav";
     private static final String PATH_SOUND_DEATH = "sfx/lose1.wav";
 
@@ -171,10 +172,10 @@ public class PlayScreen extends ScreenAdapter {
     private Sprite thumbstickBgSprite;
     private Sprite thumbstickPadSprite;
     private Sprite timeBg;
-    private Sprite killsBg;
     private Sprite youWillRspwnBg;
     private Sprite playerProgressBar;
     private Sprite playerProgressBarBest;
+    private Sprite statsBg;
     private Sprite coin;
     private FreeTypeFontGenerator freetypeGeneratorNoto;
     private FreeTypeFontGenerator freetypeGeneratorArial;
@@ -192,6 +193,7 @@ public class PlayScreen extends ScreenAdapter {
     private Sound clickSound;
     private Sound hitSound;
     private Sound boostSound;
+    private Sound coinSound;
     private Sound deathSound;
 
     /* **************************************** FIELDS *******************************************/
@@ -301,16 +303,16 @@ public class PlayScreen extends ScreenAdapter {
         thumbstickPadSprite = mainAtlas.createSprite(TEXTURE_REGION_THUMBSTICK_PAD);
         thumbstickPadSprite.setSize(70, 70);
         timeBg = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
-        killsBg = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
+        statsBg = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         youWillRspwnBg = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         youWillRspwnBg.setColor(COLOR_TIME_TEXT_BACKGROUND);
         timeBg.setColor(COLOR_TIME_TEXT_BACKGROUND);
-        killsBg.setColor(COLOR_KILLS_TEXT_BACKGROUND);
+        statsBg.setColor(COLOR_KILLS_TEXT_BACKGROUND);
         playerProgressBar = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest.setColor(COLOR_YOUR_PROGRESS_BG);
         loadingAnimation = new LoadingAnimation(PATH_LOADING_SPRITESHEET);
-        coin = mainAtlas.createSprite(TEXTURE_REGION_COIN);
+//        coin = mainAtlas.createSprite(TEXTURE_REGION_COIN);
         gameCamera = new OrthographicCamera();
         gameCamera.zoom = CAMERA_INIT_ZOOM;
         fixedCamera = new OrthographicCamera();
@@ -318,6 +320,7 @@ public class PlayScreen extends ScreenAdapter {
 
         if (soundIsOn) {
             boostSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_BOOST));
+            coinSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_COIN));
             clickSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_CLICK));
             deathSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_DEATH));
             hitSound = Gdx.audio.newSound(Gdx.files.internal(PATH_SOUND_HIT));
@@ -344,7 +347,7 @@ public class PlayScreen extends ScreenAdapter {
         timeText = new GlyphLayout(timeFont, "99:99");
         youWillRspwnText = new GlyphLayout(timeFont, I18N.texts[langCode][I18N.you_will_respawn_in_9_seconds]); // TODO: handle rtl :/
         yourProgressText = new GlyphLayout(leaderboardFont, "99.99%");
-        yourProgressBestText = new GlyphLayout(leaderboardFont, "99.99%");
+        yourProgressBestText = new GlyphLayout(leaderboardFont, "BEST 99.99%");
 
         initTiles();
 
@@ -451,8 +454,10 @@ public class PlayScreen extends ScreenAdapter {
                 drawYouWillRespawnText();
             } else if (gameMode == GAME_MODE_FFA) {
 //                drawCoin();
+                drawStatsBackground();
                 drawPlayerProgress();
 //                drawCoinText();
+                drawStatsText();
             }
             for (FontDrawItem fdi : leaderboardDrawList) {
                 leaderboardFont.setColor(fdi.color);
@@ -547,6 +552,7 @@ public class PlayScreen extends ScreenAdapter {
         if (loadingAnimation != null) loadingAnimation.dispose();
         if (captureSound != null) captureSound.dispose();
         if (boostSound != null) boostSound.dispose();
+        if (coinSound != null) coinSound.dispose();
         if (hitSound != null) hitSound.dispose();
         if (deathSound != null) deathSound.dispose();
         if (clickSound != null) clickSound.dispose();
@@ -591,7 +597,7 @@ public class PlayScreen extends ScreenAdapter {
 
         FreeTypeFontGenerator.FreeTypeFontParameter statsFontParams = new FreeTypeFontGenerator.FreeTypeFontParameter();
         statsFontParams.characters += ArUtils.getAllChars().toString("");
-        statsFontParams.size = 16 * Gdx.graphics.getWidth() / screenWidth;
+        statsFontParams.size = 12 * Gdx.graphics.getWidth() / screenWidth;
         statsFontParams.color = new Color(1f, 1f, 1f, 1.0f);
         statsFontParams.flip = false;
         statsFontParams.incremental = true;
@@ -1223,7 +1229,7 @@ public class PlayScreen extends ScreenAdapter {
 
         fdi = new FontDrawItem();
         fdi.color = COLOR_YOUR_BEST_PROGRESS_TEXT;
-        fdi.text = decimalFormat.format(playerBestProgress * 100) + "%";
+        fdi.text = "BEST " + decimalFormat.format(playerBestProgress * 100) + "%";
         fdi.x = playerProgressBarBest.getX() + playerProgressBarBest.getWidth() - yourProgressBestText.width + guiUnits * 8;
         fdi.y = playerProgressBarBest.getY() - 2 * guiUnits;
         leaderboardDrawList.add(fdi);
@@ -1290,6 +1296,30 @@ public class PlayScreen extends ScreenAdapter {
         }
         logFont.draw(batch, logText, -Gdx.graphics.getWidth() / 2f + 8 * guiUnits, -Gdx.graphics.getHeight() / 2f + 2 * guiUnits + logFont.getLineHeight());
     }
+
+    private void drawStatsBackground() {
+        float width = 90 * guiUnits;
+        statsBg.setSize(width, progressbarHeight);
+        statsBg.setPosition(-guiCamera.viewportWidth / 2f, guiCamera.viewportHeight / 2f - 100 * guiUnits);
+        statsBg.draw(batch);
+        statsBg.setSize(width, progressbarHeight);
+        statsBg.setPosition(-guiCamera.viewportWidth / 2f, statsBg.getY() - statsBg.getHeight());
+        statsBg.draw(batch);
+        statsBg.setSize(width, progressbarHeight);
+        statsBg.setPosition(-guiCamera.viewportWidth / 2f, statsBg.getY() - statsBg.getHeight());
+        statsBg.draw(batch);
+    }
+
+    private void drawStatsText() {
+        if (currentPlayer == null) return;
+        float y = guiCamera.viewportHeight / 2f - 100 * guiUnits + progressbarHeight / 2f + 3 * guiUnits;
+        statsFont.setColor(Color.WHITE);
+//        statsFont.draw(batch, "Coins: " + coinValue, statsBg.getX() + 5 * guiUnits, y);
+        statsFont.draw(batch, "Blocks: " + currentPlayer.numCells, statsBg.getX() + 5 * guiUnits, y);
+        statsFont.draw(batch, "Kills: " + currentPlayer.kills, statsBg.getX() + 5 * guiUnits, y - progressbarHeight);
+        statsFont.draw(batch, "Coins: " + coinValue, statsBg.getX() + 5 * guiUnits, y - 2 * progressbarHeight);
+    }
+
     /* ***************************************** LOGIC *******************************************/
 
     private void updatePlayersPositions(float dt) {
@@ -1733,7 +1763,7 @@ public class PlayScreen extends ScreenAdapter {
                     if (soundIsOn) Gdx.app.postRunnable(() -> hitSound.play());
                 } else if (data.get("op").equals("et")) {
                     System.out.println("just ate item with type " + data.get("type"));
-                    if (soundIsOn) Gdx.app.postRunnable(() -> boostSound.play());
+                    if (soundIsOn) Gdx.app.postRunnable(() -> coinSound.play());
                     coinValue = (int) data.get("coins");
                     prefs.putInteger(Constants.KEY_COINS, coinValue).flush();
                     int add = (int) data.get("add");
