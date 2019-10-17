@@ -150,7 +150,8 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final Interpolation ON_SCREEN_PAD_RELEASE_ELASTIC_OUT = new Interpolation.ElasticOut(3, 2, 3, 0.5f);
     private static final Color COLOR_TIME_TEXT_BACKGROUND = new Color(0x707070cc);
-    private static final Color COLOR_KILLS_TEXT_BACKGROUND = new Color(0x707070aa);
+//    private static final Color COLOR_KILLS_TEXT_BACKGROUND = new Color(0x707070aa);
+    private static final Color COLOR_KILLS_TEXT_BACKGROUND = new Color(0x606060aa);
     private static final Color COLOR_YOUR_BEST_PROGRESS_TEXT = new Color(0x707070cc);
     private static final Color COLOR_YOUR_PROGRESS_BG = new Color(0x70707088);
     private static final Color CONNECTING_TEXT_COLOR = Color.valueOf("#212121ff");
@@ -312,7 +313,7 @@ public class PlayScreen extends ScreenAdapter {
         playerProgressBarBest = mainAtlas.createSprite(TEXTURE_REGION_PROGRESSBAR);
         playerProgressBarBest.setColor(COLOR_YOUR_PROGRESS_BG);
         loadingAnimation = new LoadingAnimation(PATH_LOADING_SPRITESHEET);
-//        coin = mainAtlas.createSprite(TEXTURE_REGION_COIN);
+        coin = mainAtlas.createSprite(TEXTURE_REGION_COIN);
         gameCamera = new OrthographicCamera();
         gameCamera.zoom = CAMERA_INIT_ZOOM;
         fixedCamera = new OrthographicCamera();
@@ -1298,16 +1299,24 @@ public class PlayScreen extends ScreenAdapter {
     }
 
     private void drawStatsBackground() {
-        float width = 90 * guiUnits;
-        statsBg.setSize(width, progressbarHeight);
+        statsBg.setSize(70 * guiUnits, progressbarHeight);
         statsBg.setPosition(-guiCamera.viewportWidth / 2f, guiCamera.viewportHeight / 2f - 100 * guiUnits);
         statsBg.draw(batch);
-        statsBg.setSize(width, progressbarHeight);
+
+
+        coin.setSize(10 * guiUnits, 10 * guiUnits);
+        coin.setX(statsBg.getX() + 5 * guiUnits);
+        coin.setCenterY(statsBg.getY() + statsBg.getHeight() / 2f);
+        coin.draw(batch);
+
+        statsBg.setSize(100 * guiUnits, progressbarHeight);
+        statsBg.setPosition(-guiCamera.viewportWidth / 2f, statsBg.getY() - statsBg.getHeight() - 10 * guiUnits);
+        statsBg.draw(batch);
+        statsBg.setSize(100 * guiUnits, progressbarHeight);
         statsBg.setPosition(-guiCamera.viewportWidth / 2f, statsBg.getY() - statsBg.getHeight());
         statsBg.draw(batch);
-        statsBg.setSize(width, progressbarHeight);
-        statsBg.setPosition(-guiCamera.viewportWidth / 2f, statsBg.getY() - statsBg.getHeight());
-        statsBg.draw(batch);
+
+
     }
 
     private void drawStatsText() {
@@ -1315,9 +1324,10 @@ public class PlayScreen extends ScreenAdapter {
         float y = guiCamera.viewportHeight / 2f - 100 * guiUnits + progressbarHeight / 2f + 3 * guiUnits;
         statsFont.setColor(Color.WHITE);
 //        statsFont.draw(batch, "Coins: " + coinValue, statsBg.getX() + 5 * guiUnits, y);
-        statsFont.draw(batch, "Blocks: " + currentPlayer.numCells, statsBg.getX() + 5 * guiUnits, y);
-        statsFont.draw(batch, "Kills: " + currentPlayer.kills, statsBg.getX() + 5 * guiUnits, y - progressbarHeight);
-        statsFont.draw(batch, "Coins: " + coinValue, statsBg.getX() + 5 * guiUnits, y - 2 * progressbarHeight);
+        statsFont.draw(batch, "" + coinValue, statsBg.getX() + 20 * guiUnits, y);
+        statsFont.draw(batch, "Blocks: " + currentPlayer.numCells, statsBg.getX() + 5 * guiUnits, y - progressbarHeight - 10 * guiUnits);
+        statsFont.draw(batch, "Kills: " + currentPlayer.kills, statsBg.getX() + 5 * guiUnits, y - 2 * progressbarHeight - 10 * guiUnits);
+
     }
 
     /* ***************************************** LOGIC *******************************************/
