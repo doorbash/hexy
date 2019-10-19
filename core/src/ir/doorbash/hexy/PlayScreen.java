@@ -1605,7 +1605,7 @@ public class PlayScreen extends ScreenAdapter {
         LinkedHashMap<String, Object> options = new LinkedHashMap<>();
         options.put("name", prefs.getString(Constants.KEY_PLAYER_NAME, ""));
         //String fill = "e" + TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
-        int selectedFill = prefs.getInteger(Constants.KEY_SELECTED_FILL, 0);
+        int selectedFill = prefs.getInteger(Constants.KEY_SELECTED_IMAGE_INDEX, 0);
         if (selectedFill > 0) {
             String fill = "e" + TextUtil.padLeftZeros("" + (selectedFill - 1), 5);
             options.put("fill", fill);

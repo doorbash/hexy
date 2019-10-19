@@ -1,7 +1,6 @@
 package ir.doorbash.hexy;
 
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -123,17 +122,17 @@ public class MainMenuActivity extends AppCompatActivity {
         drawable.setColorFilter(ColorUtil.STROKE_COLORS[selectedColor], PorterDuff.Mode.MULTIPLY);
         stroke.setImageDrawable(drawable);
 
-        int selectedFill = Shared.getInstance(this).getInt(Constants.KEY_SELECTED_FILL, 0);
+        int selectedImageResId = Shared.getInstance(this).getInt(Constants.KEY_SELECTED_IMAGE_RES_ID, 0);
 
-        if (selectedFill == 0) {
+        if (selectedImageResId == 0) {
             fill.setImageResource(R.drawable.circle);
             fill.setColorFilter(ColorUtil.FILL_COLORS[selectedColor]);
         } else {
-            Glide.with(this).load(CustomizeDialog.FILL_IMAGES[selectedFill]).into(fill);
+            Glide.with(this).load(selectedImageResId).into(fill);
             fill.setColorFilter(0);
         }
 
-        coinTxt.setText(Shared.getInstance(this).getInt(Constants.KEY_COINS, 0) + "");
+        coinTxt.setText(String.valueOf(Shared.getInstance(this).getInt(Constants.KEY_COINS, 0)));
     }
 
     public void openCustomize(View view) {

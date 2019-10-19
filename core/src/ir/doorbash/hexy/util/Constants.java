@@ -23,6 +23,7 @@ public class Constants {
     public static final String KEY_PLAYER_NAME = "player_name";
     public static final String KEY_ID = "id";
     public static final String KEY_SELECTED_COLOR = "selected_color";
-    public static final String KEY_SELECTED_FILL = "selected_fill";
+    public static final String KEY_SELECTED_IMAGE_INDEX = "selected_image_index";
+    public static final String KEY_SELECTED_IMAGE_RES_ID = "selected_image_res_id";
     public static final String KEY_COINS = "coins";
 }
