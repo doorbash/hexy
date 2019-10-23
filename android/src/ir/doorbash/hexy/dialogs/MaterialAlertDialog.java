@@ -43,7 +43,7 @@ public class MaterialAlertDialog extends Dialog {
         super.onCreate(savedInstanceState);
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         getWindow().clearFlags(WindowManager.LayoutParams.FLAG_DIM_BEHIND);
-        setContentView(R.layout.dialog_change_log);
+        setContentView(R.layout.dialog_material);
         setCancelable(false);
 
         titleTxt = findViewById(R.id.title);
