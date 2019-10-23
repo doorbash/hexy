@@ -8,8 +8,8 @@ import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.TextView;
 
-import ir.doorbash.hexy.FontManager;
 import ir.doorbash.hexy.R;
+import ir.doorbash.hexy.util.FontManager;
 
 /**
  * Created by Milad Doorbash on 8/29/2019.
