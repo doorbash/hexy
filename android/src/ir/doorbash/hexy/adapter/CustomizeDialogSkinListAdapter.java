@@ -4,22 +4,22 @@ import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.bumptech.glide.Glide;
+
+import java.util.List;
 
 import ir.doorbash.hexy.R;
 import ir.doorbash.hexy.util.ColorUtil;
 
-public class CustomizeDialogImagesListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
-    private Data[] data;
+public class CustomizeDialogSkinListAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+    private List<Data> data;
     private Context context;
     public int selectedColor;
     public Listener listener;
@@ -54,14 +54,14 @@ public class CustomizeDialogImagesListAdapter extends RecyclerView.Adapter<Recyc
         }
     }
 
-    public CustomizeDialogImagesListAdapter(Context context, Data[] data) {
+    public CustomizeDialogSkinListAdapter(Context context, List<Data> data) {
         this.data = data;
         this.context = context;
     }
 
     @Override
     public int getItemViewType(int position) {
-        return data[position].type;
+        return data.get(position).type;
     }
 
     @Override
@@ -70,11 +70,11 @@ public class CustomizeDialogImagesListAdapter extends RecyclerView.Adapter<Recyc
         RecyclerView.ViewHolder vh = null;
         switch (viewType) {
             case 0:
-                itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_customize_fill_images, parent, false);
+                itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_customize_skin_images, parent, false);
                 vh = new ImageViewHolder(itemView);
                 break;
             case 1:
-                itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_customize_images_list_titles, parent, false);
+                itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_customize_skin_list_titles, parent, false);
                 vh = new TextViewHolder(itemView);
         }
         if (itemView == null) return null;
@@ -83,7 +83,7 @@ public class CustomizeDialogImagesListAdapter extends RecyclerView.Adapter<Recyc
 
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
-        final Data item = data[position];
+        final Data item = data.get(position);
         if (item.type == 0) {
             ImageViewHolder vh = (ImageViewHolder) holder;
             if (item.resId == 0) {
@@ -93,7 +93,7 @@ public class CustomizeDialogImagesListAdapter extends RecyclerView.Adapter<Recyc
             } else {
                 Glide.with(context).load(item.resId).into(vh.image);
                 vh.image.setColorFilter(0);
-                if (item.price == 0) {
+                if (item.price == 0 || item.owned) {
                     vh.priceLayout.setVisibility(View.INVISIBLE);
                 } else {
                     vh.priceLayout.setVisibility(View.VISIBLE);
@@ -116,7 +116,7 @@ public class CustomizeDialogImagesListAdapter extends RecyclerView.Adapter<Recyc
 
     @Override
     public int getItemCount() {
-        return data.length;
+        return data.size();
     }
 
     public static class Data {
@@ -127,20 +127,17 @@ public class CustomizeDialogImagesListAdapter extends RecyclerView.Adapter<Recyc
         public int imageCode;
         public boolean owned = false;
 
-        public Data(int resId, int code, int price) {
+        public Data(int resId, int code, int price, boolean owned) {
             this.type = 0;
             this.resId = resId;
             this.imageCode = code;
             this.price = price;
+            this.owned = owned;
         }
 
         public Data(String text) {
             this.type = 1;
             this.text = text;
-        }
-
-        public Data() {
-            this.type = 1;
         }
     }
 
