@@ -14,6 +14,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.bumptech.glide.Glide;
@@ -90,6 +91,15 @@ public class MainMenuActivity extends AppCompatActivity {
     }
 
     private void startGame() {
+        String name = Shared.getInstance(this).getString(Constants.KEY_PLAYER_NAME, "guest");
+        if(name.length() < 5) {
+            new AlertDialog.Builder(this).setMessage("Your name must be at least 5 characters long").setPositiveButton("OK", null).create().show();
+            return;
+        }
+        if(name.length() > 15) {
+            new AlertDialog.Builder(this).setMessage("Your name must not be more than 15 characters").setPositiveButton("OK", null).create().show();
+            return;
+        }
         Intent i = new Intent(MainMenuActivity.this, AndroidLauncher.class);
         MainMenuActivity.this.startActivity(i);
     }
