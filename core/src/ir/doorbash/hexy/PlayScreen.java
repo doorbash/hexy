@@ -119,11 +119,6 @@ public class PlayScreen extends ScreenAdapter {
 
     private static final String TAG = "PlayScreen";
 
-    //        private static final String ENDPOINT = "wss://cefd3aab.ngrok.io";
-    private static final String ENDPOINT = "ws://192.168.1.134:2222";
-//    public static final String ENDPOINT = "ws://46.21.147.7:3333";
-//    public static final String ENDPOINT = "ws://127.0.0.1:3333";
-
     private static final String PATH_FONT_NOTO = "fonts/NotoSans-Regular.ttf";
     private static final String PATH_FONT_ARIAL = "fonts/arialbd.ttf";
 
@@ -1601,15 +1596,16 @@ public class PlayScreen extends ScreenAdapter {
         System.out.println("ConnectToServer...");
         connectionState = CONNECTION_STATE_CONNECTING;
 
-        Client client = new Client(ENDPOINT);
+        Client client = new Client(Constants.GAME_ENDPOINT);
         LinkedHashMap<String, Object> options = new LinkedHashMap<>();
         options.put("name", prefs.getString(Constants.KEY_PLAYER_NAME, ""));
         //String fill = "e" + TextUtil.padLeftZeros((int) (Math.random() * 100) + "", 5);
         int selectedFill = prefs.getInteger(Constants.KEY_SELECTED_IMAGE_INDEX, 0);
-        if (selectedFill > 0) {
-            String fill = "e" + TextUtil.padLeftZeros("" + (selectedFill - 1), 5);
+        System.out.println("TTTTTTTTTTTTTT PLAYSCREEN: selected image = " + selectedFill);
+        if (selectedFill >= 0) {
+            String fill = "e" + TextUtil.padLeftZeros("" + selectedFill, 5);
             options.put("fill", fill);
-            System.out.println("fill is " + fill);
+            System.out.println("TTTTTTTTTTTTTT fill is " + fill);
         } else {
             int sc = ColorUtil.FILL_COLORS[prefs.getInteger(Constants.KEY_SELECTED_COLOR, 0)] & 0xFFFFFF;
             sc = sc << 8;
@@ -1777,7 +1773,7 @@ public class PlayScreen extends ScreenAdapter {
                     if (soundIsOn) Gdx.app.postRunnable(() -> hitSound.play());
                 } else if (data.get("op").equals("et")) {
                     int itemType = (int) data.get("type");
-                    if(itemType == Item.TYPE_COIN) {
+                    if (itemType == Item.TYPE_COIN) {
                         if (soundIsOn) Gdx.app.postRunnable(() -> coinSound.play());
                         coinValue = (int) data.get("coins");
                         prefs.putInteger(Constants.KEY_COINS, coinValue).flush();
@@ -1786,7 +1782,7 @@ public class PlayScreen extends ScreenAdapter {
                             Sprite playerSprite = room.state.players.get(room.getSessionId())._stroke;
                             textFadeOutAnimations.add(new TextFadeOutAnimation("+" + add + " coins", COLOR_COINS_TEXT_FADE_OUT, playerSprite.getX() + playerSprite.getWidth() / 2f, playerSprite.getY() + playerSprite.getHeight() / 2f));
                         }
-                    } else if(itemType == Item.TYPE_BOOST) {
+                    } else if (itemType == Item.TYPE_BOOST) {
                         if (soundIsOn) Gdx.app.postRunnable(() -> boostSound.play());
                     }
                 }
@@ -1834,6 +1830,10 @@ public class PlayScreen extends ScreenAdapter {
                     player.pathCellColor = Color.BLACK;
                 }
 
+                if (player.clientId.equals(room.getSessionId())) {
+                    System.out.println("TTTTTTTTTTTTTT player fill is " + player.fill);
+                }
+
                 if (player.fill.startsWith("#") && player.fill.length() == 9) {
                     player.fillColor = Color.valueOf(player.fill);
                     player.progressColor = player.fillColor;
@@ -1853,7 +1853,12 @@ public class PlayScreen extends ScreenAdapter {
                     player._fill.setColor(player.fillColor);
                     player.fillIsTexture = false;
                 } else {
-                    if (graphicsHigh) player._fill = fillAtlas.createSprite(player.fill);
+                    if (graphicsHigh) {
+                        player._fill = fillAtlas.createSprite(player.fill);
+                        if (player.clientId.equals(room.getSessionId())) {
+                            System.out.println("TTTTTTTTTTTTTT player fill is " + player.fill);
+                        }
+                    }
                     if (player._fill == null) {
                         player._fill = mainAtlas.createSprite(TEXTURE_REGION_BC);
                         player._fill.setColor(player.progressColor);
