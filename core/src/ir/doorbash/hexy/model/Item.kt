@@ -1,34 +1,25 @@
-package ir.doorbash.hexy.model;//
-// THIS FILE HAS BEEN GENERATED AUTOMATICALLY
-// DO NOT CHANGE IT MANUALLY UNLESS YOU KNOW WHAT YOU'RE DOING
-// 
-// GENERATED USING @colyseus/schema 0.4.41
-//
+package ir.doorbash.hexy.model
 
-import com.badlogic.gdx.graphics.g2d.Sprite;
+import com.badlogic.gdx.graphics.g2d.Sprite
+import io.colyseus.annotations.SchemaField
+import io.colyseus.default
+import io.colyseus.serializer.schema.Schema
 
-import io.colyseus.serializer.schema.Schema;
-import io.colyseus.serializer.schema.annotations.SchemaClass;
-import io.colyseus.serializer.schema.annotations.SchemaField;
+class Item : Schema() {
+    @SchemaField("0/float32")
+    var x = Float.default
 
-@SchemaClass
-public class Item extends Schema {
+    @SchemaField("1/float32")
+    var y = Float.default
 
-	public static final int TYPE_COIN = 1;
-	public static final int TYPE_BOOST = 2;
+    @SchemaField("2/uint8")
+    var type = Short.default
 
-	@SchemaField("0/float32")
-	public float x = 0;
 
-	@SchemaField("1/float32")
-	public float y = 0;
+    var sprite: Sprite? = null
 
-	@SchemaField("2/uint8")
-	public short type = 0;
-
-	//	@SchemaField("3/uint8")
-//	public short speed = 0;
-
-	public Sprite sprite;
+    companion object {
+        const val TYPE_COIN = 1
+        const val TYPE_BOOST = 2
+    }
 }
-

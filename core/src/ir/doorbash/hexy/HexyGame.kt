@@ -1,23 +1,17 @@
-package ir.doorbash.hexy;
+package ir.doorbash.hexy
 
-import com.badlogic.gdx.Game;
-import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Game
 
-public class HexyGame extends Game {
-
-    private static final boolean SHOW_SPLASH = false;
-
+class HexyGame : Game() {
     //    private SplashScreen splashScreen;
-    private PlayScreen playScreen;
-
-    @Override
-    public void create() {
-        TrailGraphic.init();
-        Bar.init();
+    private var playScreen: PlayScreen? = null
+    override fun create() {
+        TrailGraphic.init()
+        Bar.init()
 
 //        splashScreen = new SplashScreen();
-        if (playScreen == null) playScreen = new PlayScreen();
-//        if (SHOW_SPLASH) {
+        if (playScreen == null) playScreen = PlayScreen()
+        //        if (SHOW_SPLASH) {
 //            new Thread(() -> {
 //                Gdx.app.postRunnable(() -> setScreen(splashScreen));
 //                try {
@@ -29,8 +23,11 @@ public class HexyGame extends Game {
 //                }
 //            }).start();
 //        } else {
-        setScreen(playScreen);
-//        }
+        setScreen(playScreen)
+        //        }
     }
 
+    companion object {
+        private const val SHOW_SPLASH = false
+    }
 }

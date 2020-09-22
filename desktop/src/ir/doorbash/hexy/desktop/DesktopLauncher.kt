@@ -1,15 +1,15 @@
-package ir.doorbash.hexy.desktop;
+package ir.doorbash.hexy.desktop
 
-import com.badlogic.gdx.backends.lwjgl.LwjglApplication;
-import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration;
+import com.badlogic.gdx.backends.lwjgl.LwjglApplication
+import com.badlogic.gdx.backends.lwjgl.LwjglApplicationConfiguration
+import ir.doorbash.hexy.HexyGame
 
-import ir.doorbash.hexy.HexyGame;
-
-public class DesktopLauncher {
-	public static void main (String[] arg) {
-		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
-		config.width = 800;
-		config.height = 480;
-		new LwjglApplication(new HexyGame(), config);
-	}
+object DesktopLauncher {
+    @JvmStatic
+    fun main(vararg args: String) {
+        val config = LwjglApplicationConfiguration()
+        config.width = 800
+        config.height = 480
+        LwjglApplication(HexyGame(), config)
+    }
 }

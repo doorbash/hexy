@@ -1,79 +1,71 @@
-package ir.doorbash.hexy.util;
+package ir.doorbash.hexy.util
 
-import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.graphics.Color
 
 /**
  * Created by Milad Doorbash on 7/22/2019.
  */
-public class ColorUtil {
+object ColorUtil {
+    private const val PLAYER_PROGRESSBAR_ALPHA = 0.5f
+    private const val PATH_CELL_ALPHA_TINT = 0.4f
+    val STROKE_COLORS = intArrayOf(
+            -0xde690d,  // blue
+            -0x86aab8,  // brown
+            -0xb350b0,  // green
+            -0x6800,  // orange
+            -0x63d850,  // purple
+            -0xbbcca,  // red
+            -0xc0ae4b,  // indigo
+            -0x3b3cc0,
+            -0x61d1d2,
+            -0x41c9b6,
+            -0xff5a5d,
+            -0x5ae076,
+            -0xa46de0,
+            -0x59b0f8,
+            -0x4569cd,
+            -0x57e9c0,
+            -0xff7448,
+            -0x2ed725,
+            -0xeb6ab2,
+            -0x4b38b4,
+            -0xd15983,
+            -0xb24dc6)
+    val FILL_COLORS = intArrayOf(
+            -0x913901,
+            -0x567d8c,
+            -0x7f1d82,
+            -0x36b9,
+            -0x2fa31d,
+            -0x869f,
+            -0x8a8218,
+            -0x2ba,
+            -0x2cacb,
+            -0xa18b,
+            -0xd30104,
+            -0x1d32c,
+            -0x6b00de,
+            -0x67bc,
+            -0x37ce,
+            -0xe3a3,
+            -0xec3a01,
+            -0x99d01,
+            -0xdd007b,
+            -0x120077,
+            -0x760029,
+            -0x630077)
 
-    private static final float PLAYER_PROGRESSBAR_ALPHA = 0.5f;
-    private static final float PATH_CELL_ALPHA_TINT = 0.4f;
-
-    public static final int[] STROKE_COLORS = new int[] {
-            0xff2196f3, // blue
-            0xff795548, // brown
-            0xff4caf50, // green
-            0xffff9800, // orange
-            0xff9c27b0, // purple
-            0xfff44336, // red
-            0xff3f51b5, // indigo
-
-            0xffc4c340,
-            0xff9e2e2e,
-            0xffbe364a,
-            0xff00a5a3,
-            0xffa51f8a,
-            0xff5b9220,
-            0xffa64f08,
-            0xffba9633,
-            0xffa81640,
-            0xff008bb8,
-            0xffd128db,
-            0xff14954e,
-            0xffb4c74c,
-            0xff2ea67d,
-            0xff4db23a,
-    };
-
-    public static final int[] FILL_COLORS = new int[] {
-            0xff6ec6ff,
-            0xffa98274,
-            0xff80e27e,
-            0xffffc947,
-            0xffd05ce3,
-            0xffff7961,
-            0xff757de8,
-
-            0xfffffd46,
-            0xfffd3535,
-            0xffff5e75,
-            0xff2cfefc,
-            0xfffe2cd4,
-            0xff94ff22,
-            0xffff9844,
-            0xffffc832,
-            0xffff1c5d,
-            0xff13c5ff,
-            0xfff662ff,
-            0xff22ff85,
-            0xffedff89,
-            0xff89ffd7,
-            0xff9cff89,
-    };
-
-    public static Color getPlayerProgressColor(Color color) {
-        float r = 1 - PLAYER_PROGRESSBAR_ALPHA + color.r * PLAYER_PROGRESSBAR_ALPHA;
-        float g = 1 - PLAYER_PROGRESSBAR_ALPHA + color.g * PLAYER_PROGRESSBAR_ALPHA;
-        float b = 1 - PLAYER_PROGRESSBAR_ALPHA + color.b * PLAYER_PROGRESSBAR_ALPHA;
-        return new Color(r, g, b, 1.0f);
+    fun getPlayerProgressColor(color: Color?): Color {
+        val r = 1 - PLAYER_PROGRESSBAR_ALPHA + color!!.r * PLAYER_PROGRESSBAR_ALPHA
+        val g = 1 - PLAYER_PROGRESSBAR_ALPHA + color.g * PLAYER_PROGRESSBAR_ALPHA
+        val b = 1 - PLAYER_PROGRESSBAR_ALPHA + color.b * PLAYER_PROGRESSBAR_ALPHA
+        return Color(r, g, b, 1.0f)
     }
 
-    public static Color getPlayerPathCellColor(Color color) {
-        float r = 1 - PATH_CELL_ALPHA_TINT + color.r * PATH_CELL_ALPHA_TINT;
-        float g = 1 - PATH_CELL_ALPHA_TINT + color.g * PATH_CELL_ALPHA_TINT;
-        float b = 1 - PATH_CELL_ALPHA_TINT + color.b * PATH_CELL_ALPHA_TINT;
-        return new Color(r, g, b, 1.0f);
+    fun getPlayerPathCellColor(color: Color?): Color {
+        val r = 1 - PATH_CELL_ALPHA_TINT + color!!.r * PATH_CELL_ALPHA_TINT
+        val g = 1 - PATH_CELL_ALPHA_TINT + color.g * PATH_CELL_ALPHA_TINT
+        val b = 1 - PATH_CELL_ALPHA_TINT + color.b * PATH_CELL_ALPHA_TINT
+        return Color(r, g, b, 1.0f)
     }
-
 }

@@ -1,108 +1,96 @@
-package ir.doorbash.hexy.model;//
-// THIS FILE HAS BEEN GENERATED AUTOMATICALLY
-// DO NOT CHANGE IT MANUALLY UNLESS YOU KNOW WHAT YOU'RE DOING
-// 
-// GENERATED USING @colyseus/schema 0.4.41
-// 
+package ir.doorbash.hexy.model
 
+import com.badlogic.gdx.graphics.Color
+import com.badlogic.gdx.graphics.g2d.GlyphLayout
+import com.badlogic.gdx.graphics.g2d.Sprite
+import io.colyseus.annotations.SchemaField
+import io.colyseus.default
+import io.colyseus.serializer.schema.Schema
+import io.colyseus.serializer.schema.types.ArraySchema
+import io.colyseus.serializer.schema.types.MapSchema
+import ir.doorbash.hexy.TrailGraphic
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.g2d.GlyphLayout;
-import com.badlogic.gdx.graphics.g2d.Sprite;
+class Player : Schema() {
+    @SchemaField("0/uint32")
+    var pid = Long.default
 
-import java.util.LinkedList;
+    @SchemaField("1/float32")
+    var x = Float.default
 
-import io.colyseus.serializer.schema.Schema;
-import io.colyseus.serializer.schema.annotations.SchemaClass;
-import io.colyseus.serializer.schema.annotations.SchemaField;
-import ir.doorbash.hexy.TrailGraphic;
-import ir.doorbash.hexy.util.PathCellUpdate;
+    @SchemaField("2/float32")
+    var y = Float.default
 
-@SchemaClass
-public class Player extends Schema {
+    @SchemaField("3/float32")
+    var angle = Float.default
 
-	public static final boolean CHANGE_DIRECTION_DOWN = false;
-	public static final boolean CHANGE_DIRECTION_UP = true;
+    @SchemaField("4/float32")
+    var new_angle = Float.default
 
-	@SchemaField("0/uint32")
-	public long pid = 0;
+    @SchemaField("5/string")
+    var clientId = String.default
 
-	@SchemaField("1/float32")
-	public float x = 0;
+    @SchemaField("6/array/ref", Point::class)
+    var path = ArraySchema(Point::class.java)
 
-	@SchemaField("2/float32")
-	public float y = 0;
+    @SchemaField("7/map/ref", Cell::class)
+    var cells = MapSchema(Cell::class.java)
 
-	@SchemaField("3/float32")
-	public float angle = 0;
+    @SchemaField("8/array/ref", Cell::class)
+    var path_cells = ArraySchema(Cell::class.java)
 
-	@SchemaField("4/float32")
-	public float new_angle = 0;
+    @SchemaField("9/uint8")
+    var status = Short.default
 
-	@SchemaField("5/string")	
-	public String clientId = "";
+    @SchemaField("10/int64")
+    var rspwnTime = Long.default
 
-	@SchemaField("6/array/ref")	
-	public ArraySchema<Point> path = new ArraySchema<>(Point.class);
+    @SchemaField("11/string")
+    var name = String.default
 
-	@SchemaField("7/map/ref")
-	public MapSchema<Cell> cells = new MapSchema<>(Cell.class);
+    @SchemaField("12/uint16")
+    var speed = Int.default
 
-	@SchemaField("8/array/ref")
-	public ArraySchema<Cell> path_cells = new ArraySchema<>(Cell.class);
+    @SchemaField("13/uint16")
+    var kills = Int.default
 
-	@SchemaField("9/uint8")
-	public short status = 0;
+    @SchemaField("14/uint16")
+    var numCells = Int.default
 
-	@SchemaField("10/int64")
-	public long rspwnTime = 0;
+    @SchemaField("15/string")
+    var fill = String.default
 
-	@SchemaField("11/string")
-	public String name = "";
+    @SchemaField("16/string")
+    var stroke = String.default
 
-	@SchemaField("12/uint16")
-	public int speed = 0;
+    @SchemaField("17/uint16")
+    var coins = Int.default
 
-	@SchemaField("13/uint16")
-	public int kills = 0;
+    var _stroke: Sprite? = null
+    var _fill: Sprite? = null
+    var indic: Sprite? = null
+    var bcGhost: Sprite? = null
+    var progressBar: Sprite? = null
+    var text: GlyphLayout? = null
+    var trailGraphic: TrailGraphic? = null
+    var _name: String? = null
+    var _angle = 0f
+    var _position = 0
+    var _percentage = 0f
+    var positionIsChanging = false
+    var position = 0
+    var changeDir = false
+    var fillColor: Color? = null
+    var strokeColor: Color? = null
+    var progressColor: Color? = null
+    var pathCellColor: Color? = null
+    var fillIsTexture = false
 
-	@SchemaField("14/uint16")
-	public int numCells = 0;
+    override fun equals(other: Any?): Boolean {
+        return other is Player && other.clientId == clientId
+    }
 
-	@SchemaField("15/string")
-	public String fill = "";
-
-	@SchemaField("16/string")
-	public String stroke = "";
-
-//    @SchemaField("12/boolean")
-//    public boolean home = false;
-
-	public Sprite _stroke;
-	public Sprite _fill;
-	public Sprite indic;
-	public Sprite bcGhost;
-	public Sprite progressBar;
-	public GlyphLayout text;
-//	public final HashMap<Integer, Cell> pathCells = new HashMap<>();
-	public TrailGraphic trailGraphic;
-	public final LinkedList<PathCellUpdate> pathCellUpdates = new LinkedList<>();
-	public String _name;
-	public float _angle;
-	public int _position;
-	public float _percentage;
-	public boolean positionIsChanging;
-	public int position;
-	public boolean changeDir;
-	public Color fillColor;
-	public Color strokeColor;
-	public Color progressColor;
-	public Color pathCellColor;
-	public boolean fillIsTexture;
-
-	@Override
-	public boolean equals(Object obj) {
-		return obj instanceof Player && ((Player) obj).clientId.equals(clientId);
-	}
+    companion object {
+        const val CHANGE_DIRECTION_DOWN = false
+        const val CHANGE_DIRECTION_UP = true
+    }
 }
-

@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <item name="dialog_settings_height" type="dimen">340dp</item>
-    <item name="dialog_customize_colors_size" type="dimen">30dp</item>
-</resources>

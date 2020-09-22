@@ -1,60 +1,53 @@
-package ir.doorbash.hexy.util;
+package ir.doorbash.hexy.util
 
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.math.Matrix4;
-
-import java.lang.reflect.Field;
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.math.Matrix4
 
 /**
  * Created by Milad Doorbash on 8/31/2019.
  */
-public class DebugSpriteBatch extends SpriteBatch {
-    @Override
-    protected void switchTexture(Texture texture) {
+class DebugSpriteBatch : SpriteBatch() {
+    override fun switchTexture(texture: Texture) {
         // int x = 1/0;
         try {
-            Field lastTextureField = getClass().getSuperclass().getDeclaredField("lastTexture");
-            lastTextureField.setAccessible(true);
-            Texture lastTexture = (Texture) lastTextureField.get(this);
+            val lastTextureField = javaClass.superclass.getDeclaredField("lastTexture")
+            lastTextureField.isAccessible = true
+            val lastTexture = lastTextureField[this] as Texture
             if (lastTexture != null) {
-                System.out.println("****** switching from " + lastTexture + " to " + texture);
+                println("****** switching from $lastTexture to $texture")
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        super.switchTexture(texture);
+        super.switchTexture(texture)
     }
 
-    @Override
-    public void setProjectionMatrix(Matrix4 projection) {
-        System.out.println("setProjectionMatrix()");
-        super.setProjectionMatrix(projection);
+    override fun setProjectionMatrix(projection: Matrix4) {
+        println("setProjectionMatrix()")
+        super.setProjectionMatrix(projection)
     }
 
-    @Override
-    public void flush() {
+    override fun flush() {
         try {
-            Field idxField = getClass().getSuperclass().getDeclaredField("idx");
-            idxField.setAccessible(true);
-            if (((int) idxField.get(this)) > 0) {
-                System.out.println(">>>>>>>>>>>>> FLUSH >>>>>> renderCalls = " + (renderCalls + 1));
+            val idxField = javaClass.superclass.getDeclaredField("idx")
+            idxField.isAccessible = true
+            if (idxField[this] as Int > 0) {
+                println(">>>>>>>>>>>>> FLUSH >>>>>> renderCalls = " + (renderCalls + 1))
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        super.flush();
+        super.flush()
     }
 
-    @Override
-    public void end() {
-        System.out.println("************* END ******************");
-        super.end();
+    override fun end() {
+        println("************* END ******************")
+        super.end()
     }
 
-    @Override
-    public void begin() {
-        System.out.println("************* BEGIN ******************");
-        super.begin();
+    override fun begin() {
+        println("************* BEGIN ******************")
+        super.begin()
     }
 }

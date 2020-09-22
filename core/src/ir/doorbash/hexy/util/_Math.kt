@@ -1,24 +1,24 @@
-package ir.doorbash.hexy.util;
+package ir.doorbash.hexy.util
 
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.math.MathUtils;
+import com.badlogic.gdx.graphics.OrthographicCamera
+import com.badlogic.gdx.math.MathUtils
 
 /**
  * Created by Milad Doorbash on 8/7/2019.
  */
-public class _Math {
-    public static float angleDistance(float a, float b) {
-        float d = b - a;
+object _Math {
+    fun angleDistance(a: Float, b: Float): Float {
+        var d = b - a
         while (d < -Math.PI) {
-            d += 2 * Math.PI;
+            d += 2 * Math.PI.toFloat()
         }
         while (d > Math.PI) {
-            d -= 2 * Math.PI;
+            d -= 2 * Math.PI.toFloat()
         }
-        return d;
+        return d
     }
 
-    public static float getCameraCurrentXYAngle(OrthographicCamera cam) {
-        return (float) Math.atan2(cam.up.x, cam.up.y) * MathUtils.radiansToDegrees;
+    fun getCameraCurrentXYAngle(cam: OrthographicCamera): Float {
+        return Math.atan2(cam.up.x.toDouble(), cam.up.y.toDouble()).toFloat() * MathUtils.radiansToDegrees
     }
 }

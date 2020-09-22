@@ -1,47 +1,45 @@
-package ir.doorbash.hexy;
+package ir.doorbash.hexy
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.files.FileHandle;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.utils.Disposable;
+import com.badlogic.gdx.Gdx
+import com.badlogic.gdx.graphics.Texture
+import com.badlogic.gdx.graphics.g2d.Animation
+import com.badlogic.gdx.graphics.g2d.SpriteBatch
+import com.badlogic.gdx.graphics.g2d.TextureRegion
+import com.badlogic.gdx.utils.Disposable
 
 /**
  * Created by Milad Doorbash on 8/8/2019.
  */
-public class LoadingAnimation implements Disposable {
+class LoadingAnimation(path: String?) : Disposable {
+    var animation: Animation<TextureRegion>
+    private val sheet: Texture
+    var stateTime: Float
+    fun render(dt: Float, batch: SpriteBatch?, x: Float, y: Float, width: Float, height: Float) {
+        stateTime += dt
+        val currentFrame = animation.getKeyFrame(stateTime, true)
+        batch!!.draw(currentFrame, x, y, width, height)
+    }
 
-    public static final int NUM_FRAMES = 8;
-    public static final float FRAME_DURATION = 0.09f;
+    override fun dispose() {
+        sheet.dispose()
+    }
 
-    public Animation<TextureRegion> animation;
-    private Texture sheet;
-    public float stateTime;
+    companion object {
+        const val NUM_FRAMES = 8
+        const val FRAME_DURATION = 0.09f
+    }
 
-    public LoadingAnimation(String path) {
-        sheet = new Texture(Gdx.files.internal(path), true);
-        sheet.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear);
-        TextureRegion[][] tmp = TextureRegion.split(sheet, sheet.getWidth() / NUM_FRAMES, sheet.getHeight());
-        TextureRegion[] frames = new TextureRegion[NUM_FRAMES];
-        int index = 0;
-        for (int j = 0; j < NUM_FRAMES; j++) {
-            frames[index++] = tmp[0][j];
+    init {
+        sheet = Texture(Gdx.files.internal(path), true)
+        sheet.setFilter(Texture.TextureFilter.MipMapLinearLinear, Texture.TextureFilter.Linear)
+        val tmp = TextureRegion.split(sheet, sheet.width / NUM_FRAMES, sheet.height)
+        val frames = arrayOfNulls<TextureRegion>(NUM_FRAMES)
+        var index = 0
+        for (j in 0 until NUM_FRAMES) {
+            frames[index++] = tmp[0][j]
         }
-        animation = new Animation<>(FRAME_DURATION, frames);
-        animation.setPlayMode(Animation.PlayMode.LOOP);
-        stateTime = 0f;
-    }
-
-    public void render(float dt, SpriteBatch batch, float x, float y, float width, float height) {
-        stateTime += dt;
-        TextureRegion currentFrame = animation.getKeyFrame(stateTime, true);
-        batch.draw(currentFrame, x, y, width, height);
-    }
-
-    @Override
-    public void dispose() {
-        sheet.dispose();
+        animation = Animation(FRAME_DURATION, *frames)
+        animation.playMode = Animation.PlayMode.LOOP
+        stateTime = 0f
     }
 }

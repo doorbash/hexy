@@ -1,7 +1,9 @@
 buildscript {
-    
-
+    ext.kotlin_version = '1.4.0'
     repositories {
+        maven {
+            url "https://dl.bintray.com/doorbash/io.github.doorbash"
+        }
         mavenLocal()
         mavenCentral()
         maven { url "https://plugins.gradle.org/m2/" }
@@ -11,16 +13,15 @@ buildscript {
     }
     dependencies {
         classpath 'org.wisepersist:gwt-gradle-plugin:1.0.6'
-        classpath 'com.android.tools.build:gradle:3.5.0'
         classpath 'com.mobidevelop.robovm:robovm-gradle-plugin:2.3.6'
-        
-
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
 allprojects {
     apply plugin: "eclipse"
     apply plugin: "idea"
+    apply plugin: 'kotlin'
 
     version = '1.0'
     ext {
@@ -30,8 +31,10 @@ allprojects {
         ashleyVersion = '1.7.0'
         aiVersion = '1.8.0'
     }
-
     repositories {
+        maven {
+            url "https://dl.bintray.com/doorbash/io.github.doorbash"
+        }
         mavenLocal()
         mavenCentral()
         jcenter()
@@ -43,8 +46,6 @@ allprojects {
 
 project(":desktop") {
     apply plugin: "java"
-
-
     dependencies {
         implementation project(":core")
         implementation "com.badlogicgames.gdx:gdx-backend-lwjgl:$gdxVersion"
@@ -55,75 +56,29 @@ project(":desktop") {
     }
 }
 
-project(":android") {
-    apply plugin: "android"
-
-    configurations { natives }
-
-    dependencies {
-        implementation project(":core")
-        implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"
-        natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi"
-        natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-armeabi-v7a"
-        natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-arm64-v8a"
-        natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86"
-        natives "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-x86_64"
-        natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi"
-        natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-armeabi-v7a"
-        natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-arm64-v8a"
-        natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86"
-        natives "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-x86_64"
-        implementation 'com.android.support.constraint:constraint-layout:1.1.3'
-        implementation 'com.android.support:appcompat-v7:28.0.0'
-        implementation 'com.android.support:multidex:1.0.3'
-        implementation "com.badlogicgames.gdx:gdx-controllers-android:$gdxVersion"
-        implementation 'com.github.bumptech.glide:glide:4.10.0'
-        annotationProcessor 'com.github.bumptech.glide:compiler:4.10.0'
-        implementation 'com.android.support:recyclerview-v7:28.0.0'
-
-    }
-}
-
-project(":ios") {
-    apply plugin: "java"
-    apply plugin: "robovm"
-
-
-    dependencies {
-        implementation project(":core")
-        implementation "com.mobidevelop.robovm:robovm-rt:$roboVMVersion"
-        implementation "com.mobidevelop.robovm:robovm-cocoatouch:$roboVMVersion"
-        implementation "com.badlogicgames.gdx:gdx-backend-robovm:$gdxVersion"
-        implementation "com.badlogicgames.gdx:gdx-platform:$gdxVersion:natives-ios"
-        implementation "com.badlogicgames.gdx:gdx-freetype-platform:$gdxVersion:natives-ios"
-    }
-}
-
-project(":html") {
-    apply plugin: "gwt"
-    apply plugin: "war"
-
-
-    dependencies {
-        implementation project(":core")
-        implementation "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion"
-        implementation "com.badlogicgames.gdx:gdx:$gdxVersion:sources"
-        implementation "com.badlogicgames.gdx:gdx-backend-gwt:$gdxVersion:sources"
-        
-    }
-}
-
 project(":core") {
     apply plugin: "java"
-
-
     dependencies {
         implementation "com.badlogicgames.gdx:gdx:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
         implementation "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
-        implementation 'org.java-websocket:Java-WebSocket:1.4.0'
-        implementation 'org.msgpack:jackson-dataformat-msgpack:0.8.17'
+        implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+        api "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9"
         implementation 'net.sf.trove4j:trove4j:3.0.3'
+
+        implementation 'org.java-websocket:Java-WebSocket:1.5.1'
+        implementation 'org.msgpack:jackson-dataformat-msgpack:0.8.20'
+        implementation 'org.slf4j:slf4j-simple:1.6.2'
+    }
+    compileKotlin {
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
+    }
+    compileTestKotlin {
+        kotlinOptions {
+            jvmTarget = "1.8"
+        }
     }
 }
 
