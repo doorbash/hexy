@@ -51,7 +51,7 @@ export class FreeForAll extends Room {
     /****************************************** FIELDS ***********************************************/
 
     maxClients = 20;
-    autoDispose = true;
+    autoDispose = false;
 
     players = {};
     skipPlayerPath = SKIP_PLAYER_PATH
@@ -111,8 +111,8 @@ export class FreeForAll extends Room {
     }
 
     onAuth(client: Client, options: any, request?: IncomingMessage): any | Promise<any> {
-        /*if (options.id) return options.id
-        else */return generateId(20)
+        if (options.id) return options.id
+        else return generateId(20)
         // if (options.id) {
         //     await patch(CONSTANTS.api + "/user/" + options.id, { headers: { 'Accept': 'application/json' }, body: { name: options.name ? options.name : "guest" } });
         //     return options.id;
@@ -184,15 +184,10 @@ export class FreeForAll extends Room {
         player.online = false;
         player.leaveTime = Date.now();
         try {
-            // if (consented) {
-            //     throw new Error("consented leave");
-            // }
-
-            // console.log("await this.allowReconnection(client, PLAYER_RECONNECT_WAIT);")
-            // await this.allowReconnection(client, PLAYER_RECONNECT_WAIT);
-
-            throw new Error("player left")
-
+            if (consented) {
+                throw new Error("consented leave");
+            }
+            await this.allowReconnection(client, PLAYER_RECONNECT_WAIT);
         } catch (e) {
             // if(e) console.log(e);
             let player = this.state.players.get(client.id);

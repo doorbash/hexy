@@ -65,10 +65,9 @@ project(":core") {
         implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
         api "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9"
         implementation 'net.sf.trove4j:trove4j:3.0.3'
-        implementation "io.github.doorbash:colyseus-kotlin:0.14.0-alpha.1"
+        implementation "io.github.doorbash:colyseus-kotlin:0.14.0-alpha.2"
 //        implementation 'org.java-websocket:Java-WebSocket:1.5.1'
 //        implementation 'org.msgpack:jackson-dataformat-msgpack:0.8.20'
-//        implementation 'org.slf4j:slf4j-simple:1.6.2'
     }
     compileKotlin {
         kotlinOptions {

@@ -636,7 +636,16 @@ class PlayScreen internal constructor() : ScreenAdapter() {
         val alpha = (MathUtils.sin(4 * time) + 1) / 2f
         leaderboardFont!!.color = Color(CONNECTING_TEXT_COLOR.r, CONNECTING_TEXT_COLOR.b, CONNECTING_TEXT_COLOR.g, alpha)
         // TODO: inja yebar lango en kardam null pointer dad
-        leaderboardFont!!.draw(batch, arFont.getText(I18N.texts[langCode][I18N.connecting]), x + size + gap, y + size / 2f + leaderboardFont!!.lineHeight / 2f - 4 * guiUnits)
+        leaderboardFont!!.draw(
+                batch,
+                try {
+                    arFont.getText(I18N.texts[langCode][I18N.connecting])
+                } catch (e: Exception) {
+                    ""
+                },
+                x + size + gap,
+                y + size / 2f + leaderboardFont!!.lineHeight / 2f - 4 * guiUnits
+        )
     }
 
     private fun drawTiles() {
@@ -1311,7 +1320,7 @@ class PlayScreen internal constructor() : ScreenAdapter() {
         sc = sc shl 8
         sc = sc or 0xFF
         options["stroke"] = "#" + Color(sc)
-        val id = prefs.getString(Constants.KEY_ID, null) // TODO: id on pref?
+        val id = prefs.getString(Constants.KEY_ID, null)
         if (id != null) options["id"] = id
         try {
             if (sessionId == null) {
@@ -1624,7 +1633,7 @@ class PlayScreen internal constructor() : ScreenAdapter() {
             }
         }
 
-        room!!.state.items.onRemove = { item: Item?, key:String ->
+        room!!.state.items.onRemove = { item: Item?, key: String ->
             synchronized(items) {
                 items.remove(key)
             }
@@ -1634,13 +1643,12 @@ class PlayScreen internal constructor() : ScreenAdapter() {
     }
 
     fun registerPlayerCallbacks(player: Player) {
-        player.path.onAdd = label@{ point: Point?, key: Int? ->
-            point!!
-            key!!
+        player.path.onAdd = label@{ point: Point?, key: Int ->
+            if (point == null) return@label
             if (connectionState != CONNECTION_STATE_CONNECTED) return@label
             if (player.trailGraphic == null) return@label
             Gdx.app.postRunnable l@{
-                if(key == 0) return@l
+                if (key == 0 || player.path.isEmpty()) return@l
                 val lastPoint = player.path[key - 1]
                 if (lastPoint != null) {
                     val dx = point.x - lastPoint.x
