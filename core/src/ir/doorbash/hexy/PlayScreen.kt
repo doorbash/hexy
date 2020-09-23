@@ -1629,8 +1629,8 @@ class PlayScreen internal constructor() : ScreenAdapter() {
                 items.remove(key)
             }
         }
-//        room!!.state.players.triggerAll()
-//        room!!.state.items.triggerAll()
+        room!!.state.players.triggerAll()
+        room!!.state.items.triggerAll()
     }
 
     fun registerPlayerCallbacks(player: Player) {
@@ -1675,9 +1675,9 @@ class PlayScreen internal constructor() : ScreenAdapter() {
             if (c == null || c.pid != player.pid) return@label
             cells[cell.x + MAP_SIZE][cell.y + MAP_SIZE] = null
         }
-//        player.cells.triggerAll()
-//        player.path_cells.triggerAll()
-//        player.path.triggerAll()
+        player.cells.triggerAll()
+        player.path_cells.triggerAll()
+        player.path.triggerAll()
     }
 
     private fun checkConnection() {
