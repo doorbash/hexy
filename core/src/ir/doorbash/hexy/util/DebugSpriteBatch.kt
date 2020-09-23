@@ -13,7 +13,7 @@ class DebugSpriteBatch : SpriteBatch() {
         try {
             val lastTextureField = javaClass.superclass.getDeclaredField("lastTexture")
             lastTextureField.isAccessible = true
-            val lastTexture = lastTextureField[this] as Texture
+            val lastTexture = lastTextureField[this] as Texture?
             if (lastTexture != null) {
                 println("****** switching from $lastTexture to $texture")
             }
