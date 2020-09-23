@@ -1,4 +1,4 @@
-<img src="https://github.com/doorbash/hexy-io/blob/master/screenshot.png?raw=true" />
+<img src="https://raw.githubusercontent.com/doorbash/hexy-io/dev/screenshot.png" />
 
 ## Run
 1) Server :
