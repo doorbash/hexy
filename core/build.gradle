@@ -6,7 +6,7 @@ dependencies {
 	api "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 	api "com.badlogicgames.gdx:gdx-controllers:$gdxVersion"
 	api "com.badlogicgames.gdx:gdx-freetype:$gdxVersion"
-	api "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.3.9"
+	api "org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.3.9"
 	api 'net.sf.trove4j:trove4j:3.0.3'
 	api "io.github.doorbash:colyseus-kotlin:0.14.0-alpha.2"
 //        api 'org.java-websocket:Java-WebSocket:1.5.1'

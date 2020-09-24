@@ -4,6 +4,7 @@ package io.github.doorbash.hexy.util
  * Created by Milad Doorbash on 8/30/2019.
  */
 object Constants {
+//    const val GAME_ENDPOINT = "ws://192.168.1.102:2222"
     const val GAME_ENDPOINT = "ws://localhost:2222"
 //    const val API_ENDPOINT = "http://localhost:3232"
     const val CONNECT_TIMEOUT = 10000
